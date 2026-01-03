@@ -13,9 +13,9 @@ export default function NewPasswordForm({
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Nhập mật khẩu mới</CardTitle>
+                    <CardTitle>Change password</CardTitle>
                     <CardDescription>
-                        Nhập mật khẩu mới của bạn
+                        Enter your new password.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -23,16 +23,16 @@ export default function NewPasswordForm({
                         <FieldGroup>
                             <Field>
                                 <div className="flex items-center">
-                                    <FieldLabel htmlFor="password">Mật khẩu mới</FieldLabel>
+                                    <FieldLabel htmlFor="password">New password</FieldLabel>
                                 </div>
                                 <Input id="password" type="password" required/>
                                 <div className="flex items-center">
-                                    <FieldLabel htmlFor="password">Nhập lại mật khẩu</FieldLabel>
+                                    <FieldLabel htmlFor="password">Confirm password</FieldLabel>
                                 </div>
                                 <Input id="repeatPassword" type="password" required/>
                             </Field>
                             <Field>
-                                <Button type="submit">Xác nhận</Button>
+                                <Button type="submit">Accept</Button>
                             </Field>
                         </FieldGroup>
                     </form>

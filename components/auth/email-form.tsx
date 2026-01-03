@@ -13,9 +13,9 @@ export default function EmailForm({
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <Card>
                 <CardHeader>
-                    <CardTitle>Nhập email</CardTitle>
+                    <CardTitle>Enter your email</CardTitle>
                     <CardDescription>
-                        Chúng tôi sẽ gửi mã xác nhận đến email của bạn
+                        We will send you a verification code to your email.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -31,7 +31,7 @@ export default function EmailForm({
                                 />
                             </Field>
                             <Field>
-                                <Button type="submit">Nhận mã</Button>
+                                <Button type="submit">Get OTP</Button>
                             </Field>
                         </FieldGroup>
                     </form>
