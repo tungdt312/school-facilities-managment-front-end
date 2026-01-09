@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import {
+  IconBuildingCommunity,
   IconCamera,
   IconChartBar,
   IconDashboard,
-  IconDatabase,
+  IconDatabase, IconDevices, IconDevicesCog, IconDots, IconFile3d,
   IconFileAi,
   IconFileDescription,
   IconFileWord,
@@ -15,7 +16,7 @@ import {
   IconListDetails,
   IconReport,
   IconSearch,
-  IconSettings,
+  IconSettings, IconTool, IconTransfer, IconTransferIn, IconTransferOut,
   IconUsers,
 } from "@tabler/icons-react"
 
@@ -45,25 +46,54 @@ const data = {
       url: "#",
       icon: IconDashboard,
     },
+  ],
+  userMain: [
     {
-      title: "Lifecycle",
+      title: "Dashboard",
       url: "#",
-      icon: IconListDetails,
+      icon: IconDashboard,
     },
     {
-      title: "Analytics",
+      title: "Borrow",
       url: "#",
-      icon: IconChartBar,
+      icon: IconFile3d
     },
     {
-      title: "Projects",
+      title: "Maintenance",
       url: "#",
-      icon: IconFolder,
+      icon: IconDevicesCog
     },
     {
-      title: "Team",
+      title: "Repair",
       url: "#",
-      icon: IconUsers,
+      icon: IconTool
+    },
+  ],
+  employeeMain: [
+    {
+      title: "Dashboard",
+      url: "#",
+      icon: IconDashboard,
+    },
+    {
+      title: "Devices Transfer",
+      url: "#",
+      icon: IconTransfer
+    },
+    {
+      title: "Borrow",
+      url: "#",
+      icon: IconFile3d
+    },
+    {
+      title: "Maintenance",
+      url: "#",
+      icon: IconDevicesCog
+    },
+    {
+      title: "Repair",
+      url: "#",
+      icon: IconTool
     },
   ],
   navClouds: [
@@ -131,6 +161,60 @@ const data = {
       icon: IconSearch,
     },
   ],
+  users: [
+    {
+      name: "Users",
+      url: "#",
+      icon: IconUsers
+    },
+  ],
+  managements:[
+    {
+      name: "Areas",
+      url: "#",
+      icon: IconBuildingCommunity
+    },
+    {
+      name: "Devices",
+      url: "#",
+      icon: IconDevices
+    },
+    {
+      name: "Devices Procurement",
+      url: "#",
+      icon: IconTransferIn
+    },
+    {
+      name: "Devices Disposal",
+      url: "#",
+      icon: IconTransferOut
+    },
+    {
+      name: "Devices Transfer",
+      url: "#",
+      icon: IconTransfer
+    },
+    {
+      name: "Borrow",
+      url: "#",
+      icon: IconFile3d
+    },
+    {
+      name: "Maintenance",
+      url: "#",
+      icon: IconDevicesCog
+    },
+    {
+      name: "Repair",
+      url: "#",
+      icon: IconTool
+    },
+    {
+      name: "More",
+      url: "#",
+      icon: IconDots
+    },
+  ],
   documents: [
     {
       name: "Data Library",
@@ -162,7 +246,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <a href="#">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Department of Facilities Management</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -170,8 +254,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={data.userMain} />
+        <NavMain items={data.employeeMain} />
+        <NavDocuments name={"User Management"} items={data.users} />
+        <NavDocuments name={"Facilites Management"} items={data.managements} />
+        {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
