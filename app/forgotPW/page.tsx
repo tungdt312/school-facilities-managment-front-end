@@ -1,10 +1,11 @@
 import { OTPForm } from "@/components/auth/otp-form"
+import NewPasswordForm from "@/components/auth/new-password-form";
 
 export default function OTPPage() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-primary">
       <div className="w-full max-w-xs">
-        <OTPForm />
+        <NewPasswordForm />
       </div>
     </div>
   )
