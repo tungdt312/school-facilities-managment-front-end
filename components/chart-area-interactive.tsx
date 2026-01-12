@@ -30,7 +30,7 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 
-export const description = "An interactive area chart"
+export const description = "An interactive areas chart"
 
 const chartData = [
   { date: "2024-04-01", desktop: 222, mobile: 150 },

@@ -2,28 +2,25 @@
 
 import * as React from "react"
 import {
-  IconBuildingCommunity,
-  IconCamera,
-  IconChartBar,
+  IconBuildingCog,
+  IconBuildingCommunity, IconBusinessplan,
+  IconClipboardData,
   IconDashboard,
-  IconDatabase, IconDevices, IconDevicesCog, IconDots, IconFile3d,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings, IconTool, IconTransfer, IconTransferIn, IconTransferOut,
+  IconDevices,
+  IconDevicesCog,
+  IconDots,
+  IconFile3d, IconFileTime,
+  IconInnerShadowTop, IconReportMoney, IconTie,
+  IconTool,
+  IconTransfer,
+  IconTransferIn,
+  IconTransferOut,
   IconUsers,
 } from "@tabler/icons-react"
 
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
+import {NavDocuments} from "@/components/nav-documents"
+import {NavMain} from "@/components/nav-main"
+import {NavUser} from "@/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -43,193 +40,143 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
   ],
   userMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
       title: "Borrow",
-      url: "#",
+      url: "/borrow",
       icon: IconFile3d
     },
     {
       title: "Maintenance",
-      url: "#",
+      url: "/maintenance",
       icon: IconDevicesCog
     },
     {
       title: "Repair",
-      url: "#",
+      url: "/repair",
       icon: IconTool
     },
   ],
   employeeMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
       title: "Devices Transfer",
-      url: "#",
+      url: "/transfer",
       icon: IconTransfer
     },
     {
       title: "Borrow",
-      url: "#",
+      url: "/borrow",
       icon: IconFile3d
     },
     {
-      title: "Maintenance",
-      url: "#",
+      title: "Devices Maintenance",
+      url: "/maintenance",
       icon: IconDevicesCog
     },
     {
-      title: "Repair",
-      url: "#",
+      title: "Devices Repair",
+      url: "/repair",
       icon: IconTool
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
     },
   ],
   users: [
     {
       name: "Users",
-      url: "#",
+      url: "/users",
       icon: IconUsers
     },
   ],
   managements:[
     {
       name: "Areas",
-      url: "#",
+      url: "/areas",
       icon: IconBuildingCommunity
     },
     {
       name: "Devices",
-      url: "#",
+      url: "/devices",
       icon: IconDevices
     },
     {
       name: "Devices Procurement",
-      url: "#",
+      url: "/procurement",
       icon: IconTransferIn
     },
     {
       name: "Devices Disposal",
-      url: "#",
+      url: "/disposal",
       icon: IconTransferOut
     },
     {
       name: "Devices Transfer",
-      url: "#",
+      url: "/transfer",
       icon: IconTransfer
     },
     {
       name: "Borrow",
-      url: "#",
+      url: "/borrow",
       icon: IconFile3d
     },
     {
-      name: "Maintenance",
-      url: "#",
+      name: "Devices Maintenance",
+      url: "/maintenance",
       icon: IconDevicesCog
     },
     {
-      name: "Repair",
-      url: "#",
+      name: "Devices Repair",
+      url: "/repair",
       icon: IconTool
     },
     {
-      name: "More",
-      url: "#",
-      icon: IconDots
+      name: "Devices Audit",
+      url: "/audit",
+      icon: IconClipboardData
     },
   ],
-  documents: [
+  other:[
     {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
+      name: "Fund Sources",
+      url: "/fund-sources",
+      icon: IconBusinessplan
     },
     {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
+      name: "Invoices",
+      url: "/invoices",
+      icon: IconReportMoney
     },
     {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
+      name: "External Units",
+      url: "/external-units",
+      icon: IconTie
+    },
+    {
+      name: "Room Types",
+      url: "/room-types",
+      icon: IconBuildingCog
+    },
+    {
+      name: "Devices Types",
+      url: "/device-types",
+      icon: IconDevicesCog
+    },
+    {
+      name: "Periodic Audit",
+      url: "/periodic-audit",
+      icon: IconFileTime
     },
   ],
 }
@@ -254,10 +201,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavMain items={data.userMain} />
-        <NavMain items={data.employeeMain} />
+        {/*<NavMain items={data.userMain} />*/}
+        {/*<NavMain items={data.employeeMain} />*/}
         <NavDocuments name={"User Management"} items={data.users} />
         <NavDocuments name={"Facilites Management"} items={data.managements} />
+        <NavDocuments name={"Other Management"} items={data.other} />
         {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
       </SidebarContent>
       <SidebarFooter>
