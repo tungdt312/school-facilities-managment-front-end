@@ -1,30 +1,41 @@
+import { UserRole } from "@/constaints/enum";
+
 export interface AuthResponse {
-    AccessToken: string;
-    RefreshToken: string;
-    //User: User
+    accessToken: string;
+    refreshToken: string;
+    user: UserDetailResponse;
+}
+
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ResetPasswordRequest {
+    email: string;
+    otp: string;
+    newPassword: string;
 }
 
 export interface LoginRequest {
-    Email: string;
-    Password: string;
-
+    email: string;
+    password: string;
 }
 
-export interface RefreshTokenResquest {
-    RefreshToken: string;
+export interface RefreshTokenRequest { // Sửa lỗi chính tả Resquest -> Request
+    refreshToken: string;
 }
 
 export interface RegisterRequest {
-    Fullname: string;
-    Email: string;
-    Password: string;
-    //Role: UserRole;
+    fullName: string;
+    email: string;
+    password: string;
+    role: UserRole;
 }
 
 export interface UserDetailResponse {
-    UserId: string;
-    Fullname: string;
-    Email: string;
-    Roles: string;
-    CreatedAt: string;
+    userId: string;
+    fullName: string;
+    email: string;
+    role: string;
+    createdAt: string;
 }

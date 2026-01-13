@@ -125,7 +125,7 @@ export async function apiFetch(url: string, needAuth: boolean, options: RequestI
                 localStorage.removeItem(ACCESS_TOKEN_KEY);
                 localStorage.removeItem(REFRESH_TOKEN_KEY);
                 localStorage.removeItem(USER_KEY);
-                window.location.href = '/sign-in';
+                window.location.href = '/login';
 
                 // Trả về response 401 gốc hoặc ném lỗi
                 return res;
