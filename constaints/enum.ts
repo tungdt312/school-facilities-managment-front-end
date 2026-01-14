@@ -40,3 +40,12 @@ export enum FunctionType {
     Repair = "Repair",
     Liquidate = "Liquidate",
 }
+
+export enum BorrowStatus {
+    Pending = "Pending",
+    Approved = "Approved",
+    Rejected = "Rejected",
+    Borrowing = "Borrowing",
+    Returned = "Returned",
+    Violated = "Violated",
+}

@@ -1,4 +1,4 @@
-import { LocationType } from "@/constaints/enum";
+import {DeviceStatus, LocationType} from "@/constaints/enum";
 
 // --- Request & Period ---
 
@@ -17,7 +17,6 @@ export interface CreateInventoryAuditRequest {
 
 export interface UpdateAuditDetailRequest {
     detailId: string;
-    actualQuantity: number;
     condition: string;
     note: string;
 }
@@ -27,9 +26,8 @@ export interface UpdateAuditDetailRequest {
 export interface AuditDetailResponse {
     detailId: string;
     equipmentName: string;
-    bookQuantity: number;   // Số lượng trên sổ sách/hệ thống
-    actualQuantity: number; // Số lượng kiểm kê thực tế
-    difference: number;     // Chênh lệch (Book - Actual)
+    condition: DeviceStatus;
+    note: string;
 }
 
 export interface InventoryAuditResponse {

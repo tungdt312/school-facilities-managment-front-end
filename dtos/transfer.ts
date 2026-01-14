@@ -9,46 +9,55 @@ export interface ApproveTransferRequest {
 
 export interface CreateTransferRequestRequest {
     createdBy: string;
+
     sourceLocationId: string;
     sourceLocationType: LocationType;
+
     destinationRoomId: string;
     destinationLocationType: LocationType;
-    reason?: string;
+
+    note?: string;
     details: TransferRequestDetailRequest[];
 }
 
 export interface CreateTransferVoucherRequest {
     requestId: string;
     createdBy: string;
+    details: TransferRequestDetailRequest[];
 }
 
 // --- Details ---
 
 export interface TransferRequestDetailRequest{
     equipmentId: string;
-    quantity: number;
+    note?: string;
 }
 
 export interface TransferRequestDetailResponse {
     equipmentId: string;
     equipmentName: string;
-    quantity: number;
+    note?: string;
 }
 
 export interface TransferVoucherDetailResponse {
     equipmentId: string;
     equipmentName: string;
-    quantity: number;
+    note?: string;
 }
 
 // --- Main Responses ---
 
 export interface TransferRequestResponse {
     requestId: string;
+
+    createdAt: string;
+    createdBy: string;
     createdByName: string;
+
     sourceLocationName: string;
     destinationLocationName: string;
-    reason: string;
+
+    note: string;
     status: VoucherStatus;
     details: TransferRequestDetailResponse[];
 }
@@ -56,9 +65,15 @@ export interface TransferRequestResponse {
 export interface TransferVoucherResponse {
     transferId: string;
     requestId: string;
+
+    createdBy: string;
     createdByName: string;
     createdAt: string; // DateTime từ C# chuyển thành string ISO
+
     sourceLocationId: string;
+    sourceLocationType: LocationType;
     destinationRoomId: string;
+    destinationLocationType: LocationType;
+
     details: TransferVoucherDetailResponse[];
 }

@@ -2,13 +2,27 @@ import { VoucherStatus, LocationType } from "@/constaints/enum";
 
 export interface CreateImportRequestRequest {
     createdBy: string;
-    reason?: string;
+    note?: string;
     details: ImportRequestDetailRequest[];
+}
+
+export interface CreateImportVoucherRequest {
+    requestId: string;
+    createdBy: string;
+    invoiceId: string;
+    details: ImportVoucherDetailRequest[];
 }
 
 export interface ImportRequestDetailRequest {
     equipmentName: string;
     quantity: number;
+    note?: string;
+}
+
+export interface ImportVoucherDetailRequest {
+    equipmentName: string;
+    unitPrice: number;
+    note?: string;
 }
 
 export interface UpdateImportRequestStatusResponse {
@@ -16,45 +30,40 @@ export interface UpdateImportRequestStatusResponse {
     approvedBy: string;
 }
 
-export interface ImportRequestResponse {
-    requestId: string;
-    createdByName: string;
-    createdAt: string;
-    reason?: string;
-    status: VoucherStatus;
-    details: ImportRequestDetailResponse[];
-}
-
 export interface ImportRequestDetailResponse {
     detailId: string;
     equipmentName: string;
     quantity: number;
+    note?: string;
 }
 
-export interface CreateImportVoucherRequest {
+export interface ImportRequestResponse {
     requestId: string;
-    supplierId: string;
-    fundingSourceId: string;
     createdBy: string;
-    invoiceNumber: string;
-    totalAmount: number;
-    details: ImportVoucherDetailRequest[];
+    createdByName: string;
+    createdAt: string;
+    approvedBy: string;
+    approvedAt: string;
+    approvedByName: string;
+    note?: string;
+    status: VoucherStatus;
+    details: ImportRequestDetailResponse[];
 }
 
-export interface ImportVoucherDetailRequest {
-    existingEquipmentId?: string;
+export interface ImportVoucherDetailResponse {
+    equipmentId: string;
     equipmentName: string;
-    categoryId: string;
     quantity: number;
     unitPrice: number;
-    locationId: string;
-    locationType: LocationType;
+    note?: string;
 }
 
 export interface ImportVoucherResponse {
     importId: string;
     requestId: string;
-    supplierName: string;
+    unitId: string;
+    unitName: string;
+    invoiceId: string;
     invoiceNumber: string;
     totalAmount: number;
     createdBy: string;
@@ -65,9 +74,3 @@ export interface ImportVoucherResponse {
     details: ImportVoucherDetailResponse[];
 }
 
-export interface ImportVoucherDetailResponse {
-    equipmentId: string;
-    equipmentName: string;
-    quantity: number;
-    unitPrice: number;
-}

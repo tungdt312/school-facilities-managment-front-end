@@ -6,39 +6,18 @@ export interface CreateLiquidateRequestRequest {
     details: LiquidateRequestDetailRequest[];
 }
 
-export interface LiquidateRequestDetailRequest {
-    equipmentId: string;
-    quantity: number;
-}
-
-export interface UpdateLiquidateRequestStatusResponse {
-    status: VoucherStatus;
-    approvedBy: string;
-}
-
-export interface LiquidateRequestResponse {
-    requestId: string;
-    createdByName: string;
-    createdAt: string;
-    note?: string;
-    status: VoucherStatus;
-    details: LiquidateRequestDetailResponse[];
-}
-
-export interface LiquidateRequestDetailResponse {
-    equipmentId: string;
-    equipmentName: string;
-    quantity: number;
-}
-
 export interface CreateLiquidateVoucherRequest {
     requestId: string;
     createdBy: string;
 
-    invoiceNumber: string;
-    totalAmount: number;
+    invoiceId: string;
 
     details: LiquidateVoucherDetailRequest[];
+}
+
+export interface LiquidateRequestDetailRequest {
+    equipmentId: string;
+    note?: string;
 }
 
 export interface LiquidateVoucherDetailRequest {
@@ -46,16 +25,49 @@ export interface LiquidateVoucherDetailRequest {
     note?: string;
 }
 
-export interface LiquidateVoucherResponse {
-    liquidateId: string;
+export interface UpdateLiquidateRequestStatusRequest {
+    status: VoucherStatus;
+    approvedBy: string;
+}
 
-    invoiceNumber: string;
-    totalAmount: number;
-    details: LiquidateVoucherDetailResponse[];
+export interface LiquidateRequestDetailResponse {
+    equipmentId: string;
+    equipmentName: string;
+    quantity: number;
+    note?: string;
+}
+
+export interface LiquidateRequestResponse {
+    requestId: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    approvedBy: string;
+    approvedByName: string;
+    approvedAt: string;
+    note?: string;
+    status: VoucherStatus;
+    details: LiquidateRequestDetailResponse[];
 }
 
 export interface LiquidateVoucherDetailResponse {
     equipmentId: string;
     equipmentName: string;
+    quantity: number;
     note?: string;
 }
+
+export interface LiquidateVoucherResponse {
+    liquidateId: string;
+    requestId: string;
+    unitId: string;
+    unitName: string;
+    invoiceId: string;
+    invoiceNumber: string;
+    totalAmount: number; // Tiền thu về từ việc thanh lý
+    createdAt: string;   // ISO String
+    createdBy: string;
+    createdByName: string;
+    details: LiquidateVoucherDetailResponse[];
+}
+

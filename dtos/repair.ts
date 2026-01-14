@@ -1,6 +1,11 @@
 import { VoucherStatus, MaintenanceStatus } from "@/constaints/enum";
 
-// --- Request & Approval ---
+// --- REPAIR REQUEST (Yêu cầu sửa chữa) ---
+
+export interface RepairRequestDetailRequest { // Thay thế RepairRequestDetailDto
+    equipmentId: string;
+    note?: string; // Mô tả hư hỏng (VD: Màn hình vỡ)
+}
 
 export interface CreateRepairRequestRequest {
     createdBy: string;
@@ -13,32 +18,26 @@ export interface UpdateRepairRequestStatusRequest {
     approvedBy: string;
 }
 
+// --- REPAIR VOUCHER (Phiếu sửa chữa thực tế) ---
+
 export interface CreateRepairVoucherRequest {
     requestId: string;
     createdBy: string;
-    invoiceNumber: string;
-    totalAmount: number;
-    providerId?: string;
+    invoiceId: string;
+    details: RepairRequestDetailRequest[];
 }
 
 export interface UpdateRepairVoucherStatusRequest {
-    status: MaintenanceStatus; // Thường dùng: Completed / Failed
+    status: MaintenanceStatus; // Completed / Failed
 }
 
-// --- Details ---
-
-export interface RepairRequestDetailRequest {
-    equipmentId: string;
-    description: string; // Mô tả hư hỏng (VD: Màn hình vỡ)
-}
+// --- RESPONSES ---
 
 export interface RepairRequestDetailResponse {
     equipmentId: string;
     equipmentName: string;
-    description: string;
+    note?: string;
 }
-
-// --- Main Responses ---
 
 export interface RepairRequestResponse {
     requestId: string;
@@ -55,4 +54,5 @@ export interface RepairVoucherResponse {
     totalAmount: number;
     status: MaintenanceStatus;
     providerName: string;
+    details: RepairRequestDetailResponse[];
 }

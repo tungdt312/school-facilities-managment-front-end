@@ -10,7 +10,6 @@ export interface CreateDeviceRequest {
     isPublic: boolean;
     status: DeviceStatus;
     description?: string;
-    image?: string;
     warrantyExpiryDate?: string;
 }
 
@@ -21,14 +20,15 @@ export interface UpdateDeviceRequest {
 export interface DeviceResponse {
     equipmentId: string;
     equipmentName: string;
+    categoryId: string;
     categoryName: string;
 
     locationId: string;
     locationName: string;
     locationType: LocationType;
 
-    quantity: number;
     unitPrice: number;
     status: DeviceStatus;
-    image: string;
+    description?: string;
+    warrantyExpiryDate?: string;
 }

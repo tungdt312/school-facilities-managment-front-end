@@ -1,11 +1,16 @@
-import { VoucherStatus, MaintenanceStatus } from "@/constaints/enum";
+import { VoucherStatus, MaintenanceStatus, LocationType } from "@/constaints/enum";
+// --- MAINTENANCE (Bảo trì) ---
 
-// --- Request & Approval ---
-
+// 1. Requests
 export interface CreateMaintenanceRequestRequest {
     createdBy: string;
     note?: string;
     details: MaintenanceRequestDetailRequest[];
+}
+
+export interface MaintenanceRequestDetailRequest { // Đổi từ MaintenanceRequestDetailDto
+    equipmentId: string;
+    note?: string;
 }
 
 export interface UpdateMaintenanceRequestStatusRequest {
@@ -16,30 +21,24 @@ export interface UpdateMaintenanceRequestStatusRequest {
 export interface CreateMaintenanceVoucherRequest {
     requestId: string;
     createdBy: string;
-    invoiceNumber: string;
-    totalAmount: number;
-    providerId?: string; // Đơn vị thực hiện bảo trì
+    invoiceId: string;
+    details: MaintenanceRequestDetailRequest[];
 }
 
-// --- Details ---
-
-export interface MaintenanceRequestDetailRequest {
-    equipmentId: string;
-    description: string; // Mô tả tình trạng hư hỏng/cần bảo trì
-}
-
+// 2. Responses
 export interface MaintenanceRequestDetailResponse {
     equipmentId: string;
     equipmentName: string;
     description: string;
 }
 
-// --- Main Responses ---
-
 export interface MaintenanceRequestResponse {
     requestId: string;
+
+    createdBy: string;
     createdByName: string;
     createdAt: string; // ISO String
+
     note: string;
     status: VoucherStatus;
     details: MaintenanceRequestDetailResponse[];
@@ -47,7 +46,14 @@ export interface MaintenanceRequestResponse {
 
 export interface MaintenanceVoucherResponse {
     voucherId: string;
+
+    invoiceId: string;
     invoiceNumber: string;
     totalAmount: number;
+
+    createdAt: string; // ISO String
+    createdBy: string;
+    createdByName: string;
+
     status: MaintenanceStatus;
 }
