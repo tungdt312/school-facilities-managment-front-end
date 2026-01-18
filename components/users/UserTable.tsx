@@ -1,7 +1,14 @@
 "use client"
 import React, {useEffect, useMemo, useState} from 'react'
 import {UserResponse} from "@/dtos/user";
-import {ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable, VisibilityState} from '@tanstack/react-table';
+import {
+    ColumnDef,
+    flexRender,
+    getCoreRowModel,
+    SortingState,
+    useReactTable,
+    VisibilityState
+} from '@tanstack/react-table';
 import {useDebounce} from '@/hooks/use-rebounce';
 import {Checkbox} from '../ui/checkbox';
 import {Button} from '../ui/button';
@@ -25,15 +32,15 @@ import {
     DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {MOCK_USERS} from "@/components/mock-data/users-data";
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
 import {UserRole} from "@/constaints/enum";
 import z from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import {useForm} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
 import {
     Dialog,
     DialogContent,
@@ -44,22 +51,18 @@ import {
     DialogTrigger
 } from '../ui/dialog';
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from '../ui/form';
+import {formatISODate} from "@/lib/utils";
 
 export const UserTable = () => {
     const [data, setData] = useState<UserResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0); // Tổng số bản ghi từ Server
+
     const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
-    // 2. Table Control States
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-
-    // Pagination
     const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
-
-    // Sorting
     const [sorting, setSorting] = useState<SortingState>([]);
-    // Filtering
     const [searchTerm, setSearchTerm] = useState(""); // Trạng thái ô tìm kiếm
     const debouncedSearch = useDebounce(searchTerm, 500); // Debounce để tránh spam API khi gõ
 
@@ -96,7 +99,7 @@ export const UserTable = () => {
                     ID <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({row}) => <div className="text-muted-foreground">{row.original.userId}</div>,
+            cell: ({row}) => <div>{row.original.userId}</div>,
         },
         {
             accessorKey: "fullName", // Giả sử search API map vào field này
@@ -106,7 +109,7 @@ export const UserTable = () => {
                     Full Name <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({row}) => <div className="text-muted-foreground">{row.original.fullName}</div>, // Gọi fetchData wrapper
+            cell: ({row}) => <div>{row.original.fullName}</div>, // Gọi fetchData wrapper
         },
         {
             accessorKey: "email",
@@ -142,7 +145,7 @@ export const UserTable = () => {
                                         setSelectedRoles(prev =>
                                             checked
                                                 ? [...prev, role]
-                                                : prev.filter(r=> r != role)
+                                                : prev.filter(r => r != role)
                                         );
                                         setPagination(p => ({...p, pageIndex: 0})); // Reset về trang 1
                                     }}
@@ -178,15 +181,16 @@ export const UserTable = () => {
                     Created At <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({row}) => <div className="text-muted-foreground">{row.original.createdAt}</div>,
+            cell: ({row}) => <div className="text-muted-foreground">{formatISODate(row.original.createdAt)}</div>,
         },
         {
             accessorKey: "action",
             header: "",
             cell: ({row}) =>
                 <div className="flex">
-                <Link href={`/users/${row.original.userId}`}><ExternalLink className={"text-muted-foreground size-4"}/></Link>
-            </div>,
+                    <Link href={`/users/${row.original.userId}`}><ExternalLink
+                        className={"text-muted-foreground size-4"}/></Link>
+                </div>,
         },
 
     ], [selectedRoles]); // Dùng useMemo để tránh re-render columns không cần thiết
@@ -259,34 +263,36 @@ export const UserTable = () => {
         fetchData();
     };
     return (
-        <div className="w-full space-y-4 pt-6">
-            <div className="flex items-center gap-2 w-full ">
+        <div className="w-full space-y-4">
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full ">
                 <Input
-                    placeholder="Find user..."
+                    placeholder="Search user..."
                     value={searchTerm}
                     onChange={handleSearchChange}
-                    className="h-8 w-full"
+                    className="h-8 w-full max-w-sm"
                 />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Columns2 className="mr-2 size-4"/> Xem
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        {table.getAllColumns().filter(c => c.getCanHide()).map(column => (
-                            <DropdownMenuCheckboxItem
-                                key={column.id}
-                                className="capitalize"
-                                checked={column.getIsVisible()}
-                                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                            >
-                                {(column.columnDef.meta as any)?.label || column.id}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-                <CreateUserDialog onSuccess={fetchData} />
+                <div className="ml-auto flex items-center gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Columns2 className="mr-2 size-4"/> Columns
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            {table.getAllColumns().filter(c => c.getCanHide()).map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    className="capitalize"
+                                    checked={column.getIsVisible()}
+                                    onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                                >
+                                    {(column.columnDef.meta as any)?.label || column.id.replace(/([A-Z])/g, ' $1')}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    <CreateUserDialog onSuccess={fetchData}/>
+                </div>
             </div>
             <div className="rounded-md border bg-card">
                 <Table>
@@ -358,7 +364,7 @@ export const UserTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Trang {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
@@ -417,8 +423,10 @@ type FormValues = z.infer<typeof createUserSchema>
 interface CreateUserDialogProps {
     onSuccess: () => void // Để load lại bảng sau khi thêm thành công
 }
+
 export type CreateUserFormValues = z.infer<typeof createUserSchema>;
-export function CreateUserDialog({ onSuccess }: CreateUserDialogProps) {
+
+export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
     const [open, setOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -454,7 +462,7 @@ export function CreateUserDialog({ onSuccess }: CreateUserDialogProps) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button size="sm" className="gap-1">
-                    <PlusCircle className="h-3.5 w-3.5" />
+                    <PlusCircle className="h-3.5 w-3.5"/>
                     <span>Add User</span>
                 </Button>
             </DialogTrigger>
@@ -471,52 +479,52 @@ export function CreateUserDialog({ onSuccess }: CreateUserDialogProps) {
                         <FormField
                             control={form.control}
                             name="fullName"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="John Doe" {...field} />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
                             name="email"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
                                         <Input placeholder="john@example.com" {...field} />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
                             name="password"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Password</FormLabel>
                                     <FormControl>
                                         <Input type="password" placeholder="••••••••" {...field} />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
                         <FormField
                             control={form.control}
                             name="role"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Role</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select a role" />
+                                                <SelectValue placeholder="Select a role"/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -527,14 +535,14 @@ export function CreateUserDialog({ onSuccess }: CreateUserDialogProps) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
 
                         <DialogFooter className="pt-4">
                             <Button type="submit" disabled={isSubmitting} className="w-full">
-                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                 Save user
                             </Button>
                         </DialogFooter>

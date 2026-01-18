@@ -49,3 +49,11 @@ export enum BorrowStatus {
     Returned = "Returned",
     Violated = "Violated",
 }
+
+export enum BookingStatus {
+    Pending = "Pending",
+    Approved = "Approved",
+    Rejected = "Rejected",
+    Cancelled = "Cancelled",
+    Completed = "Completed",
+}

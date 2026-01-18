@@ -33,7 +33,6 @@ export interface UpdateLiquidateRequestStatusRequest {
 export interface LiquidateRequestDetailResponse {
     equipmentId: string;
     equipmentName: string;
-    quantity: number;
     note?: string;
 }
 
@@ -53,7 +52,6 @@ export interface LiquidateRequestResponse {
 export interface LiquidateVoucherDetailResponse {
     equipmentId: string;
     equipmentName: string;
-    quantity: number;
     note?: string;
 }
 

@@ -8,9 +8,14 @@ export interface BorrowDetailRequest {
 }
 
 export interface CreateBorrowRequest {
+    borrowerId: string;
     note?: string;
     returnDate?: string; // Ngày dự kiến trả (ISO String)
     details: BorrowDetailRequest[];
+}
+
+export interface ReturnBorrowRequest {
+    returnDetails: BorrowDetailRequest[];
 }
 
 export interface UpdateBorrowRequest {

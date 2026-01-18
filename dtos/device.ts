@@ -32,3 +32,4 @@ export interface DeviceResponse {
     description?: string;
     warrantyExpiryDate?: string;
 }
+
