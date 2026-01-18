@@ -1,226 +1,215 @@
 "use client"
-import React, { useEffect, useMemo, useState } from 'react'
-import { MaintenanceRequestResponse } from "@/dtos/maintenance";
-import { ColumnDef, flexRender, getCoreRowModel, SortingState, useReactTable, VisibilityState } from '@tanstack/react-table';
-import { useDebounce } from '@/hooks/use-rebounce';
-import { Checkbox } from '../ui/checkbox';
-import { Button } from '../ui/button';
-import {
-    ArrowUpDown,
-    ChevronLeft,
-    ChevronRight,
-    ChevronsLeft,
-    ChevronsRight,
-    Columns2,
-    ExternalLink,
-    Filter,
-    Loader,
-    Trash2,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Input } from '../ui/input';
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator,
-    DropdownMenuTrigger
-} from '../ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+
+import { useState, useEffect, useMemo } from "react";
+import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MaintenanceRequestResponse } from "@/dtos/maintenance";
+import { CreateMaintenanceRequestDialog } from "./CreateMaintenanceRequestDialog";
+import { EditMaintenanceRequestDialog } from "./EditMaintenanceRequestDialog";
+import { CreateMaintenanceVoucherDialog } from "./CreateMaintenanceVoucherDialog";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { VoucherStatus } from "@/constaints/enum";
 
 // Mock data
-const MOCK_MAINTENANCE_REQUESTS: MaintenanceRequestResponse[] = [
+
+const MOCK_REQUESTS: MaintenanceRequestResponse[] = [
     {
         requestId: "REQ001",
-        createdBy: "user001",
-        createdByName: "John Doe",
-        createdAt: "2024-01-15",
-        note: "Request for equipment maintenance",
+        createdBy: "U001",
+        createdByName: "John Nguyen",
+        createdAt: "2026-01-15T10:30:00Z",
+        note: "Multiple devices need maintenance",
         status: VoucherStatus.Pending,
         details: [
-            {
-                equipmentId: "EQ001",
-                equipmentName: "Air Conditioner",
-                description: "Needs cleaning and servicing"
-            }
-        ]
+            { equipmentId: "EQ001", equipmentName: "Laptop Dell XPS 13", description: "High-performance laptop" },
+            { equipmentId: "EQ002", equipmentName: "Projector Epson EB-X39", description: "Classroom projector" },
+        ],
     },
     {
         requestId: "REQ002",
-        createdBy: "user002",
+        createdBy: "U002",
         createdByName: "Jane Smith",
-        createdAt: "2024-01-16",
-        note: "Urgent maintenance needed",
+        createdAt: "2026-01-17T14:45:00Z",
+        note: "Printer needs repair",
         status: VoucherStatus.Approved,
         details: [
-            {
-                equipmentId: "EQ002",
-                equipmentName: "Projector",
-                description: "Lamp replacement needed"
-            }
-        ]
+            { equipmentId: "EQ003", equipmentName: "Printer HP LaserJet Pro", description: "Network printer" },
+        ],
     },
 ];
+
+const getStatusColor = (status: VoucherStatus) => {
+    switch (status) {
+        case VoucherStatus.Pending:
+            return "bg-yellow-100 text-yellow-800";
+        case VoucherStatus.Approved:
+            return "bg-green-100 text-green-800";
+        case VoucherStatus.Rejected:
+            return "bg-red-100 text-red-800";
+        default:
+            return "bg-gray-100 text-gray-800";
+    }
+};
 
 export const MaintenanceRequestTable = () => {
     const [data, setData] = useState<MaintenanceRequestResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
-    const [selectedStatuses, setSelectedStatuses] = useState<VoucherStatus[]>([]);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isCreateVoucherDialogOpen, setIsCreateVoucherDialogOpen] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequestResponse | null>(null);
+    const [selectedRequestForVoucher, setSelectedRequestForVoucher] = useState<string | undefined>();
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
-    const [searchTerm, setSearchTerm] = useState("");
-    const debouncedSearch = useDebounce(searchTerm, 500);
 
-    const columns: ColumnDef<MaintenanceRequestResponse>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({ table }) => (
-                <div className="flex items-center justify-center">
-                    <Checkbox
-                        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                        aria-label="Select all"
-                    />
-                </div>
-            ),
-            cell: ({ row }) => (
-                <div className="flex items-center justify-center">
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onCheckedChange={(value) => row.toggleSelected(!!value)}
-                        aria-label="Select row"
-                    />
-                </div>
-            ),
-            size: 40,
-            enableSorting: false,
-        },
-        {
-            accessorKey: "requestId",
-            header: ({ column }) => (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="px-0 hover:bg-transparent">
-                    Request ID <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
-            cell: ({ row }) => <div className="text-muted-foreground font-medium">{row.original.requestId}</div>,
-        },
-        {
-            accessorKey: "createdByName",
-            header: ({ column }) => (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="px-0 hover:bg-transparent">
-                    Created By <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
-            cell: ({ row }) => <div className="text-muted-foreground">{row.original.createdByName}</div>,
-        },
-        {
-            accessorKey: "note",
-            header: "Note",
-            cell: ({ row }) => <div className="truncate max-w-[250px]" title={row.original.note}>{row.original.note}</div>,
-        },
-        {
-            accessorKey: "status",
-            header: ({ column }) => {
-                return (<div className="flex items-center gap-2">
-                    <span>Status</span>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Filter
-                                    className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`} />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(VoucherStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev =>
-                                            checked
-                                                ? [...prev, status]
-                                                : prev.filter(s => s != status)
-                                        );
-                                        setPagination(p => ({ ...p, pageIndex: 0 }));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
-                            {selectedStatuses.length > 0 && (
-                                <>
-                                    <DropdownMenuSeparator />
-                                    <div
-                                        onClick={() => setSelectedStatuses([])}
-                                        className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent focus:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50 text-destructive hover:text-destructive"
-                                    >
-                                        Clear filter
-                                    </div>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>)
-            },
-            cell: ({ row }) => (
-                <div className="flex flex-wrap gap-1">
-                    <Badge variant={row.original.status === VoucherStatus.Approved ? "default" : row.original.status === VoucherStatus.Rejected ? "destructive" : "secondary"}>
-                        {row.original.status}
-                    </Badge>
-                </div>
-            ),
-        },
-        {
-            accessorKey: "createdAt",
-            header: ({ column }) => (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="px-0 hover:bg-transparent">
-                    Created At <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
-            cell: ({ row }) => <div className="text-muted-foreground">{row.original.createdAt}</div>,
-        },
-        {
-            accessorKey: "action",
-            header: "",
-            cell: ({ row }) =>
-                <div className="flex gap-2">
-                    <Link href={`/maintenance/request/${row.original.requestId}`}><ExternalLink className={"text-muted-foreground size-4"} /></Link>
-                </div>,
-        },
-    ], [selectedStatuses]);
+    const [pagination, setPagination] = useState({
+        pageIndex: 0,
+        pageSize: 10,
+    });
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
         setIsLoading(true);
-        try {
-            setData(MOCK_MAINTENANCE_REQUESTS);
-            setRowCount(MOCK_MAINTENANCE_REQUESTS.length);
-        } catch (e) {
-            console.error(e);
-            toast.error("Failed to load maintenance requests");
-            setData([]);
-            setRowCount(0);
-        } finally {
-            setIsLoading(false);
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        let filteredData = MOCK_REQUESTS;
+
+        if (debouncedSearch) {
+            filteredData = filteredData.filter(item =>
+                item.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                item.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
+            );
         }
+
+        setRowCount(filteredData.length);
+        setData(filteredData);
+        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagination.pageIndex, pagination.pageSize, sorting, debouncedSearch, selectedStatuses]);
+    }, [debouncedSearch]);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    const columns: ColumnDef<MaintenanceRequestResponse>[] = useMemo(() => [
+        {
+            accessorKey: "requestId",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="h-8 p-0 px-0 hover:bg-transparent"
+                >
+                    Request ID
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ row }) => row.getValue("requestId"),
+        },
+        {
+            accessorKey: "createdByName",
+            header: "Created By",
+            cell: ({ row }) => row.getValue("createdByName"),
+        },
+        {
+            id: "equipmentCount",
+            header: "Equipment Count",
+            cell: ({ row }) => {
+                const count = row.original.details.length;
+                return <Badge variant="outline">{count} equipment</Badge>;
+            },
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => {
+                const status = row.getValue("status") as VoucherStatus;
+                return (
+                    <Badge className={`${getStatusColor(status)} border-0`}>
+                        {status}
+                    </Badge>
+                );
+            },
+        },
+        {
+            accessorKey: "createdAt",
+            header: ({ column }) => (
+                <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                    className="h-8 p-0 px-0 hover:bg-transparent"
+                >
+                    Created Date
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                </Button>
+            ),
+            cell: ({ row }) => {
+                const date = new Date(row.getValue("createdAt") as string);
+                return date.toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+            },
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => (
+                <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                            setSelectedRequest(row.original);
+                            setIsEditDialogOpen(true);
+                        }}
+                    >
+                        <Edit2 className="h-4 w-4" />
+                    </Button>
+                    {row.original.status === VoucherStatus.Approved && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 gap-1"
+                            onClick={() => {
+                                setSelectedRequestForVoucher(row.original.requestId);
+                                setIsCreateVoucherDialogOpen(true);
+                            }}
+                        >
+                            <Plus className="h-4 w-4" />
+                            Voucher
+                        </Button>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(row.original.requestId)}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], []);
 
     const table = useReactTable({
         data,
@@ -231,18 +220,13 @@ export const MaintenanceRequestTable = () => {
             rowSelection,
             pagination,
         },
-        manualPagination: true,
-        manualSorting: true,
-        manualFiltering: true,
-        rowCount: rowCount,
-
-        onPaginationChange: setPagination,
         onSortingChange: setSorting,
-        onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
-
+        onRowSelectionChange: setRowSelection,
+        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getRowId: (row) => row.requestId,
+        getPaginationRowModel: getPaginationRowModel(),
+        getSortedRowModel: getSortedRowModel(),
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,35 +234,75 @@ export const MaintenanceRequestTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
+    const handleDelete = (requestId: string) => {
+        console.log("Deleting request:", requestId);
+        setData(data.filter(item => item.requestId !== requestId));
+    };
+
+    if (!isMounted) {
+        return (
+            <div className="w-full space-y-4 pt-6">
+                <div className="rounded-md border bg-card">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Loading...</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-24 text-center">
+                                    <Loader className="animate-spin inline-block mr-2" /> Loading data...
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full space-y-4 pt-6">
-            <div className="flex items-center gap-2 w-full ">
+            <div className="flex items-center gap-2 w-full">
                 <Input
-                    placeholder="Find maintenance request..."
+                    placeholder="Search by request ID, creator, or note..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="h-8 w-full"
                 />
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Columns2 className="mr-2 size-4" /> View
+                        <Button variant="outline" size="sm" className="gap-1">
+                            <Columns2 className="h-4 w-4" />
+                            Columns
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                        {table.getAllColumns().filter(c => c.getCanHide()).map(column => (
-                            <DropdownMenuCheckboxItem
-                                key={column.id}
-                                className="capitalize"
-                                checked={column.getIsVisible()}
-                                onCheckedChange={(value) => column.toggleVisibility(!!value)}
-                            >
-                                {(column.columnDef.meta as any)?.label || column.id}
-                            </DropdownMenuCheckboxItem>
-                        ))}
+                    <DropdownMenuContent align="end">
+                        {table
+                            .getAllColumns()
+                            .filter((column) => column.getCanHide())
+                            .map((column) => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    checked={column.getIsVisible()}
+                                    onCheckedChange={(value) =>
+                                        column.toggleVisibility(!!value)
+                                    }
+                                >
+                                    {column.id}
+                                </DropdownMenuCheckboxItem>
+                            ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <Button onClick={() => setIsCreateDialogOpen(true)} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Request
+                </Button>
             </div>
+
             <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
@@ -286,7 +310,12 @@ export const MaintenanceRequestTable = () => {
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id}>
-                                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                                        {header.isPlaceholder
+                                            ? null
+                                            : flexRender(
+                                                header.column.columnDef.header,
+                                                header.getContext()
+                                            )}
                                     </TableHead>
                                 ))}
                             </TableRow>
@@ -301,10 +330,13 @@ export const MaintenanceRequestTable = () => {
                             </TableRow>
                         ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                                <TableRow key={row.id}>
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id} className="py-3">
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            {flexRender(
+                                                cell.column.columnDef.cell,
+                                                cell.getContext()
+                                            )}
                                         </TableCell>
                                     ))}
                                 </TableRow>
@@ -320,7 +352,7 @@ export const MaintenanceRequestTable = () => {
                 </Table>
             </div>
 
-            {/* Footer Pagination */}
+            {/* Pagination */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
                     {Object.keys(rowSelection).length} row(s) selected.
@@ -356,7 +388,6 @@ export const MaintenanceRequestTable = () => {
                             onClick={() => table.setPageIndex(0)}
                             disabled={!table.getCanPreviousPage()}
                         >
-                            <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
                         </Button>
                         <Button
@@ -365,7 +396,6 @@ export const MaintenanceRequestTable = () => {
                             onClick={() => table.previousPage()}
                             disabled={!table.getCanPreviousPage()}
                         >
-                            <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
                         </Button>
                         <Button
@@ -374,7 +404,6 @@ export const MaintenanceRequestTable = () => {
                             onClick={() => table.nextPage()}
                             disabled={!table.getCanNextPage()}
                         >
-                            <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
                         </Button>
                         <Button
@@ -383,12 +412,25 @@ export const MaintenanceRequestTable = () => {
                             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                             disabled={!table.getCanNextPage()}
                         >
-                            <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />
                         </Button>
                     </div>
                 </div>
             </div>
+
+            <CreateMaintenanceRequestDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            {selectedRequest && (
+                <EditMaintenanceRequestDialog
+                    open={isEditDialogOpen}
+                    onOpenChange={setIsEditDialogOpen}
+                    request={selectedRequest}
+                />
+            )}
+            <CreateMaintenanceVoucherDialog
+                open={isCreateVoucherDialogOpen}
+                onOpenChange={setIsCreateVoucherDialogOpen}
+                requestId={selectedRequestForVoucher}
+            />
         </div>
     );
-}
+};
