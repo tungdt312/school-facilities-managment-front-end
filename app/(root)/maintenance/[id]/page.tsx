@@ -7,6 +7,8 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import {MaintenanceVoucherDetail} from "@/components/maintenance/MaintenanceVoucherDetail";
+
 type PageProps = {
     params: Promise<{ id: string }>
 }
@@ -17,9 +19,8 @@ export default async function Page({ params }: PageProps) {
             <SiteHeader id={id}/>
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
-                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-
-
+                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
+                        <MaintenanceVoucherDetail id={id} />
                     </div>
                 </div>
             </div>
