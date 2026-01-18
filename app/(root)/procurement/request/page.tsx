@@ -7,6 +7,8 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import {ImportVoucherTable} from "@/components/procurement/procurement-table";
+import {ImportRequestTable} from "@/components/procurement/procurement-request-table";
 
 export default function Page() {
     return (
@@ -14,8 +16,8 @@ export default function Page() {
             <SiteHeader/>
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
-                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-
+                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
+                        <ImportRequestTable/>
 
                     </div>
                 </div>
