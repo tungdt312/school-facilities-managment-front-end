@@ -9,42 +9,66 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FundSourceResponse } from "@/dtos/other";
-import { CreateFundSourceDialog } from "./CreateFundSourceDialog";
-import { EditFundSourceDialog } from "./EditFundSourceDialog";
+import { InvoiceResponse } from "@/dtos/other";
+import { CreateInvoiceDialog } from "./CreateInvoiceDialog";
+import { EditInvoiceDialog } from "./EditInvoiceDialog";
+import { Badge } from "@/components/ui/badge";
 
-const MOCK_FUND_SOURCES: FundSourceResponse[] = [
+const MOCK_INVOICES: InvoiceResponse[] = [
     {
-        sourceId: "FS001",
-        sourceName: "Government Budget 2026",
-        amount: 50000000,
-        description: "Annual government allocation",
-        createdAt: "2026-01-01",
+        invoiceId: "INV001",
+        invoiceNumber: "INV-2026-001",
+        type: "IMPORT",
+        totalAmount: 50000000,
+        createdBy: "U001",
+        createdByName: "John Nguyen",
+        createdAt: "2026-01-15",
+        note: "Import equipment from supplier",
     },
     {
-        sourceId: "FS002",
-        sourceName: "Donation Fund",
-        amount: 15000000,
-        description: "Private donations",
-        createdAt: "2026-01-05",
+        invoiceId: "INV002",
+        invoiceNumber: "INV-2026-002",
+        type: "MAINTENANCE",
+        totalAmount: 15000000,
+        createdBy: "U002",
+        createdByName: "Jane Smith",
+        createdAt: "2026-01-17",
+        note: "Maintenance for air conditioning",
     },
     {
-        sourceId: "FS003",
-        sourceName: "International Grant",
-        amount: 8000000,
-        description: "Grant from international organization",
-        createdAt: "2026-01-10",
+        invoiceId: "INV003",
+        invoiceNumber: "INV-2026-003",
+        type: "REPAIR",
+        totalAmount: 8000000,
+        createdBy: "U003",
+        createdByName: "Mike Johnson",
+        createdAt: "2026-01-20",
+        note: "Repair water system",
     },
 ];
 
-export const FundSourceTable = () => {
-    const [data, setData] = useState<FundSourceResponse[]>([]);
+const getTypeColor = (type: string) => {
+    switch (type) {
+        case "IMPORT":
+            return "bg-blue-100 text-blue-800";
+        case "MAINTENANCE":
+            return "bg-green-100 text-green-800";
+        case "REPAIR":
+            return "bg-orange-100 text-orange-800";
+        default:
+            return "bg-gray-100 text-gray-800";
+    }
+};
+
+export const InvoiceTable = () => {
+    const [data, setData] = useState<InvoiceResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [selectedFundSource, setSelectedFundSource] = useState<FundSourceResponse | null>(null);
+    const [selectedInvoice, setSelectedInvoice] = useState<InvoiceResponse | null>(null);
+    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -62,13 +86,20 @@ export const FundSourceTable = () => {
         setIsLoading(true);
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        let filteredData = MOCK_FUND_SOURCES;
+        let filteredData = MOCK_INVOICES;
 
         if (debouncedSearch) {
             filteredData = filteredData.filter(item =>
-                item.sourceName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.sourceId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
+                item.invoiceNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                item.invoiceId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                item.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
+            );
+        }
+
+        if (selectedTypes.length > 0) {
+            filteredData = filteredData.filter(item =>
+                selectedTypes.includes(item.type)
             );
         }
 
@@ -80,57 +111,69 @@ export const FundSourceTable = () => {
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [debouncedSearch, selectedTypes]);
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-    const columns: ColumnDef<FundSourceResponse>[] = useMemo(() => [
+    const columns: ColumnDef<InvoiceResponse>[] = useMemo(() => [
         {
-            accessorKey: "sourceId",
+            accessorKey: "invoiceId",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="h-8 p-0 px-0 hover:bg-transparent"
                 >
-                    Source ID
+                    Invoice ID
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
-            cell: ({ row }) => row.getValue("sourceId"),
+            cell: ({ row }) => row.getValue("invoiceId"),
         },
         {
-            accessorKey: "sourceName",
+            accessorKey: "invoiceNumber",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="h-8 p-0 px-0 hover:bg-transparent"
                 >
-                    Source Name
+                    Invoice Number
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
             cell: ({ row }) => (
-                <div className="font-medium">{row.getValue("sourceName")}</div>
+                <div className="font-medium">{row.getValue("invoiceNumber")}</div>
             ),
         },
         {
-            accessorKey: "amount",
+            accessorKey: "type",
+            header: "Type",
+            cell: ({ row }) => {
+                const type = row.getValue("type") as string;
+                return (
+                    <Badge className={`${getTypeColor(type)} border-0`}>
+                        {type}
+                    </Badge>
+                );
+            },
+        },
+        {
+            accessorKey: "totalAmount",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="h-8 p-0 px-0 hover:bg-transparent"
                 >
-                    Amount
+                    Total Amount
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
             cell: ({ row }) => {
-                const amount = row.getValue("amount") as number;
+                const amount = row.getValue("totalAmount") as number;
                 return (
                     <div className="font-medium">
                         {amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
@@ -139,11 +182,16 @@ export const FundSourceTable = () => {
             },
         },
         {
-            accessorKey: "description",
-            header: "Description",
+            accessorKey: "createdByName",
+            header: "Created By",
+            cell: ({ row }) => row.getValue("createdByName"),
+        },
+        {
+            accessorKey: "note",
+            header: "Note",
             cell: ({ row }) => (
                 <div className="text-sm text-muted-foreground max-w-xs truncate">
-                    {row.getValue("description") || "-"}
+                    {row.getValue("note") || "-"}
                 </div>
             ),
         },
@@ -177,7 +225,7 @@ export const FundSourceTable = () => {
                         size="sm"
                         className="h-8 w-8 p-0"
                         onClick={() => {
-                            setSelectedFundSource(row.original);
+                            setSelectedInvoice(row.original);
                             setIsEditDialogOpen(true);
                         }}
                     >
@@ -187,7 +235,7 @@ export const FundSourceTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(row.original.sourceId)}
+                        onClick={() => handleDelete(row.original.invoiceId)}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -219,10 +267,10 @@ export const FundSourceTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    const handleDelete = (sourceId: string) => {
+    const handleDelete = (invoiceId: string) => {
         // TODO: Implement delete API call
-        console.log("Deleting source:", sourceId);
-        setData(data.filter(item => item.sourceId !== sourceId));
+        console.log("Deleting invoice:", invoiceId);
+        setData(data.filter(item => item.invoiceId !== invoiceId));
     };
 
     if (!isMounted) {
@@ -237,7 +285,7 @@ export const FundSourceTable = () => {
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={8} className="h-24 text-center">
                                     <Loader className="animate-spin inline-block mr-2" /> Loading data...
                                 </TableCell>
                             </TableRow>
@@ -252,11 +300,38 @@ export const FundSourceTable = () => {
         <div className="w-full space-y-4 pt-6">
             <div className="flex items-center gap-2 w-full">
                 <Input
-                    placeholder="Search by name, ID, or description..."
+                    placeholder="Search by invoice number, ID, creator, or note..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="h-8 w-full"
                 />
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-1">
+                            Type {selectedTypes.length > 0 && `(${selectedTypes.length})`}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {["IMPORT", "MAINTENANCE", "REPAIR", "OTHER"].map((type) => (
+                            <DropdownMenuCheckboxItem
+                                key={type}
+                                checked={selectedTypes.includes(type)}
+                                onCheckedChange={(checked) => {
+                                    if (checked) {
+                                        setSelectedTypes([...selectedTypes, type]);
+                                    } else {
+                                        setSelectedTypes(
+                                            selectedTypes.filter((t) => t !== type)
+                                        );
+                                    }
+                                }}
+                            >
+                                {type}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -285,7 +360,7 @@ export const FundSourceTable = () => {
 
                 <Button onClick={() => setIsCreateDialogOpen(true)} size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
-                    Add Fund Source
+                    Create Invoice
                 </Button>
             </div>
 
@@ -408,12 +483,12 @@ export const FundSourceTable = () => {
                 </div>
             </div>
 
-            <CreateFundSourceDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
-            {selectedFundSource && (
-                <EditFundSourceDialog
+            <CreateInvoiceDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            {selectedInvoice && (
+                <EditInvoiceDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
-                    fundSource={selectedFundSource}
+                    invoice={selectedInvoice}
                 />
             )}
         </div>
