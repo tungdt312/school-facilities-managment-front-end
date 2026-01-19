@@ -22,31 +22,38 @@ import {
     ChevronsRight,
     Columns2,
     ExternalLink,
-    FileText,
+    Filter,
     Loader2,
-    Receipt,
-    ShoppingCart,
-    Truck,
-    User
+    User,
+    DoorOpen,
+    Clock,
+    Info
 } from 'lucide-react';
 import { Input } from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '../ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { formatISODate, formatNumber } from "@/lib/utils";
-import { ImportVoucherResponse } from '@/dtos/import';
-import { MOCK_IMPORT_VOUCHERS } from "@/components/mock-data/import-data";
+import { BookingStatus } from '@/constaints/enum'; // Giả định Enum nằm ở đây
+import { RoomBookingResponse } from '@/dtos/booking'; // Đường dẫn DTO của bạn
+import { formatISODate } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {MOCK_ROOM_BOOKINGS} from "@/components/mock-data/booking-data";
+import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialog";
+import {CreateBookingVoucherDialog} from "@/components/booking/create-booking-dialog";
 
-export const ImportVoucherTable = () => {
-    const [data, setData] = useState<ImportVoucherResponse[]>([]);
+
+export const RoomBookingTable = () => {
+    const [data, setData] = useState<RoomBookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
@@ -54,7 +61,7 @@ export const ImportVoucherTable = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
 
-    const columns: ColumnDef<ImportVoucherResponse>[] = useMemo(() => [
+    const columns: ColumnDef<RoomBookingResponse>[] = useMemo(() => [
         {
             id: "select",
             header: ({ table }) => (
@@ -72,101 +79,132 @@ export const ImportVoucherTable = () => {
             size: 40,
         },
         {
-            accessorKey: "importId",
-            meta: { label: "Voucher ID" },
+            accessorKey: "bookingId",
+            meta: { label: "Booking ID" },
             header: ({ column }) => (
                 <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="px-0">
                     ID <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
-            cell: ({ row }) => <div>{row.original.importId}</div>,
-        },{
-            accessorKey: "invoiceNumber",
-            meta: { label: "Invoice No." },
-            header: "Invoice No.",
+            cell: ({ row }) => <div>{row.original.bookingId}</div>,
+        },
+        {
+            accessorKey: "roomName",
+            meta: { label: "Room" },
+            header: "Room",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
-                    <Receipt className="size-3.5 text-muted-foreground" />
-                    <span>{row.original.invoiceNumber}</span>
+                    <DoorOpen className="size-3.5 text-muted-foreground" />
+                    <span>{row.original.roomName}</span>
                 </div>
             ),
         },
         {
-            accessorKey: "unitName",
-            meta: { label: "Supplier" },
-            header: "Supplier",
+            accessorKey: "borrowerName",
+            meta: { label: "Borrower" },
+            header: "Borrower",
             cell: ({ row }) => (
                 <div className="flex items-center gap-2">
-                    <Truck className="size-3.5 text-muted-foreground" />
-                    <span className="max-w-[180px] truncate ">{row.original.unitName}</span>
-                </div>
-            ),
-        },
-
-        {
-            accessorKey: "totalAmount",
-            meta: { label: "Total Amount" },
-            header: "Amount",
-            cell: ({ row }) => (
-                <div>
-                    ${formatNumber(row.original.totalAmount)}
-                </div>
-            ),
-        },
-        {
-            accessorKey: "createdByName",
-            header: "Creator",
-            cell: ({ row }) => (
-                <div className="flex items-center gap-2 ">
                     <User className="size-3.5 text-muted-foreground" />
-                    <span>{row.original.createdByName}</span>
+                    <span>{row.original.borrowerName}</span>
                 </div>
             ),
         },
         {
-            id: "items",
-            header: "Items",
-            cell: ({row}) => (
-                <Badge variant="outline" >
-                    {row.original.details.length} device(s)
-                </Badge>
+            id: "schedule",
+            header: "Schedule",
+            cell: ({ row }) => (
+                <div className="flex flex-col ">
+                    <div className="flex items-center gap-1 text-emerald-600">
+                        <Clock className="size-3" /> {formatISODate(row.original.startTime)}
+                    </div>
+                    <div className="flex items-center gap-1 text-rose-600">
+                        <Clock className="size-3" /> {formatISODate(row.original.endTime)}
+                    </div>
+                </div>
             ),
         },
         {
-            accessorKey: "createdAt",
-            header: "Date",
+            accessorKey: "status",
+            header: ({ column }) => (
+                <div className="flex items-center gap-2">
+                    <span>Status</span>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Filter className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`} />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-52">
+                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {Object.values(BookingStatus).map((status) => (
+                                <DropdownMenuCheckboxItem
+                                    key={status}
+                                    checked={selectedStatuses.includes(status)}
+                                    onCheckedChange={(checked) => {
+                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
+                                    }}
+                                >
+                                    {status}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            ),
+            cell: ({ row }) => {
+                const status = row.original.status;
+                return (
+                    <Badge className={
+                        status === BookingStatus.Approved ? "bg-emerald-500 hover:bg-emerald-600" :
+                            status === BookingStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
+                                status === BookingStatus.Rejected ? "bg-red-500 hover:bg-red-600" :
+                                    status === BookingStatus.Cancelled ? "bg-slate-500" : "bg-blue-500"
+                    }>
+                        {status}
+                    </Badge>
+                )
+            },
+        },
+        {
+            accessorKey: "purpose",
+            header: "Purpose",
             cell: ({ row }) => (
-                <span className="text-muted-foreground">{formatISODate(row.original.createdAt)}</span>
+                <div className="max-w-[150px] truncate text-muted-foreground italic text-xs" title={row.original.purpose}>
+                    {row.original.purpose}
+                </div>
             ),
         },
         {
             id: "action",
             header: "",
             cell: ({ row }) => (
-                <div className="flex justify-end gap-2">
-                    <Link href={`/procurement/${row.original.importId}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ExternalLink className="size-4 text-muted-foreground" />
-                        </Button>
-                    </Link>
-                </div>
+                <Link href={`/booking/${row.original.bookingId}`}>
+                    <ExternalLink className="text-muted-foreground size-4" />
+                </Link>
             ),
         },
-    ], []);
+    ], [selectedStatuses]);
 
     useEffect(() => {
         setIsLoading(true);
-        let filtered = [...MOCK_IMPORT_VOUCHERS];
+        // Thay MOCK_BOOKINGS bằng dữ liệu thực tế từ API của bạn
+        let filtered = [...MOCK_ROOM_BOOKINGS];
+
         if (debouncedSearch) {
             filtered = filtered.filter(d =>
-                d.importId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.unitName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.invoiceNumber.toLowerCase().includes(debouncedSearch.toLowerCase())
+                d.bookingId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                d.roomName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                d.borrowerName.toLowerCase().includes(debouncedSearch.toLowerCase())
             );
+        }
+        if (selectedStatuses.length > 0) {
+            filtered = filtered.filter(d => selectedStatuses.includes(d.status));
         }
         setData(filtered);
         setIsLoading(false);
-    }, [debouncedSearch]);
+    }, [debouncedSearch, selectedStatuses]);
 
     const table = useReactTable({
         data,
@@ -178,14 +216,14 @@ export const ImportVoucherTable = () => {
         onColumnVisibilityChange: setColumnVisibility,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-        getRowId: (row) => row.importId,
+        getRowId: (row) => row.bookingId,
     });
 
     return (
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
-                    placeholder="Search Voucher, Supplier or Invoice..."
+                    placeholder="Search ID, Room or Borrower..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="h-9 w-full max-w-sm"
@@ -197,7 +235,7 @@ export const ImportVoucherTable = () => {
                                 <Columns2 className="mr-2 size-4" /> Columns
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuContent align="end" className="w-48">
                             {table.getAllColumns().filter(c => c.getCanHide()).map(column => (
                                 <DropdownMenuCheckboxItem
                                     key={column.id}
@@ -210,8 +248,7 @@ export const ImportVoucherTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href={"/procurement/request"}><Button size="sm" className="h-9">Request</Button></Link>
-
+                    <CreateBookingVoucherDialog/>
                 </div>
             </div>
 
@@ -230,27 +267,27 @@ export const ImportVoucherTable = () => {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">Loading...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="animate-spin inline-block mr-2" /> Loading...</TableCell></TableRow>
                         ) : data.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} className="hover:bg-muted/30">
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-2.5">
+                                        <TableCell key={cell.id} className="py-3">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
                                 </TableRow>
                             ))
                         ) : (
-                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No vouchers found</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No bookings found</TableCell></TableRow>
                         )}
                     </TableBody>
                 </Table>
             </div>
-            {/* Thanh phân trang bên dưới... */}
+
+            {/* Pagination tương tự như bảng Borrow */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
-                    {/* Logic hiển thị row selected chỉ đúng trên trang hiện tại với server-side */}
                     {Object.keys(rowSelection).length} row(s) selected.
                 </div>
                 <div className="flex items-center space-x-6 lg:space-x-8 ml-auto">
@@ -258,18 +295,14 @@ export const ImportVoucherTable = () => {
                         <p className="text-sm font-medium hidden sm:block">row(s) / page</p>
                         <Select
                             value={`${pagination.pageSize}`}
-                            onValueChange={(value) => {
-                                table.setPageSize(Number(value));
-                            }}
+                            onValueChange={(value) => table.setPageSize(Number(value))}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
                                 <SelectValue placeholder={pagination.pageSize}/>
                             </SelectTrigger>
                             <SelectContent side="top">
                                 {[10, 20, 30, 40, 50].map((pageSize) => (
-                                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                                        {pageSize}
-                                    </SelectItem>
+                                    <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -278,40 +311,16 @@ export const ImportVoucherTable = () => {
                         Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Button
-                            variant="outline"
-                            className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
-                        >
-                            <span className="sr-only">First page</span>
+                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
                             <ChevronsLeft className="size-4"/>
                         </Button>
-                        <Button
-                            variant="outline"
-                            className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
-                        >
-                            <span className="sr-only">Previous page</span>
+                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
                             <ChevronLeft className="size-4"/>
                         </Button>
-                        <Button
-                            variant="outline"
-                            className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            <span className="sr-only">Next page</span>
+                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
                             <ChevronRight className="size-4"/>
                         </Button>
-                        <Button
-                            variant="outline"
-                            className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
-                        >
-                            <span className="sr-only">Last page</span>
+                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
                             <ChevronsRight className="size-4"/>
                         </Button>
                     </div>

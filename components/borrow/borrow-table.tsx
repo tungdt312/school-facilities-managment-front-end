@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, {useEffect, useMemo, useState} from 'react'
 import {
     ColumnDef,
     flexRender,
@@ -10,12 +10,11 @@ import {
     useReactTable,
     VisibilityState
 } from '@tanstack/react-table';
-import { useDebounce } from '@/hooks/use-rebounce';
-import { Checkbox } from '../ui/checkbox';
-import { Button } from '../ui/button';
+import {useDebounce} from '@/hooks/use-rebounce';
+import {Checkbox} from '../ui/checkbox';
+import {Button} from '../ui/button';
 import {
     ArrowUpDown,
-    Calendar,
     ChevronLeft,
     ChevronRight,
     ChevronsLeft,
@@ -23,13 +22,11 @@ import {
     Columns2,
     ExternalLink,
     Filter,
-    Loader2,
-    Clock,
-    User,
     Handshake,
-    Package
+    Loader2,
+    User
 } from 'lucide-react';
-import { Input } from '../ui/input';
+import {Input} from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -38,14 +35,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from "@/components/ui/badge";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
+import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import { BorrowStatus } from '@/constaints/enum';
-import { BorrowVoucherResponse } from '@/dtos/borrow';
-import { MOCK_BORROW_VOUCHERS } from "@/components/mock-data/borrow-data";
-import { formatISODate } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {BorrowStatus} from '@/constaints/enum';
+import {BorrowVoucherResponse} from '@/dtos/borrow';
+import {MOCK_BORROW_VOUCHERS} from "@/components/mock-data/borrow-data";
+import {formatISODate} from "@/lib/utils";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialog";
 
 export const BorrowVoucherTable = () => {
     const [data, setData] = useState<BorrowVoucherResponse[]>([]);
@@ -140,7 +138,8 @@ export const BorrowVoucherTable = () => {
                         status === BorrowStatus.Returned ? "bg-emerald-500 hover:bg-emerald-600" :
                             status === BorrowStatus.Borrowing ? "bg-blue-500 hover:bg-blue-600" :
                                 status === BorrowStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
-                                    status === BorrowStatus.Approved ? "bg-purple-500 hover:bg-purple-600" : "bg-slate-500"
+                                    status === BorrowStatus.Approved ? "bg-purple-500 hover:bg-purple-600" :
+                                        status === BorrowStatus.Rejected ? "bg-red-500 hover:bg-red-600":"bg-slate-500"
                     }>
                         {status}
                     </Badge>
@@ -152,8 +151,7 @@ export const BorrowVoucherTable = () => {
             meta: { label: "Borrow Date" },
             header: "Borrow Date",
             cell: ({ row }) => (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="size-3.5" />
+                <div className="flex items-center gap-2">
                     <span>{formatISODate(row.original.createdAt)}</span>
                 </div>
             ),
@@ -163,8 +161,7 @@ export const BorrowVoucherTable = () => {
             meta: { label: "Return Date" },
             header: "Return Date",
             cell: ({ row }) => (
-                <div className="flex items-center gap-2 text-xs font-medium">
-                    <Clock className={`size-3.5 ${row.original.status === BorrowStatus.Borrowing ? "text-amber-500" : "text-muted-foreground"}`} />
+                <div className="flex items-center gap-2">
                     <span>{row.original.returnDate ? formatISODate(row.original.returnDate) : "---"}</span>
                 </div>
             ),
@@ -174,7 +171,7 @@ export const BorrowVoucherTable = () => {
             id: "action",
             header: "",
             cell: ({ row }) => (
-                <Link href={`/borrow/vouchers/${row.original.borrowId}`}>
+                <Link href={`/borrow/${row.original.borrowId}`}>
                     <ExternalLink className="text-muted-foreground size-4 hover:text-primary transition-colors" />
                 </Link>
             ),
@@ -239,11 +236,7 @@ export const BorrowVoucherTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href="/borrow/create">
-                        <Button size="sm" className="h-9 bg-primary">
-                            <Handshake className="mr-2 size-4" /> New Borrow
-                        </Button>
-                    </Link>
+                    <CreateBorrowVoucherDialog/>
                 </div>
             </div>
 

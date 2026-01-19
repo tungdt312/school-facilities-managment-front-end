@@ -171,7 +171,7 @@ export const ImportRequestTable = () => {
             id: "action",
             header: "",
             cell: ({ row }) => (
-                <Link href={`/import/requests/${row.original.requestId}`}>
+                <Link href={`/procurement/request/${row.original.requestId}`}>
                     <ExternalLink className="text-muted-foreground size-4 hover:text-primary transition-colors" />
                 </Link>
             ),

@@ -1,0 +1,135 @@
+import { BookingStatus } from "@/constaints/enum";
+import { RoomBookingResponse } from "@/dtos/booking";
+
+export const MOCK_ROOM_BOOKINGS: RoomBookingResponse[] = [
+    {
+        bookingId: "BOK-2024-001",
+        roomId: "R-101",
+        roomName: "Meeting Room Alpha (Large)",
+        borrowerId: "USR-001",
+        borrowerName: "Alice Johnson",
+        startTime: "2024-10-20T09:00:00Z",
+        endTime: "2024-10-20T11:00:00Z",
+        purpose: "Project Kick-off Meeting with Stakeholders",
+        status: BookingStatus.Approved,
+        createdAt: "2024-10-15T08:30:00Z",
+        approvedByName: "Tran Manager",
+        note: "Need 2 extra chairs and a whiteboard."
+    },
+    {
+        bookingId: "BOK-2024-002",
+        roomId: "R-205",
+        roomName: "Creative Hub",
+        borrowerId: "USR-002",
+        borrowerName: "Bob Miller",
+        startTime: "2024-11-05T14:00:00Z",
+        endTime: "2024-11-05T16:00:00Z",
+        purpose: "UI/UX Brainstorming Session",
+        status: BookingStatus.Pending,
+        createdAt: "2024-11-01T10:00:00Z",
+        note: "Requires HDMI adapter for Mac."
+    },
+    {
+        bookingId: "BOK-2024-003",
+        roomId: "R-101",
+        roomName: "Meeting Room Alpha (Large)",
+        borrowerId: "USR-003",
+        borrowerName: "Charlie Brown",
+        startTime: "2024-11-07T13:00:00Z",
+        endTime: "2024-11-07T15:00:00Z",
+        purpose: "Weekly Sales Review",
+        status: BookingStatus.Rejected,
+        createdAt: "2024-11-04T09:15:00Z",
+        approvedByName: "Tran Manager",
+        note: "Room already booked for maintenance."
+    },
+    {
+        bookingId: "BOK-2024-004",
+        roomId: "R-302",
+        roomName: "Quiet Zone 1",
+        borrowerId: "USR-004",
+        borrowerName: "Diana Prince",
+        startTime: "2024-12-10T10:00:00Z",
+        endTime: "2024-12-10T12:00:00Z",
+        purpose: "Focus work / Private interview",
+        status: BookingStatus.Approved,
+        createdAt: "2024-12-05T14:45:00Z",
+        approvedByName: "Admin Sarah"
+    },
+    {
+        bookingId: "BOK-2024-005",
+        roomId: "R-202",
+        roomName: "Tech Lab",
+        borrowerId: "USR-005",
+        borrowerName: "Ethan Hunt",
+        startTime: "2024-12-12T08:00:00Z",
+        endTime: "2024-12-12T17:00:00Z",
+        purpose: "Hardware Testing & QA",
+        status: BookingStatus.Cancelled,
+        createdAt: "2024-12-08T11:20:00Z",
+        note: "Session moved to next week."
+    },
+    {
+        bookingId: "BOK-2024-006",
+        roomId: "R-105",
+        roomName: "Conference Hall B",
+        borrowerId: "USR-006",
+        borrowerName: "Fiona Gallagher",
+        startTime: "2025-01-15T13:30:00Z",
+        endTime: "2025-01-15T16:30:00Z",
+        purpose: "All-hands Department Meeting",
+        status: BookingStatus.Pending,
+        createdAt: "2025-01-10T09:00:00Z"
+    },
+    {
+        bookingId: "BOK-2024-007",
+        roomId: "R-305",
+        roomName: "Innovation Room",
+        borrowerId: "USR-007",
+        borrowerName: "George Costanza",
+        startTime: "2025-01-18T10:00:00Z",
+        endTime: "2025-01-18T11:30:00Z",
+        purpose: "Internal Strategy Workshop",
+        status: BookingStatus.Approved,
+        createdAt: "2025-01-12T15:00:00Z",
+        approvedByName: "Tran Manager"
+    },
+    {
+        bookingId: "BOK-2024-008",
+        roomId: "R-205",
+        roomName: "Creative Hub",
+        borrowerId: "USR-008",
+        borrowerName: "Hannah Abbott",
+        startTime: "2025-01-19T15:00:00Z",
+        endTime: "2025-01-19T17:00:00Z",
+        purpose: "Photography Studio Setup",
+        status: BookingStatus.Pending,
+        createdAt: "2025-01-15T10:30:00Z"
+    },
+    {
+        bookingId: "BOK-2024-009",
+        roomId: "R-102",
+        roomName: "Meeting Room Beta",
+        borrowerId: "USR-009",
+        borrowerName: "Ian Wright",
+        startTime: "2025-01-20T09:00:00Z",
+        endTime: "2025-01-20T10:30:00Z",
+        purpose: "Monthly Financial Audit",
+        status: BookingStatus.Approved,
+        createdAt: "2025-01-16T14:00:00Z",
+        approvedByName: "Admin Sarah"
+    },
+    {
+        bookingId: "BOK-2024-010",
+        roomId: "R-401",
+        roomName: "Executive Lounge",
+        borrowerId: "USR-010",
+        borrowerName: "Julia Roberts",
+        startTime: "2025-01-22T11:00:00Z",
+        endTime: "2025-01-22T13:00:00Z",
+        purpose: "VIP Client Presentation",
+        status: BookingStatus.Pending,
+        createdAt: "2025-01-18T08:45:00Z",
+        note: "Catering service requested."
+    }
+];

@@ -7,20 +7,20 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import {ImportRequestInfoCard} from "@/components/procurement/procurement-request-info";
+import {BorrowInfoCard} from "@/components/borrow/borrow-info";
 
 type PageProps = {
     params: Promise<{ id: string }>
 }
-export default async function Page({ params }: PageProps) {
-    const { id } = await params;
+export default async function Page({params}: PageProps) {
+    const {id} = await params;
     return (
         <>
             <SiteHeader id={id}/>
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
-                        <ImportRequestInfoCard id={id}/>
+                        <BorrowInfoCard id={id} />
 
                     </div>
                 </div>
@@ -29,7 +29,7 @@ export default async function Page({ params }: PageProps) {
     )
 }
 
-function SiteHeader( {id}: { id: string }) {
+function SiteHeader({id}: { id: string }) {
     return (
         <header
             className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -42,15 +42,11 @@ function SiteHeader( {id}: { id: string }) {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/procurement">Devices Procurement</BreadcrumbLink>
+                            <BreadcrumbLink href="/borrow">Devices Borrow</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator/>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href={"/procurement/request"}>Request</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator/>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href={`/procurement/request/${id}`}>Detail [{id}] </BreadcrumbLink>
+                            <BreadcrumbLink href="/borrow/{id}">Detail [{id}]</BreadcrumbLink>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
