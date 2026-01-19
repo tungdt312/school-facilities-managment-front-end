@@ -43,6 +43,7 @@ import { formatISODate, formatNumber } from "@/lib/utils";
 import { ImportVoucherResponse } from '@/dtos/import';
 import { MOCK_IMPORT_VOUCHERS } from "@/components/mock-data/import-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {CreateImportVoucherDialog} from "@/components/procurement/create-procurement-dialog";
 
 export const ImportVoucherTable = () => {
     const [data, setData] = useState<ImportVoucherResponse[]>([]);
@@ -210,8 +211,8 @@ export const ImportVoucherTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href={"/procurement/request"}><Button size="sm" className="h-9">Request</Button></Link>
-
+                    <Link href={"/procurement/request"}><Button size="sm" variant={"outline"} className="h-9">Request</Button></Link>
+                    <CreateImportVoucherDialog/>
                 </div>
             </div>
 

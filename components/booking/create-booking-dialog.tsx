@@ -91,14 +91,14 @@ export const CreateBookingVoucherDialog = () => {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-                    <Plus className="h-4 w-4" /> New Room Booking
+                <Button className="gap-2 ">
+                    New Room Booking
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <DoorOpen className="h-6 w-6 text-blue-600" />
+                        <DoorOpen className="h-6 w-6 text-primary" />
                         Create Booking
                     </DialogTitle>
                     <DialogDescription>

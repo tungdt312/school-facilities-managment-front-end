@@ -84,8 +84,7 @@ export const CreateBorrowVoucherDialog = () => {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="gap-2">
-                    <Plus className="h-4 w-4" /> Create Borrow Voucher
+                <Button className="gap-2"> Create Borrow Voucher
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -158,7 +157,7 @@ export const CreateBorrowVoucherDialog = () => {
                         {/* Equipment List Section */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b pb-2">
-                                <h3 className="text-sm font-bold  tracking-wider ">
+                                <h3 className="text-sm font-bold ">
                                     Equipment List
                                 </h3>
                                 <Button

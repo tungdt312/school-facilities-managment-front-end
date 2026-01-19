@@ -41,6 +41,7 @@ import {LiquidateRequestResponse} from '@/dtos/liquidate';
 import {MOCK_LIQUIDATE_REQUESTS} from "@/components/mock-data/liquidates-data";
 import {formatISODate} from "@/lib/utils";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {CreateLiquidateRequestDialog} from "@/components/disposals/create-disposal-request-dialog";
 
 export const LiquidateRequestTable = () => {
     const [data, setData] = useState<LiquidateRequestResponse[]>([]);
@@ -243,7 +244,7 @@ export const LiquidateRequestTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Button size="sm" className="h-9">Request</Button>
+                    <CreateLiquidateRequestDialog/>
                 </div>
             </div>
 

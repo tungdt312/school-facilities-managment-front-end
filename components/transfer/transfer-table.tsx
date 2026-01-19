@@ -43,6 +43,7 @@ import { TransferVoucherResponse } from '@/dtos/transfer';
 import { MOCK_TRANSFER_VOUCHERS } from "@/components/mock-data/transfer-data";
 import { formatISODate } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {CreateTransferVoucherDialog} from "@/components/transfer/create-transfer-dialog";
 
 export const TransferVoucherTable = () => {
     const [data, setData] = useState<TransferVoucherResponse[]>([]);
@@ -208,10 +209,8 @@ export const TransferVoucherTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href={"/transfer/request"}><Button size="sm" className="h-9">Request</Button></Link>
-                    <Button size="sm" className="h-9 bg-primary">
-                        <FileText className="mr-2 size-4" /> Export Vouchers
-                    </Button>
+                    <Link href={"/transfer/request"}><Button size="sm" variant={"outline"} className="h-9">Request</Button></Link>
+                    <CreateTransferVoucherDialog/>
                 </div>
             </div>
 

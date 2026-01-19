@@ -45,6 +45,7 @@ import { TransferRequestResponse } from '@/dtos/transfer';
 import { MOCK_TRANSFER_REQUESTS } from "@/components/mock-data/transfer-data";
 import { formatISODate } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {CreateTransferRequestDialog} from "@/components/transfer/create-transfer-request-dialog";
 
 export const TransferRequestTable = () => {
     const [data, setData] = useState<TransferRequestResponse[]>([]);
@@ -235,9 +236,8 @@ export const TransferRequestTable = () => {
                     <Button variant="outline" size="sm" className="h-9">
                         <Columns2 className="mr-2 size-4" /> Columns
                     </Button>
-                    <Link href="/transfer/requests/create">
-                        <Button size="sm" className="h-9">New Request</Button>
-                    </Link>
+
+                    <CreateTransferRequestDialog/>
                 </div>
             </div>
 

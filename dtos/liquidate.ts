@@ -1,25 +1,20 @@
 import { VoucherStatus, LocationType } from "@/constaints/enum";
 
 export interface CreateLiquidateRequestRequest {
-    createdBy: string;
     note?: string;
     details: LiquidateRequestDetailRequest[];
 }
-
+export interface LiquidateRequestDetailRequest {
+    equipmentId: string;
+    note?: string;
+}
 export interface CreateLiquidateVoucherRequest {
     requestId: string;
-    createdBy: string;
 
     invoiceId: string;
 
     details: LiquidateVoucherDetailRequest[];
 }
-
-export interface LiquidateRequestDetailRequest {
-    equipmentId: string;
-    note?: string;
-}
-
 export interface LiquidateVoucherDetailRequest {
     equipmentId: string;
     note?: string;

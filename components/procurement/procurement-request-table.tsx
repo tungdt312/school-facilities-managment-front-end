@@ -45,6 +45,8 @@ import { ImportRequestResponse } from '@/dtos/import';
 import { MOCK_IMPORT_REQUESTS } from "@/components/mock-data/import-data";
 import { formatISODate } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {CreateImportRequestDialog} from "@/components/procurement/create-procurement-request-dialog";
+import {CreateImportVoucherDialog} from "@/components/procurement/create-procurement-dialog";
 
 export const ImportRequestTable = () => {
     const [data, setData] = useState<ImportRequestResponse[]>([]);
@@ -236,6 +238,7 @@ export const ImportRequestTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <CreateImportRequestDialog/>
                 </div>
             </div>
 

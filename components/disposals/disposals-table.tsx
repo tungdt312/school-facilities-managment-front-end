@@ -41,6 +41,7 @@ import Link from "next/link";
 import {formatISODate, formatNumber} from "@/lib/utils";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {MOCK_LIQUIDATE_REQUESTS, MOCK_LIQUIDATE_VOUCHERS} from "@/components/mock-data/liquidates-data";
+import {CreateLiquidateVoucherDialog} from "@/components/disposals/create-disposal-dialog";
 
 // Giả định interface dựa trên Mock Data của bạn
 interface LiquidateVoucherResponse {
@@ -233,7 +234,8 @@ export const LiquidateVoucherTable = () => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <Link href={"/disposal/request"}><Button size="sm" className="h-9">Request</Button></Link>
+                    <Link href={"/disposal/request"}><Button size="sm" variant={"outline"} className="h-9">Request</Button></Link>
+                    <CreateLiquidateVoucherDialog/>
                 </div>
             </div>
 
