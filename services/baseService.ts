@@ -15,7 +15,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 async function refreshAccessToken(): Promise<string | null> {
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
     if (!refreshToken) {
-        console.error("Không tìm thấy refresh token");
+        console.error("Refresh token not found");
         return null;
     }
 
@@ -32,11 +32,11 @@ async function refreshAccessToken(): Promise<string | null> {
             localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
             return tokens.accessToken;
         } else {
-            console.error("Refresh token thất bại");
+            console.error("Refresh token failed");
             return null;
         }
     } catch (error) {
-        console.error("Lỗi khi refresh token:", error);
+        console.error("Error when refresh token:", error);
         return null;
     }
 }
@@ -73,7 +73,7 @@ export async function apiFetch(url: string, needAuth: boolean, options: RequestI
         res = await fetch(`${BASE_URL}${url}`, options);
     } catch (error) {
         // Xử lý lỗi network
-        throw new Error((error as Error).message ?? "Lỗi network hoặc API không phản hồi");
+        throw new Error((error as Error).message ?? "Server not response");
     }
 
     // Xử lý lỗi 401 (Hết hạn token)
@@ -113,7 +113,7 @@ export async function apiFetch(url: string, needAuth: boolean, options: RequestI
                     return res;
                 } else {
                     // Refresh thất bại (nhưng không lỗi)
-                    throw new Error("Refresh token thất bại, vui lòng đăng nhập lại.");
+                    throw new Error("Refresh token failed. Please sign in again.");
                 }
 
             } catch (error) {
@@ -155,7 +155,7 @@ export async function processResponse<T>(res: Response): Promise<T> {
         data = JSON.parse(text);
     } catch (e) {
         console.error("Failed to parse JSON:", text);
-        throw new Error("Phản hồi API không phải là JSON hợp lệ.");
+        throw new Error("API response is not a valid JSON");
     }
 
     // 5. Xử lý lỗi từ API
