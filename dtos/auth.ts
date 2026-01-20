@@ -21,7 +21,7 @@ export interface LoginRequest {
     password: string;
 }
 
-export interface RefreshTokenRequest { // Sửa lỗi chính tả Resquest -> Request
+export interface RefreshTokenRequest {
     refreshToken: string;
 }
 
