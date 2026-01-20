@@ -1,16 +1,8 @@
 import { VoucherStatus, LocationType } from "@/constaints/enum";
 
 export interface CreateImportRequestRequest {
-    createdBy: string;
     note?: string;
     details: ImportRequestDetailRequest[];
-}
-
-export interface CreateImportVoucherRequest {
-    requestId: string;
-    createdBy: string;
-    invoiceId: string;
-    details: ImportVoucherDetailRequest[];
 }
 
 export interface ImportRequestDetailRequest {
@@ -18,6 +10,13 @@ export interface ImportRequestDetailRequest {
     quantity: number;
     note?: string;
 }
+
+export interface CreateImportVoucherRequest {
+    requestId: string;
+    invoiceId: string;
+    details: ImportVoucherDetailRequest[];
+}
+
 
 export interface ImportVoucherDetailRequest {
     equipmentName: string;

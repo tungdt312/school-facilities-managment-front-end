@@ -7,6 +7,12 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import {LocationTree} from "@/components/areas/areas-tree";
+import {MOCK_BUILDINGS} from "@/components/mock-data/areas-data";
+import {FloorTable} from "@/components/areas/floors-table";
+import React from "react";
+import {BuildingInfoCard} from "@/components/areas/building-info";
+import {DeviceTable} from "@/components/devices/devices-table";
 
 type PageProps = {
     params: Promise<{ id: string }>
@@ -18,11 +24,14 @@ export default async function Page({ params }: PageProps) {
     return (
         <>
             <SiteHeader id={id}/>
-            <div className="flex flex-1 flex-col">
+            <div className="flex flex-1 flex-col overflow-hidden">
                 <div className="@container/main flex flex-1 flex-col gap-2">
-                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-
-
+                    <div className="flex flex-col w-full gap-4 py-4 md:gap-6 md:py-6 px-6">
+                        <BuildingInfoCard id={id}/>
+                        <h2 className="text-lg font-medium text-slate-800">Floors</h2>
+                        <FloorTable buildingId={id} />
+                        <h2 className="text-lg font-medium text-slate-800">Devices</h2>
+                        <DeviceTable locationId={id} />
                     </div>
                 </div>
             </div>
@@ -35,11 +44,7 @@ function SiteHeader( {id}: { id: string }) {
         <header
             className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
             <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                <SidebarTrigger className="-ml-1"/>
-                <Separator
-                    orientation="vertical"
-                    className="mx-2 data-[orientation=vertical]:h-4"
-                />
+
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>

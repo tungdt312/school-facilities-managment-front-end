@@ -8,7 +8,6 @@ import {
   IconDashboard,
   IconDevices,
   IconDevicesCog,
-  IconDots,
   IconFile3d, IconFileTime,
   IconInnerShadowTop, IconReportMoney, IconTie,
   IconTool,
@@ -51,9 +50,14 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Borrow",
+      title: "Devices Borrow",
       url: "/borrow",
       icon: IconFile3d
+    },
+    {
+      title: "Room Booking",
+      url: "/booking",
+      icon: IconFileTime
     },
     {
       title: "Maintenance",
@@ -78,9 +82,14 @@ const data = {
       icon: IconTransfer
     },
     {
-      title: "Borrow",
+      title: "Devices Borrow",
       url: "/borrow",
       icon: IconFile3d
+    },
+    {
+      title: "Room Booking",
+      url: "/booking",
+      icon: IconFileTime
     },
     {
       title: "Devices Maintenance",
@@ -127,9 +136,14 @@ const data = {
       icon: IconTransfer
     },
     {
-      name: "Borrow",
+      name: "Devices Borrow",
       url: "/borrow",
       icon: IconFile3d
+    },
+    {
+      name: "Room Booking",
+      url: "/booking",
+      icon: IconFileTime
     },
     {
       name: "Devices Maintenance",
