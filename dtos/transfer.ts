@@ -4,7 +4,6 @@ import { VoucherStatus, LocationType } from "@/constaints/enum";
 
 export interface ApproveTransferRequest {
     status: VoucherStatus;
-    approvedBy: string;
 }
 
 export interface CreateTransferRequestRequest {

@@ -22,7 +22,6 @@ export interface LiquidateVoucherDetailRequest {
 
 export interface UpdateLiquidateRequestStatusRequest {
     status: VoucherStatus;
-    approvedBy: string;
 }
 
 export interface LiquidateRequestDetailResponse {

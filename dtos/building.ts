@@ -3,7 +3,6 @@ export interface CreateBuildingRequest {
     floorCount?: number;
     note?: string;
 }
-
 export interface BuildingResponse {
     buildingId: string;
     buildingName: string;
