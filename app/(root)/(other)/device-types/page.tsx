@@ -1,16 +1,18 @@
-import {SidebarTrigger} from "@/components/ui/sidebar";
-import {Separator} from "@/components/ui/separator";
-import {Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList} from "@/components/ui/breadcrumb";
+"use client"
+
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from "@/components/ui/breadcrumb";
+import { DeviceCategoryTable } from "@/components/device-types/DeviceCategoryTable";
 
 export default function Page() {
     return (
         <>
-            <SiteHeader/>
+            <SiteHeader />
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
-                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-
-
+                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
+                        <DeviceCategoryTable />
                     </div>
                 </div>
             </div>
@@ -30,7 +32,7 @@ function SiteHeader() {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/device-types">Device Types</BreadcrumbLink>
+                            <BreadcrumbLink href="/device-types">Device Categories</BreadcrumbLink>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>
