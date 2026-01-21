@@ -36,3 +36,11 @@ export interface InventoryAuditResponse {
     status: string;
     details: AuditDetailResponse[];
 }
+
+export interface AuditPeriodResponse {
+    periodId: string;
+    auditName: string;
+    startDate: string; // ISO String
+    endDate: string;   // ISO String
+    responsiblePerson: string;
+}
