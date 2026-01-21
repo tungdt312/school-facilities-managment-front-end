@@ -1,10 +1,19 @@
 export enum UserRole {
-    DepartmentHead = "DepartmentHead",
-    FacilityManager = "FacilityManager",
-    Department = "Department",
-    Lecturer = "Lecturer",
-    Student = "Student",
+    DepartmentHead = 0,
+    FacilityManager = 1,
+    Department = 2,
+    Lecturer = 3,
+    Student = 4,
 }
+
+// Map the integer values to UI labels
+export const UserRoleLabel: Record<number, string> = {
+    [UserRole.DepartmentHead]: "Department Head",
+    [UserRole.FacilityManager]: "Facility Manager",
+    [UserRole.Department]: "Department",
+    [UserRole.Lecturer]: "Lecturer",
+    [UserRole.Student]: "Student",
+};
 
 export enum DeviceStatus {
     Unassigned = "Unassigned",

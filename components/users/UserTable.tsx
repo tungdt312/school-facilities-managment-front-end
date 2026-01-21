@@ -37,7 +37,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {MOCK_USERS} from "@/components/mock-data/users-data";
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {UserRole} from "@/constaints/enum";
+import {UserRole, UserRoleLabel} from "@/constaints/enum";
 import z from 'zod';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
@@ -51,7 +51,9 @@ import {
     DialogTrigger
 } from '../ui/dialog';
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from '../ui/form';
-import {formatISODate} from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
+import {getUsersList} from "@/services/userService";
+import {PageRequest} from "@/dtos/base";
 
 export const UserTable = () => {
     const [data, setData] = useState<UserResponse[]>([]);
@@ -61,7 +63,7 @@ export const UserTable = () => {
     const [selectedRoles, setSelectedRoles] = useState<UserRole[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState(""); // Trạng thái ô tìm kiếm
     const debouncedSearch = useDebounce(searchTerm, 500); // Debounce để tránh spam API khi gõ
@@ -109,7 +111,7 @@ export const UserTable = () => {
                     Full Name <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({row}) => <div>{row.original.fullName}</div>, // Gọi fetchData wrapper
+            cell: ({row}) => <div>{row.original.fullname}</div>, // Gọi fetchData wrapper
         },
         {
             accessorKey: "email",
@@ -137,22 +139,26 @@ export const UserTable = () => {
                         <DropdownMenuContent align="start" className="w-52">
                             <DropdownMenuLabel>Role filter</DropdownMenuLabel>
                             <DropdownMenuSeparator/>
-                            {Object.values(UserRole).map((role) => (
-                                <DropdownMenuCheckboxItem
-                                    key={role}
-                                    checked={selectedRoles.includes(role)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedRoles(prev =>
-                                            checked
-                                                ? [...prev, role]
-                                                : prev.filter(r => r != role)
-                                        );
-                                        setPagination(p => ({...p, pageIndex: 0})); // Reset về trang 1
-                                    }}
-                                >
-                                    {role}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            {Object.values(UserRole)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((roleValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={roleValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedRoles.includes(roleValue as UserRole)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedRoles(prev =>
+                                                checked
+                                                    ? [...prev, roleValue as UserRole]
+                                                    : prev.filter(r => r !== roleValue)
+                                            );
+                                            setPagination(p => ({ ...p, pageIndex: 1 }));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {UserRoleLabel[roleValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
                             {selectedRoles.length > 0 && (
                                 <>
                                     <DropdownMenuSeparator/>
@@ -170,7 +176,7 @@ export const UserTable = () => {
             },
             cell: ({row}) => (
                 <div className="flex flex-wrap gap-1">
-                    <Badge variant="outline">{row.original.role}</Badge>
+                    <Badge variant="outline">{UserRoleLabel[row.original.role] || "Unknown"}</Badge>
                 </div>
             ),
         }, {
@@ -199,7 +205,20 @@ export const UserTable = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            setData(MOCK_USERS)
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery = `fullName=~${debouncedSearch}&email=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getUsersList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);res.totalElements
         } catch (e) {
             console.error(e);
             toast.error("Failed to load users");
@@ -231,8 +250,7 @@ export const UserTable = () => {
         manualPagination: true,
         manualSorting: true,
         manualFiltering: true, // Quan trọng
-        rowCount: rowCount, // Báo cho table biết tổng số lượng thật
-
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
@@ -245,7 +263,7 @@ export const UserTable = () => {
     // Handle Search Change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({...prev, pageIndex: 0})); // Reset về trang 1 khi tìm kiếm
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
 
     const handleBulkBlock = async () => {
@@ -364,14 +382,14 @@ export const UserTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -380,7 +398,7 @@ export const UserTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -389,7 +407,7 @@ export const UserTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -397,8 +415,8 @@ export const UserTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
