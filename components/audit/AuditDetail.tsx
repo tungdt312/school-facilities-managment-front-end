@@ -7,85 +7,60 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/c
 import {ArrowLeft, Loader} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
+import { getInventoryAuditById } from "@/services/auditService";
+import { InventoryAuditResponse } from "@/dtos/audit";
+import { AuditStatus, AuditStatusLabel, DeviceStatus, DeviceStatusLabel } from "@/constaints/enum";
 
-export interface AuditDetail {
-    auditId: string;
-    periodName: string;
+export interface AuditDetail extends InventoryAuditResponse {
     locationName: string;
-    locationType: string;
-    auditorId: string;
-    auditorName: string;
-    status: "Pending" | "Completed" | "In Progress";
-    auditDate: string;
-    totalDevices: number;
-    checkedDevices: number;
-    details: {
-        detailId: string;
-        equipmentName: string;
-        condition: string;
-        note: string;
-    }[];
 }
 
-const MOCK_AUDIT_DETAILS: Record<string, AuditDetail> = {
-    IA001: {
-        auditId: "IA001",
-        periodName: "Monthly Audit - Jan 2026",
-        locationName: "Building A",
-        locationType: "Building",
-        auditorId: "A001",
-        auditorName: "John Nguyen",
-        status: "Completed",
-        auditDate: "2026-01-15",
-        totalDevices: 50,
-        checkedDevices: 50,
-        details: [
-            {
-                detailId: "AD001",
-                equipmentName: "Computer 1",
-                condition: "Available",
-                note: "In good condition",
-            },
-            {
-                detailId: "AD002",
-                equipmentName: "Projector 1",
-                condition: "Borrowed",
-                note: "Currently used in Room 201",
-            },
-            {
-                detailId: "AD003",
-                equipmentName: "Printer 1",
-                condition: "UnderMaintenance",
-                note: "Toner cartridge replacement",
-            },
-        ],
-    },
-};
-
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: AuditStatus | number) => {
     switch (status) {
-        case "Completed":
+        case AuditStatus.Completed:
             return "bg-green-100 text-green-800";
-        case "In Progress":
+        case AuditStatus.Confirmed:
             return "bg-blue-100 text-blue-800";
-        case "Pending":
+        case AuditStatus.Pending:
             return "bg-yellow-100 text-yellow-800";
         default:
             return "bg-gray-100 text-gray-800";
     }
 };
 
-const getConditionBadge = (condition: string) => {
-    const conditionColors: Record<string, string> = {
-        Available: "bg-green-100 text-green-800",
-        Borrowed: "bg-blue-100 text-blue-800",
-        UnderMaintenance: "bg-yellow-100 text-yellow-800",
-        Broken: "bg-red-100 text-red-800",
-        Lost: "bg-red-200 text-red-900",
-        Disposed: "bg-gray-300 text-gray-800",
-        Unassigned: "bg-gray-100 text-gray-800",
+const getStatusLabel = (status: AuditStatus | number): string => {
+    const statusMap: Record<number, string> = {
+        [AuditStatus.Pending]: "Pending",
+        [AuditStatus.Completed]: "Completed",
+        [AuditStatus.Confirmed]: "Confirmed",
     };
-    return conditionColors[condition] || "bg-gray-100 text-gray-800";
+    return statusMap[status as number] || "Unknown";
+};
+
+const getConditionBadge = (condition: DeviceStatus | number) => {
+    const conditionColors: Record<number, string> = {
+        [DeviceStatus.Available]: "bg-green-100 text-green-800",
+        [DeviceStatus.Borrowed]: "bg-blue-100 text-blue-800",
+        [DeviceStatus.UnderMaintenance]: "bg-yellow-100 text-yellow-800",
+        [DeviceStatus.Broken]: "bg-red-100 text-red-800",
+        [DeviceStatus.Lost]: "bg-red-200 text-red-900",
+        [DeviceStatus.Disposed]: "bg-gray-300 text-gray-800",
+        [DeviceStatus.Unassigned]: "bg-gray-100 text-gray-800",
+    };
+    return conditionColors[condition as number] || "bg-gray-100 text-gray-800";
+};
+
+const getConditionLabel = (condition: DeviceStatus | number): string => {
+    const conditionMap: Record<number, string> = {
+        [DeviceStatus.Available]: "Available",
+        [DeviceStatus.Borrowed]: "Borrowed",
+        [DeviceStatus.UnderMaintenance]: "Under Maintenance",
+        [DeviceStatus.Broken]: "Broken",
+        [DeviceStatus.Lost]: "Lost",
+        [DeviceStatus.Disposed]: "Disposed",
+        [DeviceStatus.Unassigned]: "Unassigned",
+    };
+    return conditionMap[condition as number] || "Unknown";
 };
 
 export const AuditDetail = ({ id }: { id: string }) => {
@@ -95,11 +70,15 @@ export const AuditDetail = ({ id }: { id: string }) => {
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const auditData = MOCK_AUDIT_DETAILS[id];
-            setData(auditData || null);
-            setIsLoading(false);
+            try {
+                const auditData = await getInventoryAuditById(id);
+                setData(auditData as AuditDetail);
+            } catch (error) {
+                console.error("Failed to fetch audit detail:", error);
+                setData(null);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         fetchData();
@@ -139,51 +118,39 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     <CardHeader>
                         <div className="flex items-start justify-between">
                             <div>
-                                <CardTitle>Audit {data.auditId}</CardTitle>
-                                <CardDescription>{data.periodName}</CardDescription>
+                                <CardTitle>{data.auditName}</CardTitle>
+                                <CardDescription>{data.locationName}</CardDescription>
                             </div>
                             <Badge className={`${getStatusColor(data.status)} border-0`}>
-                                {data.status}
+                                {getStatusLabel(data.status)}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
+                                <p className="text-sm text-muted-foreground">Audit Name</p>
+                                <p className="font-medium">{data.auditName}</p>
+                            </div>
+                            <div>
                                 <p className="text-sm text-muted-foreground">Location</p>
                                 <p className="font-medium">{data.locationName}</p>
-                                <p className="text-xs text-muted-foreground">{data.locationType}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Auditor</p>
-                                <p className="font-medium">{data.auditorName}</p>
-                                <p className="text-xs text-muted-foreground">ID: {data.auditorId}</p>
+                                <p className="font-medium">{data.auditorFullName || "-"}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Audit Date</p>
-                                <p className="font-medium">
-                                    {new Date(data.auditDate).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    })}
-                                </p>
+                                <p className="font-medium">{new Date(data.auditDate).toLocaleDateString() || "-"}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Progress</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-medium">
-                                        {data.checkedDevices}/{data.totalDevices}
-                                    </span>
-                                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-blue-500"
-                                            style={{
-                                                width: `${(data.checkedDevices / data.totalDevices) * 100}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
+                                <p className="text-sm text-muted-foreground">Periodic Audit</p>
+                                <p className="font-medium">{data.periodicAuditName || "-"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Note</p>
+                                <p className="font-medium">{data.note || "-"}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -194,7 +161,7 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     <CardHeader>
                         <CardTitle>Equipment Details</CardTitle>
                         <CardDescription>
-                            {data.details.length} item(s) audited
+                            {data.details?.length || 0} item(s) audited
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -207,7 +174,7 @@ export const AuditDetail = ({ id }: { id: string }) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {data.details.length > 0 ? (
+                                {data.details && data.details.length > 0 ? (
                                     data.details.map((detail) => (
                                         <TableRow key={detail.detailId}>
                                             <TableCell className="font-medium">
@@ -215,7 +182,7 @@ export const AuditDetail = ({ id }: { id: string }) => {
                                             </TableCell>
                                             <TableCell>
                                                 <Badge className={`${getConditionBadge(detail.condition)} border-0`}>
-                                                    {detail.condition}
+                                                    {getConditionLabel(detail.condition)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
