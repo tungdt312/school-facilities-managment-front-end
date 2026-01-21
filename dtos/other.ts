@@ -38,7 +38,7 @@ export interface ExternalUnitResponse {
 export interface CreateFundSourceRequest {
     sourceName: string;
     amount: number;
-    description?: string;
+    note?: string;
 }
 
 export interface UpdateFundSourceRequest extends CreateFundSourceRequest {}
@@ -47,7 +47,7 @@ export interface FundSourceResponse {
     sourceId: string;
     sourceName: string;
     amount: number;
-    description?: string;
+    note?: string;
     createdAt?: string;
 }
 

@@ -6,52 +6,36 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ExternalLink, ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FundSourceResponse } from "@/dtos/other";
 import { CreateFundSourceDialog } from "./CreateFundSourceDialog";
 import { EditFundSourceDialog } from "./EditFundSourceDialog";
-
-const MOCK_FUND_SOURCES: FundSourceResponse[] = [
-    {
-        sourceId: "FS001",
-        sourceName: "Government Budget 2026",
-        amount: 50000000,
-        description: "Annual government allocation",
-        createdAt: "2026-01-01",
-    },
-    {
-        sourceId: "FS002",
-        sourceName: "Donation Fund",
-        amount: 15000000,
-        description: "Private donations",
-        createdAt: "2026-01-05",
-    },
-    {
-        sourceId: "FS003",
-        sourceName: "International Grant",
-        amount: 8000000,
-        description: "Grant from international organization",
-        createdAt: "2026-01-10",
-    },
-];
+import { getFundSources, deleteFundSource } from "@/services/fund-sourceService";
+import { FundSourceDetail } from "./FundSourceDetail";
 
 export const FundSourceTable = () => {
     const [data, setData] = useState<FundSourceResponse[]>([]);
+    const [totalPages, setTotalPages] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
-    const [rowCount, setRowCount] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [selectedFundSource, setSelectedFundSource] = useState<FundSourceResponse | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        sourceId: false,
+    });
     const [sorting, setSorting] = useState<SortingState>([]);
 
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+    const [selectedDetailSourceId, setSelectedDetailSourceId] = useState<string | null>(null);
+
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1,
         pageSize: 10,
     });
 
@@ -59,28 +43,31 @@ export const FundSourceTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            const response = await getFundSources({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                search: debouncedSearch,
+            });
 
-        let filteredData = MOCK_FUND_SOURCES;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.sourceName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.sourceId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+            setData(response.content || []);
+            setTotalPages(response.totalPages || 0);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to fetch fund sources");
+            setData([]);
+            setTotalPages(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [debouncedSearch, pagination.pageIndex, pagination.pageSize]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -139,11 +126,11 @@ export const FundSourceTable = () => {
             },
         },
         {
-            accessorKey: "description",
-            header: "Description",
+            accessorKey: "note",
+            header: "Note",
             cell: ({ row }) => (
                 <div className="text-sm text-muted-foreground max-w-xs truncate">
-                    {row.getValue("description") || "-"}
+                    {row.getValue("note") || "-"}
                 </div>
             ),
         },
@@ -160,7 +147,9 @@ export const FundSourceTable = () => {
                 </Button>
             ),
             cell: ({ row }) => {
-                const date = new Date(row.getValue("createdAt") as string);
+                const dateStr = row.getValue("createdAt") as string;
+                if (!dateStr) return "-";
+                const date = new Date(dateStr);
                 return date.toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -176,6 +165,19 @@ export const FundSourceTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
+                        title="View Details"
+                        onClick={() => {
+                            setSelectedDetailSourceId(row.original.sourceId);
+                            setIsDetailDialogOpen(true);
+                        }}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Edit"
                         onClick={() => {
                             setSelectedFundSource(row.original);
                             setIsEditDialogOpen(true);
@@ -187,6 +189,7 @@ export const FundSourceTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        title="Delete"
                         onClick={() => handleDelete(row.original.sourceId)}
                     >
                         <Trash2 className="h-4 w-4" />
@@ -212,17 +215,39 @@ export const FundSourceTable = () => {
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
+        manualPagination: true,
+        pageCount: totalPages,
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
 
-    const handleDelete = (sourceId: string) => {
-        // TODO: Implement delete API call
-        console.log("Deleting source:", sourceId);
-        setData(data.filter(item => item.sourceId !== sourceId));
+    const handleDelete = async (sourceId: string) => {
+        if (!confirm("Are you sure you want to delete this fund source?")) return;
+
+        try {
+            setIsLoading(true);
+            await deleteFundSource(sourceId);
+            await fetchData();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to delete fund source");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleCreateSuccess = async () => {
+        setIsCreateDialogOpen(false);
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
+        await fetchData();
+    };
+
+    const handleEditSuccess = async () => {
+        setIsEditDialogOpen(false);
+        setSelectedFundSource(null);
+        await fetchData();
     };
 
     if (!isMounted) {
@@ -250,9 +275,15 @@ export const FundSourceTable = () => {
 
     return (
         <div className="w-full space-y-4 pt-6">
+            {error && (
+                <div className="bg-destructive/10 text-destructive px-4 py-2 rounded-md">
+                    {error}
+                </div>
+            )}
+
             <div className="flex items-center gap-2 w-full">
                 <Input
-                    placeholder="Search by name, ID, or description..."
+                    placeholder="Search by name, ID..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="h-8 w-full"
@@ -349,7 +380,7 @@ export const FundSourceTable = () => {
                         <Select
                             value={`${pagination.pageSize}`}
                             onValueChange={(value) => {
-                                table.setPageSize(Number(value));
+                                setPagination(prev => ({ ...prev, pageSize: Number(value), pageIndex: 1 }));
                             }}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
@@ -365,14 +396,14 @@ export const FundSourceTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 1 }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
@@ -380,8 +411,8 @@ export const FundSourceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex - 1 }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
@@ -389,8 +420,8 @@ export const FundSourceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= totalPages}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
@@ -398,8 +429,8 @@ export const FundSourceTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: totalPages }))}
+                            disabled={pagination.pageIndex >= totalPages}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />
@@ -408,14 +439,27 @@ export const FundSourceTable = () => {
                 </div>
             </div>
 
-            <CreateFundSourceDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateFundSourceDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={handleCreateSuccess}
+            />
             {selectedFundSource && (
                 <EditFundSourceDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                     fundSource={selectedFundSource}
+                    onSuccess={handleEditSuccess}
                 />
             )}
+
+            {selectedDetailSourceId && (
+                <FundSourceDetail
+                    open={isDetailDialogOpen}
+                    onOpenChange={setIsDetailDialogOpen}
+                    sourceId={selectedDetailSourceId}
+                />
+            )}            
         </div>
     );
 };
