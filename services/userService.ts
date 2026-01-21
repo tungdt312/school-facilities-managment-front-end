@@ -38,7 +38,7 @@ export async function postUser(data: CreateUserRequest): Promise<UserResponse> {
 }
 export async function putUser(data: UpdateUserRequest, id: string): Promise<UserResponse> {
     const res = await apiFetch(`/users/${id}`, true, {
-        method: "POST",
+        method: "PUT",
         headers: {
             "accept": "application/json",
             "content-type": "application/json",
@@ -49,7 +49,7 @@ export async function putUser(data: UpdateUserRequest, id: string): Promise<User
     return processResponse(res);
 }
 export async function deleteUser(id: string): Promise<BaseResponse> {
-    const res = await apiFetch(`/users`, true, {
+    const res = await apiFetch(`/users/${id}`, true, {
         method: "DELETE",
         headers: {
             "accept": "application/json",

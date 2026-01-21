@@ -1,7 +1,7 @@
 import { UserRole } from "@/constaints/enum";
 
 export interface CreateUserRequest {
-    fullName: string;
+    fullname: string;
     email: string;
     password: string;
     role: UserRole;
@@ -14,7 +14,7 @@ export interface UpdateUserRequest {
 
 export interface UserResponse {
     userId: string;
-    fullName: string;
+    fullname: string;
     email: string;
     role: UserRole;
     createdAt: string;

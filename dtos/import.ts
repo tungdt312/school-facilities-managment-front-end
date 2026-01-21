@@ -24,9 +24,8 @@ export interface ImportVoucherDetailRequest {
     note?: string;
 }
 
-export interface UpdateImportRequestStatusResponse {
+export interface UpdateImportRequestStatusRequest {
     status: VoucherStatus;
-    approvedBy: string;
 }
 
 export interface ImportRequestDetailResponse {

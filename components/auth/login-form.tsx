@@ -21,6 +21,9 @@ import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {toast} from "sonner";
 import Link from "next/link";
+import {login} from "@/services/authService";
+import {ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY, USER_ROLE_KEY} from "@/constaints";
+import {useRouter} from "next/navigation";
 const loginSchema = z.object({
   email: z.email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
@@ -33,7 +36,7 @@ export function LoginForm({
                             ...props
                           }: React.ComponentProps<"div">) {
   const [isLoading, setIsLoading] = useState(false)
-
+  const router = useRouter()
   // 2. Initialize React Hook Form
   const {
     register,
@@ -49,12 +52,19 @@ export function LoginForm({
   const onSubmit = async (data: LoginValues) => {
     setIsLoading(true)
     console.log("Logging in with:", data)
+    try{
+      const res = await login(data)
 
-    // Simulate API request
-
-
-    toast.success("Login successful! Redirecting...")
-    setIsLoading(false)
+      localStorage.setItem(ACCESS_TOKEN_KEY, res.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user))
+      toast.success("Login successful! Redirecting...")
+      router.push("/dashboard")
+    } catch (e) {
+      toast.error((e as Error).message || "Something went wrong...")
+    } finally {
+      setIsLoading(false)
+    }
     // You would typically redirect the user here
   }
   return (

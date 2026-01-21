@@ -19,9 +19,7 @@ export interface ReturnBorrowRequest {
 }
 
 export interface UpdateBorrowRequest {
-    borrowId: string;
-    note?: string;
-    returnDate: string; // Ngày thực tế trả (ISO String)
+    status: BorrowStatus;
 }
 
 // --- Response ---
