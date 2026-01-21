@@ -57,6 +57,7 @@ export interface CreateInvoiceRequest {
     invoiceNumber: string;
     type: FunctionType; // Import, Maintenance, Repair...
     totalAmount: number;
+    unitId: string;
     createdBy: string;
     note?: string;
 }

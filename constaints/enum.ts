@@ -137,6 +137,13 @@ export const LocationTypeLabel: Record<number, string> = {
     [LocationType.Room]: "Room",
 };
 
+export const FunctionTypeLabel: Record<number, string> = {
+    [FunctionType.Import]: "Import",
+    [FunctionType.Maintenance]: "Maintenance",
+    [FunctionType.Repair]: "Repair",
+    [FunctionType.Liquidate]: "Liquidate",
+};
+
 // --- 3. UI COLOR MAPPINGS (Shadcn/UI Badge Variants) ---
 // You can use these values in the 'className' or 'variant' prop of your Badge
 
