@@ -17,11 +17,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import z from 'zod';
+import { createPeriodicAudit } from '@/services/auditService';
 
 const createAuditPeriodSchema = z.object({
-    auditName: z.string().min(2, "Audit name must be at least 2 characters"),
+    periodicAuditName: z.string().min(2, "Audit name must be at least 2 characters"),  // Changed from auditName
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().min(1, "End date is required"),
+    responsiblePerson: z.string().min(2, "Responsible person is required"),
 }).refine((data) => new Date(data.startDate) < new Date(data.endDate), {
     message: "End date must be after start date",
     path: ["endDate"],
@@ -40,24 +42,29 @@ export function CreateAuditPeriodDialog({ onSuccess }: CreateAuditPeriodDialogPr
     const form = useForm<FormValues>({
         resolver: zodResolver(createAuditPeriodSchema),
         defaultValues: {
-            auditName: "",
+            periodicAuditName: "",
             startDate: "",
             endDate: "",
+            responsiblePerson: "",
         },
     });
 
     async function onSubmit(values: FormValues) {
         setIsSubmitting(true);
         try {
-            // Simulate API Call
-            console.log("Creating audit period:", values);
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            await createPeriodicAudit({
+                periodicAuditName: values.periodicAuditName,
+                startDate: values.startDate,
+                endDate: values.endDate,
+                responsiblePerson: values.responsiblePerson,
+            });
 
             toast.success("Audit period created successfully");
             setOpen(false);
             form.reset();
             onSuccess(); // Refresh the table data
         } catch (error) {
+            console.error(error);
             toast.error("Failed to create audit period");
         } finally {
             setIsSubmitting(false);
@@ -84,7 +91,7 @@ export function CreateAuditPeriodDialog({ onSuccess }: CreateAuditPeriodDialogPr
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="auditName"
+                            name="periodicAuditName"
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Audit Name</FormLabel>
@@ -116,6 +123,19 @@ export function CreateAuditPeriodDialog({ onSuccess }: CreateAuditPeriodDialogPr
                                     <FormLabel>End Date</FormLabel>
                                     <FormControl>
                                         <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="responsiblePerson"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Responsible Person ID</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>

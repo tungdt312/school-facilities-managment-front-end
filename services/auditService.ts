@@ -21,13 +21,26 @@ const AUDIT_DETAIL_API = '/api/v1/audit-details';
 export async function getPeriodicAudits(
     params?: PageRequest
 ): Promise<PageV0<AuditPeriodResponse>> {
-    const res = await apiFetch(`${PERIODIC_AUDIT_API}/?${toQueryString(params)}`, true, {
+    const queryString = toQueryString(params);
+    const url = queryString ? `${PERIODIC_AUDIT_API}?${queryString}` : PERIODIC_AUDIT_API;
+    console.log('🔍 Calling getPeriodicAudits:', url);
+    
+    const res = await apiFetch(url, true, {
         method: 'GET',
         headers: {
             'accept': 'application/json',
         },
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ getPeriodicAudits Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<PageV0<AuditPeriodResponse>>(res);
 }
 
@@ -37,6 +50,8 @@ export async function getPeriodicAudits(
 export async function createPeriodicAudit(
     request: CreateAuditPeriodRequest
 ): Promise<AuditPeriodResponse> {
+    console.log("🚀 createPeriodicAudit called with:", request);
+    
     const res = await apiFetch(PERIODIC_AUDIT_API, true, {
         method: 'POST',
         headers: {
@@ -45,7 +60,16 @@ export async function createPeriodicAudit(
         },
         body: JSON.stringify(request),
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error("❌ createPeriodicAudit Error:", {
+            status: res.status,
+            statusText: res.statusText,
+            url: PERIODIC_AUDIT_API,
+            body: errorText,
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<AuditPeriodResponse>(res);
 }
 
@@ -55,13 +79,25 @@ export async function createPeriodicAudit(
 export async function getPeriodicAuditById(
     id: string
 ): Promise<AuditPeriodResponse> {
-    const res = await apiFetch(`${PERIODIC_AUDIT_API}/${id}`, true, {
+    const url = `${PERIODIC_AUDIT_API}/${id}`;
+    console.log('🔍 Calling getPeriodicAuditById:', url);
+    
+    const res = await apiFetch(url, true, {
         method: 'GET',
         headers: {
             'accept': 'application/json',
         },
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ getPeriodicAuditById Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<AuditPeriodResponse>(res);
 }
 
@@ -69,14 +105,26 @@ export async function getPeriodicAuditById(
  * Xóa kỳ kiểm kê
  */
 export async function deletePeriodicAudit(id: string): Promise<void> {
-    const res = await apiFetch(`${PERIODIC_AUDIT_API}/${id}`, true, {
+    const url = `${PERIODIC_AUDIT_API}/${id}`;
+    console.log('🗑️ Calling deletePeriodicAudit:', url);
+    
+    const res = await apiFetch(url, true, {
         method: 'DELETE',
         headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
         },
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ deletePeriodicAudit Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<void>(res);
 }
 

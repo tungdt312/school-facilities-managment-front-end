@@ -3,9 +3,10 @@ import {DeviceStatus, LocationType, AuditStatus} from "@/constaints/enum";
 // --- Request & Period ---
 
 export interface CreateAuditPeriodRequest {
-    auditName: string;
+    periodicAuditName: string;
     startDate: string; // ISO String
     endDate: string;   // ISO String
+    responsiblePerson: string;
 }
 
 export interface CreateInventoryAuditRequest {
@@ -54,7 +55,7 @@ export interface InventoryAuditResponse {
 
 export interface AuditPeriodResponse {
     periodId: string;
-    auditName: string;
+    periodicAuditName: string;
     startDate: string; // ISO String
     endDate: string;   // ISO String
     responsiblePerson: string;
