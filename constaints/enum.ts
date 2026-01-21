@@ -77,6 +77,13 @@ export enum AuditStatus {
     Confirmed = 2,
 }
 
+export enum RoomTypeName{
+    Classroom = 0,
+    Lab = 1,
+    Administrative = 2,
+    Restroom = 3,
+}
+
 // --- 2. UI LABEL MAPPINGS ---
 
 export const UserRoleLabel: Record<number, string> = {
@@ -142,6 +149,13 @@ export const FunctionTypeLabel: Record<number, string> = {
     [FunctionType.Maintenance]: "Maintenance",
     [FunctionType.Repair]: "Repair",
     [FunctionType.Liquidate]: "Liquidate",
+};
+
+export const RoomTypeNameLabel: Record<number, string> = {
+    [RoomTypeName.Classroom]: "Classroom",
+    [RoomTypeName.Lab]: "Lab",
+    [RoomTypeName.Administrative]: "Administrative",
+    [RoomTypeName.Restroom]: "Restroom",
 };
 
 // --- 3. UI COLOR MAPPINGS (Shadcn/UI Badge Variants) ---
