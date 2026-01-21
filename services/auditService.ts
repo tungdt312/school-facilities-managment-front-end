@@ -138,7 +138,7 @@ export async function createInventoryAudit(
         });
         throw new Error(res.statusText);
     }
-    
+
     return processResponse<InventoryAuditResponse>(res);
 }
 
@@ -174,22 +174,6 @@ export async function deleteInventoryAudit(id: string): Promise<void> {
 }
 
 // ===== AUDIT DETAIL =====
-
-/**
- * Lấy danh sách chi tiết kiểm kê (có phân trang)
- */
-export async function getAuditDetails(
-    params?: PageRequest
-): Promise<PageV0<AuditDetailResponse>> {
-    const res = await apiFetch(`${AUDIT_DETAIL_API}/?${toQueryString(params)}`, true, {
-        method: 'GET',
-        headers: {
-            'accept': 'application/json',
-        },
-    });
-    if (!res.ok) throw new Error(res.statusText);
-    return processResponse<PageV0<AuditDetailResponse>>(res);
-}
 
 /**
  * Lấy chi tiết một audit detail

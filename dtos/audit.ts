@@ -30,6 +30,7 @@ export interface UpdateAuditDetailRequest {
 
 export interface AuditDetailResponse {
     detailId: string;
+    equipmentId: string;
     equipmentName: string;
     condition: DeviceStatus;
     note: string;
