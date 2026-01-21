@@ -66,6 +66,12 @@ export enum BookingStatus {
     Completed = 4,
 }
 
+export enum AuditStatus {
+    Pending = 0,
+    Completed = 1,
+    Confirmed = 2,
+}
+
 // --- 2. UI LABEL MAPPINGS ---
 
 export const UserRoleLabel: Record<number, string> = {
@@ -99,6 +105,18 @@ export const BorrowStatusLabel: Record<number, string> = {
     [BorrowStatus.Borrowing]: "Borrowing",
     [BorrowStatus.Returned]: "Returned",
     [BorrowStatus.Violated]: "Violated",
+};
+
+export const AuditStatusLabel: Record<number, string> = {
+    [AuditStatus.Pending]: "Pending",
+    [AuditStatus.Completed]: "Completed",
+    [AuditStatus.Confirmed]: "Confirmed",
+};
+
+export const LocationTypeLabel: Record<number, string> = {
+    [LocationType.Building]: "Building",
+    [LocationType.Floor]: "Floor",
+    [LocationType.Room]: "Room",
 };
 
 // --- 3. UI COLOR MAPPINGS (Shadcn/UI Badge Variants) ---

@@ -14,37 +14,39 @@ import {CreateAuditDialog} from "./CreateAuditDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getInventoryAudits } from "@/services/auditService";
 import { InventoryAuditResponse } from "@/dtos/audit";
+import { AuditStatus, AuditStatusLabel } from "@/constaints/enum";
 
 export interface InventoryAudit extends InventoryAuditResponse {
-    auditId: string;
-    periodName: string;
-    locationType: string;
-    auditorId: string;
-    auditorName: string;
-    status: "Pending" | "Completed" | "In Progress";
-    auditDate: string;
-    totalDevices: number;
-    checkedDevices: number;
+    // Fields now come from InventoryAuditResponse
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: AuditStatus | number) => {
     switch (status) {
-        case "Completed":
+        case AuditStatus.Completed:
             return "bg-green-100 text-green-800";
-        case "In Progress":
-            return "bg-blue-100 text-blue-800";
-        case "Pending":
+        case AuditStatus.Pending:
             return "bg-yellow-100 text-yellow-800";
+        case AuditStatus.Confirmed:
+            return "bg-blue-100 text-blue-800";
         default:
             return "bg-gray-100 text-gray-800";
     }
+};
+
+const getStatusLabel = (status: AuditStatus | number) => {
+    const statusMap: Record<number, string> = {
+        [AuditStatus.Pending]: "Pending",
+        [AuditStatus.Completed]: "Completed",
+        [AuditStatus.Confirmed]: "Confirmed",
+    };
+    return statusMap[status as number] || "Unknown";
 };
 
 export const InventoryAuditTable = () => {
     const [data, setData] = useState<InventoryAudit[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
-    const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+    const [selectedStatuses, setSelectedStatuses] = useState<AuditStatus[]>([]);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
@@ -107,18 +109,23 @@ export const InventoryAuditTable = () => {
 
     const columns: ColumnDef<InventoryAudit>[] = [
         {
-            accessorKey: "auditId",
+            accessorKey: "auditName",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
                     onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
                     className="h-8 p-0 px-0 hover:bg-transparent"
                 >
-                    Audit ID
+                    Audit Name
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
-            cell: ({ row }) => row.getValue("auditId"),
+            cell: ({ row }) => row.getValue("auditName"),
+        },
+        {
+            accessorKey: "periodicAuditName",
+            header: "Periodic Audit Name",
+            cell: ({ row }) => row.getValue("periodicAuditName") || "-",
         },
         {
             accessorKey: "locationName",
@@ -127,19 +134,32 @@ export const InventoryAuditTable = () => {
                 const location = row.getValue("locationName") as string;
                 return (
                     <div className="flex flex-col">
-                        <span>{location}</span>
+                        <span>{location || "-"}</span>
                     </div>
                 );
+            },
+        },
+        {
+            accessorKey: "auditorFullName",
+            header: "Auditor",
+            cell: ({ row }) => row.getValue("auditorFullName") || "-",
+        },
+        {
+            accessorKey: "auditDate",
+            header: "Audit Date",
+            cell: ({ row }) => {
+                const date = row.getValue("auditDate") as string;
+                return new Date(date).toLocaleDateString() || "-";
             },
         },
         {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {
-                const status = row.getValue("status") as string;
+                const status = row.getValue("status") as AuditStatus | number;
                 return (
                     <Badge className={`${getStatusColor(status)} border-0`}>
-                        {status}
+                        {getStatusLabel(status)}
                     </Badge>
                 );
             },
@@ -235,7 +255,7 @@ export const InventoryAuditTable = () => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                        {["Pending", "In Progress", "Completed"].map((status) => (
+                        {[AuditStatus.Pending, AuditStatus.Completed, AuditStatus.Confirmed].map((status) => (
                             <DropdownMenuCheckboxItem
                                 key={status}
                                 checked={selectedStatuses.includes(status)}
@@ -249,7 +269,7 @@ export const InventoryAuditTable = () => {
                                     }
                                 }}
                             >
-                                {status}
+                                {getStatusLabel(status)}
                             </DropdownMenuCheckboxItem>
                         ))}
                     </DropdownMenuContent>
@@ -407,7 +427,7 @@ export const InventoryAuditTable = () => {
                 </div>
             </div>
 
-            <CreateAuditDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}/>
+            <CreateAuditDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} onSuccess={() => fetchData()} />
         </div>
     );
 };

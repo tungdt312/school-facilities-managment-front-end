@@ -1,4 +1,4 @@
-import {DeviceStatus, LocationType} from "@/constaints/enum";
+import {DeviceStatus, LocationType, AuditStatus} from "@/constaints/enum";
 
 // --- Request & Period ---
 
@@ -9,10 +9,15 @@ export interface CreateAuditPeriodRequest {
 }
 
 export interface CreateInventoryAuditRequest {
+    auditName: string;
     periodId: string;
     locationId: string;
     locationType: LocationType;
     auditorId: string;
+    auditDate: string | Date;
+    note?: string;
+    status: AuditStatus;
+
 }
 
 export interface UpdateAuditDetailRequest {
@@ -32,8 +37,17 @@ export interface AuditDetailResponse {
 
 export interface InventoryAuditResponse {
     auditId: string;
+    auditName: string;
+    periodId: string;
+    periodicAuditName: string;
+    locationId: string;
     locationName: string;
-    status: string;
+    locationType: LocationType;
+    auditorId: string;
+    auditorFullName: string;
+    auditDate: string;
+    note: string;
+    status: AuditStatus;
     details: AuditDetailResponse[];
 }
 

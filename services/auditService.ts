@@ -119,6 +119,8 @@ export async function getInventoryAudits(
 export async function createInventoryAudit(
     request: CreateInventoryAuditRequest
 ): Promise<InventoryAuditResponse> {
+   console.log("🚀 createInventoryAudit called with:", request);
+
     const res = await apiFetch(INVENTORY_AUDIT_API, true, {
         method: 'POST',
         headers: {
@@ -127,7 +129,16 @@ export async function createInventoryAudit(
         },
         body: JSON.stringify(request),
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error("❌ API Error:", {
+            status: res.status,
+            statusText: res.statusText,
+            body: errorText,
+        });
+        throw new Error(res.statusText);
+    }
+    
     return processResponse<InventoryAuditResponse>(res);
 }
 

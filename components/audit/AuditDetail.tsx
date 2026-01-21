@@ -9,35 +9,58 @@ import Link from "next/link";
 import {useEffect, useState} from "react";
 import { getInventoryAuditById } from "@/services/auditService";
 import { InventoryAuditResponse } from "@/dtos/audit";
+import { AuditStatus, AuditStatusLabel, DeviceStatus, DeviceStatusLabel } from "@/constaints/enum";
 
 export interface AuditDetail extends InventoryAuditResponse {
     locationName: string;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: AuditStatus | number) => {
     switch (status) {
-        case "Completed":
+        case AuditStatus.Completed:
             return "bg-green-100 text-green-800";
-        case "In Progress":
+        case AuditStatus.Confirmed:
             return "bg-blue-100 text-blue-800";
-        case "Pending":
+        case AuditStatus.Pending:
             return "bg-yellow-100 text-yellow-800";
         default:
             return "bg-gray-100 text-gray-800";
     }
 };
 
-const getConditionBadge = (condition: string) => {
-    const conditionColors: Record<string, string> = {
-        Available: "bg-green-100 text-green-800",
-        Borrowed: "bg-blue-100 text-blue-800",
-        UnderMaintenance: "bg-yellow-100 text-yellow-800",
-        Broken: "bg-red-100 text-red-800",
-        Lost: "bg-red-200 text-red-900",
-        Disposed: "bg-gray-300 text-gray-800",
-        Unassigned: "bg-gray-100 text-gray-800",
+const getStatusLabel = (status: AuditStatus | number): string => {
+    const statusMap: Record<number, string> = {
+        [AuditStatus.Pending]: "Pending",
+        [AuditStatus.Completed]: "Completed",
+        [AuditStatus.Confirmed]: "Confirmed",
     };
-    return conditionColors[condition] || "bg-gray-100 text-gray-800";
+    return statusMap[status as number] || "Unknown";
+};
+
+const getConditionBadge = (condition: DeviceStatus | number) => {
+    const conditionColors: Record<number, string> = {
+        [DeviceStatus.Available]: "bg-green-100 text-green-800",
+        [DeviceStatus.Borrowed]: "bg-blue-100 text-blue-800",
+        [DeviceStatus.UnderMaintenance]: "bg-yellow-100 text-yellow-800",
+        [DeviceStatus.Broken]: "bg-red-100 text-red-800",
+        [DeviceStatus.Lost]: "bg-red-200 text-red-900",
+        [DeviceStatus.Disposed]: "bg-gray-300 text-gray-800",
+        [DeviceStatus.Unassigned]: "bg-gray-100 text-gray-800",
+    };
+    return conditionColors[condition as number] || "bg-gray-100 text-gray-800";
+};
+
+const getConditionLabel = (condition: DeviceStatus | number): string => {
+    const conditionMap: Record<number, string> = {
+        [DeviceStatus.Available]: "Available",
+        [DeviceStatus.Borrowed]: "Borrowed",
+        [DeviceStatus.UnderMaintenance]: "Under Maintenance",
+        [DeviceStatus.Broken]: "Broken",
+        [DeviceStatus.Lost]: "Lost",
+        [DeviceStatus.Disposed]: "Disposed",
+        [DeviceStatus.Unassigned]: "Unassigned",
+    };
+    return conditionMap[condition as number] || "Unknown";
 };
 
 export const AuditDetail = ({ id }: { id: string }) => {
@@ -95,19 +118,39 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     <CardHeader>
                         <div className="flex items-start justify-between">
                             <div>
-                                <CardTitle>Audit {data.auditId}</CardTitle>
+                                <CardTitle>{data.auditName}</CardTitle>
                                 <CardDescription>{data.locationName}</CardDescription>
                             </div>
                             <Badge className={`${getStatusColor(data.status)} border-0`}>
-                                {data.status}
+                                {getStatusLabel(data.status)}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
+                                <p className="text-sm text-muted-foreground">Audit Name</p>
+                                <p className="font-medium">{data.auditName}</p>
+                            </div>
+                            <div>
                                 <p className="text-sm text-muted-foreground">Location</p>
                                 <p className="font-medium">{data.locationName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Auditor</p>
+                                <p className="font-medium">{data.auditorFullName || "-"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Audit Date</p>
+                                <p className="font-medium">{new Date(data.auditDate).toLocaleDateString() || "-"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Periodic Audit</p>
+                                <p className="font-medium">{data.periodicAuditName || "-"}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Note</p>
+                                <p className="font-medium">{data.note || "-"}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -138,8 +181,8 @@ export const AuditDetail = ({ id }: { id: string }) => {
                                                 {detail.equipmentName}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge className={`${getConditionBadge(String(detail.condition))} border-0`}>
-                                                    {detail.condition}
+                                                <Badge className={`${getConditionBadge(detail.condition)} border-0`}>
+                                                    {getConditionLabel(detail.condition)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
