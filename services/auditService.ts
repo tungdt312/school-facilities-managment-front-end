@@ -9,9 +9,9 @@ import {
     AuditPeriodResponse,
 } from '@/dtos/audit';
 
-const PERIODIC_AUDIT_API = '/api/v1/periodic-audits';
-const INVENTORY_AUDIT_API = '/api/v1/inventory-audits';
-const AUDIT_DETAIL_API = '/api/v1/audit-details';
+const PERIODIC_AUDIT_API = '/periodic-audits';
+const INVENTORY_AUDIT_API = '/inventory-audits';
+const AUDIT_DETAIL_API = '/audit-details';
 
 // ===== PERIODIC AUDIT =====
 
@@ -21,9 +21,13 @@ const AUDIT_DETAIL_API = '/api/v1/audit-details';
 export async function getPeriodicAudits(
     params?: PageRequest
 ): Promise<PageV0<AuditPeriodResponse>> {
-    const queryString = toQueryString(params);
-    const url = `${PERIODIC_AUDIT_API}${queryString ? '?' + queryString : ''}`;
-    const res = await apiFetch(url, true, { method: 'GET' });
+    const res = await apiFetch(`${PERIODIC_AUDIT_API}/?${toQueryString(params)}`, true, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<PageV0<AuditPeriodResponse>>(res);
 }
 
@@ -35,9 +39,13 @@ export async function createPeriodicAudit(
 ): Promise<AuditPeriodResponse> {
     const res = await apiFetch(PERIODIC_AUDIT_API, true, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
         body: JSON.stringify(request),
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<AuditPeriodResponse>(res);
 }
 
@@ -49,7 +57,11 @@ export async function getPeriodicAuditById(
 ): Promise<AuditPeriodResponse> {
     const res = await apiFetch(`${PERIODIC_AUDIT_API}/${id}`, true, {
         method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<AuditPeriodResponse>(res);
 }
 
@@ -59,7 +71,12 @@ export async function getPeriodicAuditById(
 export async function deletePeriodicAudit(id: string): Promise<void> {
     const res = await apiFetch(`${PERIODIC_AUDIT_API}/${id}`, true, {
         method: 'DELETE',
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<void>(res);
 }
 
@@ -71,9 +88,13 @@ export async function deletePeriodicAudit(id: string): Promise<void> {
 export async function getInventoryAudits(
     params?: PageRequest
 ): Promise<PageV0<InventoryAuditResponse>> {
-    const queryString = toQueryString(params);
-    const url = `${INVENTORY_AUDIT_API}${queryString ? '?' + queryString : ''}`;
-    const res = await apiFetch(url, true, { method: 'GET' });
+    const res = await apiFetch(`${INVENTORY_AUDIT_API}/?${toQueryString(params)}`, true, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<PageV0<InventoryAuditResponse>>(res);
 }
 
@@ -85,9 +106,13 @@ export async function createInventoryAudit(
 ): Promise<InventoryAuditResponse> {
     const res = await apiFetch(INVENTORY_AUDIT_API, true, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
         body: JSON.stringify(request),
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<InventoryAuditResponse>(res);
 }
 
@@ -99,7 +124,11 @@ export async function getInventoryAuditById(
 ): Promise<InventoryAuditResponse> {
     const res = await apiFetch(`${INVENTORY_AUDIT_API}/${id}`, true, {
         method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<InventoryAuditResponse>(res);
 }
 
@@ -109,7 +138,12 @@ export async function getInventoryAuditById(
 export async function deleteInventoryAudit(id: string): Promise<void> {
     const res = await apiFetch(`${INVENTORY_AUDIT_API}/${id}`, true, {
         method: 'DELETE',
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<void>(res);
 }
 
@@ -121,9 +155,13 @@ export async function deleteInventoryAudit(id: string): Promise<void> {
 export async function getAuditDetails(
     params?: PageRequest
 ): Promise<PageV0<AuditDetailResponse>> {
-    const queryString = toQueryString(params);
-    const url = `${AUDIT_DETAIL_API}${queryString ? '?' + queryString : ''}`;
-    const res = await apiFetch(url, true, { method: 'GET' });
+    const res = await apiFetch(`${AUDIT_DETAIL_API}/?${toQueryString(params)}`, true, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<PageV0<AuditDetailResponse>>(res);
 }
 
@@ -135,7 +173,11 @@ export async function getAuditDetailById(
 ): Promise<AuditDetailResponse> {
     const res = await apiFetch(`${AUDIT_DETAIL_API}/${id}`, true, {
         method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<AuditDetailResponse>(res);
 }
 
@@ -148,9 +190,13 @@ export async function updateAuditDetail(
 ): Promise<AuditDetailResponse> {
     const res = await apiFetch(`${AUDIT_DETAIL_API}/${id}`, true, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
         body: JSON.stringify(request),
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<AuditDetailResponse>(res);
 }
 
@@ -160,6 +206,11 @@ export async function updateAuditDetail(
 export async function deleteAuditDetail(id: string): Promise<void> {
     const res = await apiFetch(`${AUDIT_DETAIL_API}/${id}`, true, {
         method: 'DELETE',
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
     });
+    if (!res.ok) throw new Error(res.statusText);
     return processResponse<void>(res);
 }

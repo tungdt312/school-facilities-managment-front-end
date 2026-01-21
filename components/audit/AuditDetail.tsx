@@ -7,60 +7,12 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/c
 import {ArrowLeft, Loader} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
+import { getInventoryAuditById } from "@/services/auditService";
+import { InventoryAuditResponse } from "@/dtos/audit";
 
-export interface AuditDetail {
-    auditId: string;
-    periodName: string;
+export interface AuditDetail extends InventoryAuditResponse {
     locationName: string;
-    locationType: string;
-    auditorId: string;
-    auditorName: string;
-    status: "Pending" | "Completed" | "In Progress";
-    auditDate: string;
-    totalDevices: number;
-    checkedDevices: number;
-    details: {
-        detailId: string;
-        equipmentName: string;
-        condition: string;
-        note: string;
-    }[];
 }
-
-const MOCK_AUDIT_DETAILS: Record<string, AuditDetail> = {
-    IA001: {
-        auditId: "IA001",
-        periodName: "Monthly Audit - Jan 2026",
-        locationName: "Building A",
-        locationType: "Building",
-        auditorId: "A001",
-        auditorName: "John Nguyen",
-        status: "Completed",
-        auditDate: "2026-01-15",
-        totalDevices: 50,
-        checkedDevices: 50,
-        details: [
-            {
-                detailId: "AD001",
-                equipmentName: "Computer 1",
-                condition: "Available",
-                note: "In good condition",
-            },
-            {
-                detailId: "AD002",
-                equipmentName: "Projector 1",
-                condition: "Borrowed",
-                note: "Currently used in Room 201",
-            },
-            {
-                detailId: "AD003",
-                equipmentName: "Printer 1",
-                condition: "UnderMaintenance",
-                note: "Toner cartridge replacement",
-            },
-        ],
-    },
-};
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -95,11 +47,15 @@ export const AuditDetail = ({ id }: { id: string }) => {
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const auditData = MOCK_AUDIT_DETAILS[id];
-            setData(auditData || null);
-            setIsLoading(false);
+            try {
+                const auditData = await getInventoryAuditById(id);
+                setData(auditData as AuditDetail);
+            } catch (error) {
+                console.error("Failed to fetch audit detail:", error);
+                setData(null);
+            } finally {
+                setIsLoading(false);
+            }
         };
 
         fetchData();
@@ -140,7 +96,7 @@ export const AuditDetail = ({ id }: { id: string }) => {
                         <div className="flex items-start justify-between">
                             <div>
                                 <CardTitle>Audit {data.auditId}</CardTitle>
-                                <CardDescription>{data.periodName}</CardDescription>
+                                <CardDescription>{data.locationName}</CardDescription>
                             </div>
                             <Badge className={`${getStatusColor(data.status)} border-0`}>
                                 {data.status}
@@ -152,38 +108,6 @@ export const AuditDetail = ({ id }: { id: string }) => {
                             <div>
                                 <p className="text-sm text-muted-foreground">Location</p>
                                 <p className="font-medium">{data.locationName}</p>
-                                <p className="text-xs text-muted-foreground">{data.locationType}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Auditor</p>
-                                <p className="font-medium">{data.auditorName}</p>
-                                <p className="text-xs text-muted-foreground">ID: {data.auditorId}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Audit Date</p>
-                                <p className="font-medium">
-                                    {new Date(data.auditDate).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    })}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Progress</p>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-medium">
-                                        {data.checkedDevices}/{data.totalDevices}
-                                    </span>
-                                    <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                        <div
-                                            className="h-full bg-blue-500"
-                                            style={{
-                                                width: `${(data.checkedDevices / data.totalDevices) * 100}%`,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </CardContent>
@@ -194,7 +118,7 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     <CardHeader>
                         <CardTitle>Equipment Details</CardTitle>
                         <CardDescription>
-                            {data.details.length} item(s) audited
+                            {data.details?.length || 0} item(s) audited
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -207,14 +131,14 @@ export const AuditDetail = ({ id }: { id: string }) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {data.details.length > 0 ? (
+                                {data.details && data.details.length > 0 ? (
                                     data.details.map((detail) => (
                                         <TableRow key={detail.detailId}>
                                             <TableCell className="font-medium">
                                                 {detail.equipmentName}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge className={`${getConditionBadge(detail.condition)} border-0`}>
+                                                <Badge className={`${getConditionBadge(String(detail.condition))} border-0`}>
                                                     {detail.condition}
                                                 </Badge>
                                             </TableCell>

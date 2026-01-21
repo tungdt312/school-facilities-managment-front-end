@@ -12,11 +12,12 @@ import {useEffect, useState} from "react";
 import {useDebounce} from "@/hooks/use-debounce";
 import {CreateAuditDialog} from "./CreateAuditDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getInventoryAudits } from "@/services/auditService";
+import { InventoryAuditResponse } from "@/dtos/audit";
 
-export interface InventoryAudit {
+export interface InventoryAudit extends InventoryAuditResponse {
     auditId: string;
     periodName: string;
-    locationName: string;
     locationType: string;
     auditorId: string;
     auditorName: string;
@@ -25,45 +26,6 @@ export interface InventoryAudit {
     totalDevices: number;
     checkedDevices: number;
 }
-
-const MOCK_INVENTORY_AUDITS: InventoryAudit[] = [
-    {
-        auditId: "IA001",
-        periodName: "Monthly Audit - Jan 2026",
-        locationName: "Building A",
-        locationType: "Building",
-        auditorId: "A001",
-        auditorName: "John Nguyen",
-        status: "Completed",
-        auditDate: "2026-01-15",
-        totalDevices: 50,
-        checkedDevices: 50,
-    },
-    {
-        auditId: "IA002",
-        periodName: "Monthly Audit - Jan 2026",
-        locationName: "Floor 2",
-        locationType: "Floor",
-        auditorId: "A002",
-        auditorName: "Jane Smith",
-        status: "In Progress",
-        auditDate: "2026-01-17",
-        totalDevices: 30,
-        checkedDevices: 25,
-    },
-    {
-        auditId: "IA003",
-        periodName: "Quarterly Audit Q1 2026",
-        locationName: "Room 201",
-        locationType: "Room",
-        auditorId: "A003",
-        auditorName: "Mike Johnson",
-        status: "Pending",
-        auditDate: "2026-01-20",
-        totalDevices: 20,
-        checkedDevices: 0,
-    },
-];
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -100,36 +62,44 @@ export const InventoryAuditTable = () => {
 
     const fetchData = async () => {
         setIsLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            const response = await getInventoryAudits({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            
+            let filteredData = response.content || [];
 
-        let filteredData = MOCK_INVENTORY_AUDITS;
+            // Filter by search term
+            if (debouncedSearch) {
+                filteredData = filteredData.filter(item =>
+                    item.auditId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                    item.locationName.toLowerCase().includes(debouncedSearch.toLowerCase())
+                );
+            }
 
-        // Filter by search term
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.auditId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.locationName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.auditorName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+            // Filter by status
+            if (selectedStatuses.length > 0) {
+                filteredData = filteredData.filter(item =>
+                    selectedStatuses.includes(item.status)
+                );
+            }
+
+            setRowCount(response.totalElements || 0);
+            setData(filteredData as InventoryAudit[]);
+        } catch (error) {
+            console.error("Failed to fetch inventory audits:", error);
+            setData([]);
+            setRowCount(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        // Filter by status
-        if (selectedStatuses.length > 0) {
-            filteredData = filteredData.filter(item =>
-                selectedStatuses.includes(item.status)
-            );
-        }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, selectedStatuses]);
+    }, [debouncedSearch, selectedStatuses, pagination]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -151,44 +121,13 @@ export const InventoryAuditTable = () => {
             cell: ({ row }) => row.getValue("auditId"),
         },
         {
-            accessorKey: "periodName",
-            header: "Period",
-            cell: ({ row }) => row.getValue("periodName"),
-        },
-        {
             accessorKey: "locationName",
             header: "Location",
             cell: ({ row }) => {
                 const location = row.getValue("locationName") as string;
-                const locationType = row.original.locationType;
                 return (
                     <div className="flex flex-col">
                         <span>{location}</span>
-                        <span className="text-xs text-muted-foreground">{locationType}</span>
-                    </div>
-                );
-            },
-        },
-        {
-            accessorKey: "auditorName",
-            header: "Auditor",
-            cell: ({ row }) => row.getValue("auditorName"),
-        },
-        {
-            accessorKey: "checkedDevices",
-            header: "Progress",
-            cell: ({ row }) => {
-                const checked = row.getValue("checkedDevices") as number;
-                const total = row.original.totalDevices;
-                return (
-                    <div className="flex flex-col gap-1">
-                        <span>{checked}/{total}</span>
-                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-blue-500"
-                                style={{ width: `${(checked / total) * 100}%` }}
-                            />
-                        </div>
                     </div>
                 );
             },
@@ -206,24 +145,15 @@ export const InventoryAuditTable = () => {
             },
         },
         {
-            accessorKey: "auditDate",
-            header: ({ column }) => (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="h-8 p-0 px-0 hover:bg-transparent"
-                >
-                    Audit Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
+            id: "details",
+            header: "Details",
             cell: ({ row }) => {
-                const date = new Date(row.getValue("auditDate") as string);
-                return date.toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                });
+                const details = row.original.details || [];
+                return (
+                    <div className="text-sm text-muted-foreground">
+                        {details.length} item(s)
+                    </div>
+                );
             },
         },
         {
@@ -264,7 +194,6 @@ export const InventoryAuditTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    // Prevent hydration mismatch by only rendering interactive components after mount
     if (!isMounted) {
         return (
             <div className="w-full space-y-4 pt-6">
@@ -292,7 +221,7 @@ export const InventoryAuditTable = () => {
         <div className="w-full space-y-4 pt-6">
             <div className="flex items-center gap-2 w-full">
                 <Input
-                    placeholder="Search audit ID, location, auditor..."
+                    placeholder="Search audit ID, location..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="h-8 w-full"
@@ -408,7 +337,6 @@ export const InventoryAuditTable = () => {
                 </Table>
             </div>
 
-            {/* Footer Pagination */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
                     {Object.keys(rowSelection).length} row(s) selected.

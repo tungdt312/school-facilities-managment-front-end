@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import {CreateInventoryAuditRequest} from "@/dtos/audit";
 import {LocationType} from "@/constaints/enum";
+import { createInventoryAudit } from "@/services/auditService";
 
 interface CreateAuditDialogProps {
     open: boolean;
@@ -31,20 +32,27 @@ export function CreateAuditDialog({open, onOpenChange}: CreateAuditDialogProps) 
     const [formData, setFormData] = useState<CreateInventoryAuditRequest>({
         periodId: "",
         locationId: "",
-        locationType: "BUILDING" as LocationType,
+        locationType: "BUILDING" as unknown as LocationType,
         auditorId: "",
     });
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to create audit
-        console.log("Creating audit:", formData);
-        onOpenChange(false);
-        setFormData({
-            periodId: "",
-            locationId: "",
-            locationType: "BUILDING" as LocationType,
-            auditorId: "",
-        });
+    const handleSubmit = async () => {
+        setIsLoading(true);
+        try {
+            await createInventoryAudit(formData);
+            onOpenChange(false);
+            setFormData({
+                periodId: "",
+                locationId: "",
+                locationType: "BUILDING" as unknown as LocationType,
+                auditorId: "",
+            });
+        } catch (error) {
+            console.error("Failed to create audit:", error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -64,6 +72,7 @@ export function CreateAuditDialog({open, onOpenChange}: CreateAuditDialogProps) 
                             placeholder="e.g., P001"
                             value={formData.periodId}
                             onChange={(e) => setFormData({...formData, periodId: e.target.value})}
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -73,11 +82,12 @@ export function CreateAuditDialog({open, onOpenChange}: CreateAuditDialogProps) 
                             placeholder="e.g., L001"
                             value={formData.locationId}
                             onChange={(e) => setFormData({...formData, locationId: e.target.value})}
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="locationType">Location Type</Label>
-                        <Select value={formData.locationType} onValueChange={(value) => setFormData({...formData, locationType: value as LocationType})}>
+                        <Select value={String(formData.locationType)} onValueChange={(value) => setFormData({...formData, locationType: value as unknown as LocationType})} disabled={isLoading}>
                             <SelectTrigger id="locationType">
                                 <SelectValue placeholder="Select a type" />
                             </SelectTrigger>
@@ -95,15 +105,16 @@ export function CreateAuditDialog({open, onOpenChange}: CreateAuditDialogProps) 
                             placeholder="e.g., A001"
                             value={formData.auditorId}
                             onChange={(e) => setFormData({...formData, auditorId: e.target.value})}
+                            disabled={isLoading}
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
-                        Create Audit
+                    <Button type="button" onClick={handleSubmit} disabled={isLoading}>
+                        {isLoading ? "Creating..." : "Create Audit"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
