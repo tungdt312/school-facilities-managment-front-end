@@ -53,7 +53,7 @@ export const InventoryAuditTable = () => {
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1,
         pageSize: 10,
     });
 
@@ -174,6 +174,8 @@ export const InventoryAuditTable = () => {
     const table = useReactTable({
         data,
         columns,
+        pageCount: Math.ceil(rowCount / pagination.pageSize),
+        manualPagination: true,
         state: {
             sorting,
             columnVisibility,
@@ -185,13 +187,12 @@ export const InventoryAuditTable = () => {
         onRowSelectionChange: setRowSelection,
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
 
     if (!isMounted) {

@@ -9,9 +9,9 @@ import {
     AuditPeriodResponse,
 } from '@/dtos/audit';
 
-const PERIODIC_AUDIT_API = '/periodic-audits';
-const INVENTORY_AUDIT_API = '/inventory-audits';
-const AUDIT_DETAIL_API = '/audit-details';
+const PERIODIC_AUDIT_API = '/api/v1/periodic-audits';
+const INVENTORY_AUDIT_API = '/api/v1/inventory-audits';
+const AUDIT_DETAIL_API = '/api/v1/audit-details';
 
 // ===== PERIODIC AUDIT =====
 
@@ -88,13 +88,28 @@ export async function deletePeriodicAudit(id: string): Promise<void> {
 export async function getInventoryAudits(
     params?: PageRequest
 ): Promise<PageV0<InventoryAuditResponse>> {
-    const res = await apiFetch(`${INVENTORY_AUDIT_API}/?${toQueryString(params)}`, true, {
+    const url = `${INVENTORY_AUDIT_API}?${toQueryString(params)}`;
+    console.log('🔍 Calling API:', url); // Debug log
+    
+    const res = await apiFetch(url, true, {
         method: 'GET',
         headers: {
             'accept': 'application/json',
         },
     });
-    if (!res.ok) throw new Error(res.statusText);
+    
+    if (!res.ok) {
+        // Log chi tiết hơn
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ API Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
+    
     return processResponse<PageV0<InventoryAuditResponse>>(res);
 }
 
