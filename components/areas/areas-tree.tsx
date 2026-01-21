@@ -1,22 +1,33 @@
 "use client"
 
-import React from "react"
+import React, {useEffect, useState} from "react"
 import Link from "next/link"
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
-import { Building2, Layers, DoorOpen, ChevronRight } from "lucide-react"
-import { BuildingResponse } from "@/dtos/building"
-import { cn } from "@/lib/utils"
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger,} from "@/components/ui/accordion"
+import {Building2, DoorOpen, Layers} from "lucide-react"
+import {BuildingResponse} from "@/dtos/building"
+import {toast} from "sonner";
+import {getBuildingsList} from "@/services/areaService";
 
 interface LocationTreeProps {
     data: BuildingResponse[]
 }
 
-export function LocationTree({ data }: LocationTreeProps) {
+export function LocationTree() {
+    const [data, setData] = useState<BuildingResponse[]>([])
+    const fetchData = async () => {
+        try {
+            const res = await getBuildingsList()
+            setData(res.content)
+            console.log(res)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load buildings");
+            setData([]);
+        }
+    }
+    useEffect(() => {
+        fetchData()
+    },[])
     return (
         <div className="w-full max-w-md mx-auto p-6 bg-white border rounded-xl shadow-sm">
             <div className="mb-6 border-b pb-4">

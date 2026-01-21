@@ -30,7 +30,7 @@ import {Input} from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -38,12 +38,15 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {BorrowStatus} from '@/constaints/enum';
+import {BorrowStatus, DeviceStatus, UserRoleLabel} from '@/constaints/enum';
 import {BorrowVoucherResponse} from '@/dtos/borrow';
 import {MOCK_BORROW_VOUCHERS} from "@/components/mock-data/borrow-data";
-import {formatISODate} from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getBorrowList} from "@/services/borrowService";
+import {toast} from "sonner";
 
 export const BorrowVoucherTable = () => {
     const [data, setData] = useState<BorrowVoucherResponse[]>([]);
@@ -114,19 +117,39 @@ export const BorrowVoucherTable = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(BorrowStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(BorrowStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatuses.includes(statusValue as BorrowStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatuses(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as BorrowStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({ ...p, pageIndex: 1 }));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {UserRoleLabel[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatuses.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatuses(prev =>[])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -177,22 +200,40 @@ export const BorrowVoucherTable = () => {
             ),
         },
     ], [selectedStatuses]);
-
-    useEffect(() => {
+    const fetchData = async () => {
         setIsLoading(true);
-        let filtered = [...MOCK_BORROW_VOUCHERS];
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.borrowId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.borrowerName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `BorrowerName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedStatuses.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getBorrowList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);res.totalElements
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load borrow data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
         }
-        if (selectedStatuses.length > 0) {
-            filtered = filtered.filter(d => selectedStatuses.includes(d.status));
-        }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch, selectedStatuses]);
+    };
+    useEffect(() => {
+        fetchData()
+    }, [debouncedSearch, selectedStatuses, sorting]);
 
     const table = useReactTable({
         data,
@@ -301,14 +342,14 @@ export const BorrowVoucherTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -317,7 +358,7 @@ export const BorrowVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -326,7 +367,7 @@ export const BorrowVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -334,8 +375,8 @@ export const BorrowVoucherTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>

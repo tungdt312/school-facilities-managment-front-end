@@ -33,7 +33,7 @@ import { Input } from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -41,13 +41,17 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { BookingStatus } from '@/constaints/enum'; // Giả định Enum nằm ở đây
+import {BookingStatus, BorrowStatus, UserRoleLabel} from '@/constaints/enum'; // Giả định Enum nằm ở đây
 import { RoomBookingResponse } from '@/dtos/booking'; // Đường dẫn DTO của bạn
-import { formatISODate } from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {MOCK_ROOM_BOOKINGS} from "@/components/mock-data/booking-data";
 import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialog";
 import {CreateBookingVoucherDialog} from "@/components/booking/create-booking-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getBorrowList} from "@/services/borrowService";
+import {toast} from "sonner";
+import {getBookingList} from "@/services/bookingService";
 
 
 export const RoomBookingTable = () => {
@@ -136,19 +140,39 @@ export const RoomBookingTable = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(BookingStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(BookingStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatuses.includes(statusValue as BookingStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatuses(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as BookingStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({ ...p, pageIndex: 1 }));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {UserRoleLabel[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatuses.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatuses(prev =>[])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -187,24 +211,40 @@ export const RoomBookingTable = () => {
         },
     ], [selectedStatuses]);
 
-    useEffect(() => {
+    const fetchData = async () => {
         setIsLoading(true);
-        // Thay MOCK_BOOKINGS bằng dữ liệu thực tế từ API của bạn
-        let filtered = [...MOCK_ROOM_BOOKINGS];
-
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.bookingId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.roomName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.borrowerName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `BorrowerName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedStatuses.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getBookingList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);res.totalElements
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load booking data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
         }
-        if (selectedStatuses.length > 0) {
-            filtered = filtered.filter(d => selectedStatuses.includes(d.status));
-        }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch, selectedStatuses]);
+    };
+    useEffect(() => {
+        fetchData()
+    }, [debouncedSearch, selectedStatuses, sorting]);
 
     const table = useReactTable({
         data,
@@ -223,7 +263,7 @@ export const RoomBookingTable = () => {
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
-                    placeholder="Search ID, Room or Borrower..."
+                    placeholder="Search Borrower..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="h-9 w-full max-w-sm"
@@ -288,6 +328,7 @@ export const RoomBookingTable = () => {
             {/* Pagination tương tự như bảng Borrow */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
+                    {/* Logic hiển thị row selected chỉ đúng trên trang hiện tại với server-side */}
                     {Object.keys(rowSelection).length} row(s) selected.
                 </div>
                 <div className="flex items-center space-x-6 lg:space-x-8 ml-auto">
@@ -295,32 +336,60 @@ export const RoomBookingTable = () => {
                         <p className="text-sm font-medium hidden sm:block">row(s) / page</p>
                         <Select
                             value={`${pagination.pageSize}`}
-                            onValueChange={(value) => table.setPageSize(Number(value))}
+                            onValueChange={(value) => {
+                                table.setPageSize(Number(value));
+                            }}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
                                 <SelectValue placeholder={pagination.pageSize}/>
                             </SelectTrigger>
                             <SelectContent side="top">
                                 {[10, 20, 30, 40, 50].map((pageSize) => (
-                                    <SelectItem key={pageSize} value={`${pageSize}`}>{pageSize}</SelectItem>
+                                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                                        {pageSize}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
+                        <Button
+                            variant="outline"
+                            className="hidden h-8 w-8 p-0 lg:flex"
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
+                        >
+                            <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => table.previousPage()}
+                            disabled={pagination.pageIndex === 1}
+                        >
+                            <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => table.nextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
+                        >
+                            <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
+                        <Button
+                            variant="outline"
+                            className="hidden h-8 w-8 p-0 lg:flex"
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
+                        >
+                            <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
                         </Button>
                     </div>

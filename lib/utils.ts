@@ -36,3 +36,7 @@ export const getSortString = (sorting: SortingState) => {
       .map(s => `${s.id}${s.desc ? '-' : ''}`)
       .join(','); // Nối các trường bằng dấu phẩy
 };
+const capitalize = (str: string) => {
+  if (!str) return ""
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}

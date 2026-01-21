@@ -52,7 +52,7 @@ import {
 } from '../ui/dialog';
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from '../ui/form';
 import {formatISODate, getSortString} from "@/lib/utils";
-import {getUsersList} from "@/services/userService";
+import {getUsersList, postUser} from "@/services/userService";
 import {PageRequest} from "@/dtos/base";
 
 export const UserTable = () => {
@@ -200,14 +200,19 @@ export const UserTable = () => {
         },
 
     ], [selectedRoles]); // Dùng useMemo để tránh re-render columns không cần thiết
-
     // 4. Fetch Data Function
     const fetchData = async () => {
         setIsLoading(true);
         try {
             let filterQuery = "";
             if (debouncedSearch) {
-                filterQuery = `fullName=~${debouncedSearch}&email=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+                filterQuery += `Fullname=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedRoles.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Role==${selectedRoles.join(",=")}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,
@@ -228,14 +233,11 @@ export const UserTable = () => {
             setIsLoading(false);
         }
     };
-
     // 5. Trigger Fetch khi dependency thay đổi
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pagination.pageIndex, pagination.pageSize, sorting, debouncedSearch, selectedRoles]);
-
-
     // 6. Table Configuration
     const table = useReactTable({
         data,
@@ -259,13 +261,11 @@ export const UserTable = () => {
         getCoreRowModel: getCoreRowModel(),
         getRowId: (row) => row.userId,
     });
-
     // Handle Search Change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
         setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
-
     const handleBulkBlock = async () => {
         const selectedIds = Object.keys(rowSelection);
         // Lưu ý: Không cần try-catch hay setLoading ở đây nữa
@@ -430,10 +430,10 @@ export const UserTable = () => {
 //Create user
 
 const createUserSchema = z.object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    fullname: z.string().min(2, "Full name must be at least 2 characters"),
     email: z.email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    role: z.number().min(2, "Please select a role"),
+    role: z.number().min(0, "Role is required"),
 
 })
 type FormValues = z.infer<typeof createUserSchema>
@@ -451,7 +451,7 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
     const form = useForm<FormValues>({
         resolver: zodResolver(createUserSchema),
         defaultValues: {
-            fullName: "",
+            fullname: "",
             email: "",
             password: "",
             role: UserRole.Student,
@@ -463,8 +463,8 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
         try {
             // Simulate API Call
             console.log("Submitting:", values)
-            await new Promise(resolve => setTimeout(resolve, 1500))
-
+            const res = await postUser(values)
+            console.log(res)
             toast.success("User created successfully")
             setOpen(false)
             form.reset()
@@ -496,7 +496,7 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="fullName"
+                            name="fullname"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
@@ -539,18 +539,24 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Role</FormLabel>
-                                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                                    <Select onValueChange={(val) => field.onChange(Number(val))}
+                                            value={field.value?.toString()}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a role"/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {Object.values(UserRole).filter((v) => typeof v === "number").map((role) => (
-                                                <SelectItem key={role} value={String(role)}>
-                                                    {UserRoleLabel[role as number]}
-                                                </SelectItem>
-                                            ))}
+                                            {Object.values(UserRole)
+                                                .filter((v) => typeof v === "number") // Only numeric values
+                                                .map((roleValue) => (
+                                                    <SelectItem
+                                                        key={roleValue}
+                                                        value={roleValue.toString()}
+                                                    >
+                                                        {UserRoleLabel[roleValue as number]}
+                                                    </SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage/>

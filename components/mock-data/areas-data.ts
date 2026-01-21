@@ -1,4 +1,5 @@
 import {BuildingResponse, FloorResponse, RoomResponse, RoomTypeResponse} from "@/dtos/building";
+import {RoomStatus} from "@/constaints/enum";
 
 export const MOCK_ROOM_TYPES: RoomTypeResponse[] = [
     {
@@ -42,7 +43,7 @@ export const MOCK_BUILDINGS: BuildingResponse[] = [
                         roomTypeId: rNum === 5 ? "rt-002" : "rt-001", // 5th room is a Lab
                         roomTypeName: rNum === 5 ? "Laboratory" : "Classroom",
                         capacity: rNum === 5 ? 20 : 40,
-                        status: "Active"
+                        status: RoomStatus.Available
                     }))
                 };
             })

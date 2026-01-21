@@ -4,6 +4,11 @@ export interface ApproveBookingRequest {
     isApproved: boolean; // True: Duyệt, False: Từ chối
     note?: string | null; // Lý do (dấu ? cho phép thuộc tính này không bắt buộc)
 }
+
+export interface UpdateBookingRequest {
+    status: BookingStatus; // True: Duyệt, False: Từ chối
+    note?: string | null; // Lý do (dấu ? cho phép thuộc tính này không bắt buộc)
+}
 export interface CreateBookingRequest {
     roomId: string;
     /** Thường được truyền dưới dạng ISO string: "2024-05-20T08:00:00Z" */

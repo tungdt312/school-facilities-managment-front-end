@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { CreateBorrowRequest } from '@/dtos/borrow'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import { MOCK_DEVICES } from '../mock-data/devices-data'
+import {postBorrow} from "@/services/borrowService";
 
 // Validation Schema
 const borrowSchema = z.object({
@@ -69,8 +70,7 @@ export const CreateBorrowVoucherDialog = () => {
         try {
             // Simulated API Call
             console.log("Submitting Borrow Voucher:", data)
-            await new Promise(resolve => setTimeout(resolve, 1000))
-
+            const res = await postBorrow(data)
             toast.success("Borrow voucher created successfully")
             setOpen(false)
             form.reset()

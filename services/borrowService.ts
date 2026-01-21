@@ -1,7 +1,7 @@
 import {apiFetch, processResponse} from "@/services/baseService";
 import {PageRequest, PageV0, toQueryString} from "@/dtos/base";
 import {CreateBookingRequest, RoomBookingResponse} from "@/dtos/booking";
-import {BorrowVoucherResponse, UpdateBorrowRequest} from "@/dtos/borrow";
+import {BorrowVoucherResponse, CreateBorrowRequest, UpdateBorrowRequest} from "@/dtos/borrow";
 
 export async function getBorrowById(id: string): Promise<BorrowVoucherResponse> {
     const res = await apiFetch(`/borrow-vouchers/${id}`, true, {
@@ -27,7 +27,7 @@ export async function getBorrowList(page?: PageRequest): Promise<PageV0<BorrowVo
     return processResponse(res);
 }
 
-export async function postBorrow(data: CreateBookingRequest): Promise<BorrowVoucherResponse> {
+export async function postBorrow(data: CreateBorrowRequest): Promise<BorrowVoucherResponse> {
     const res = await apiFetch(`/borrow-vouchers`, true, {
         method: "POST",
         headers: {

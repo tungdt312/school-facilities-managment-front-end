@@ -1,3 +1,5 @@
+import {BookingStatus, RoomStatus} from "@/constaints/enum";
+
 export interface CreateBuildingRequest {
     buildingName?: string;
     floorCount?: number;
@@ -33,7 +35,7 @@ export interface CreateRoomRequest {
     roomName?: string;
     roomTypeId?: string;
     capacity?: number;
-    status?: string;
+    status?: RoomStatus;
     note?: string;
 }
 
@@ -45,7 +47,7 @@ export interface RoomResponse {
     roomTypeId: string;
     roomTypeName: string;
     capacity: number;
-    status?: string;
+    status: RoomStatus;
 }
 
 //Room Type DTOs

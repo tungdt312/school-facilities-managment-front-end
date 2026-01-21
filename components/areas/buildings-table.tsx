@@ -51,6 +51,10 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../ui/table"
 import Link from "next/link";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {getBuildingsList, postBuilding} from "@/services/areaService";
+import {PageRequest} from "@/dtos/base";
+import {getSortString} from "@/lib/utils";
+import {getUsersList} from "@/services/userService";
 
 const createBuildingSchema = z.object({
     buildingName: z.string().min(1, "Building name is required"),
@@ -72,7 +76,7 @@ export function CreateBuildingDialog({onSuccess}: { onSuccess: () => void }) {
         setIsSubmitting(true)
         try {
             // Simulated API
-            await new Promise(r => setTimeout(r, 1500))
+            const res = await postBuilding(values)
             toast.success("Building created successfully")
             setOpen(false)
             form.reset()
@@ -121,7 +125,8 @@ export function CreateBuildingDialog({onSuccess}: { onSuccess: () => void }) {
                                 <FormItem>
                                     <FormLabel>Number of Floors</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} />
+                                        <Input type="number" {...field}
+                                               onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -161,7 +166,7 @@ export const BuildingTable = () => {
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -242,11 +247,26 @@ export const BuildingTable = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Simulated API call
-            setData(MOCK_BUILDINGS);
-            setRowCount(MOCK_BUILDINGS.length);
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery = `BuildingName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getBuildingsList(req)
+            setData(res.content)
+            console.log(res)
+            setRowCount(res.totalElements)
+            setIsLoading(false);res.totalElements
         } catch (e) {
+            console.error(e);
             toast.error("Failed to load buildings");
+            setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -258,19 +278,30 @@ export const BuildingTable = () => {
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({...prev, pageIndex: 0})); // Reset về trang 1 khi tìm kiếm
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
 
     const table = useReactTable({
         data,
         columns,
-        state: {sorting, columnVisibility, rowSelection, pagination},
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
         manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
+        getRowId: (row) => row.buildingId,
     });
 
     return (
@@ -376,14 +407,14 @@ export const BuildingTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -392,7 +423,7 @@ export const BuildingTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -401,7 +432,7 @@ export const BuildingTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -409,8 +440,8 @@ export const BuildingTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
