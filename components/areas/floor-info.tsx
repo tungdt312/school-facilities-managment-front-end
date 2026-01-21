@@ -14,6 +14,7 @@ import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/
 import {FloorResponse} from "@/dtos/building"
 import {MOCK_FLOORS_FLAT} from "@/components/mock-data/areas-data"
 import Link from "next/link";
+import {getBuildingById, getFloorById, putBuilding, putFloor} from "@/services/areaService";
 
 const floorSchema = z.object({
     floorName: z.string().min(1, "Floor name is required"),
@@ -35,18 +36,18 @@ export function FloorInfoCard({id}: { id: string }) {
     useEffect(() => {
         const fetchFloor = async () => {
             setLoading(true)
-            // Tìm floor trong cấu trúc lồng nhau của MOCK_BUILDINGS
-            const foundFloor = MOCK_FLOORS_FLAT
-                .find(f => f.floorId === id)
-
-            if (foundFloor) {
-                setFloor(foundFloor)
+            try {
+                const res = await getFloorById(id)
+                setFloor(res)
                 form.reset({
-                    floorName: foundFloor.floorName,
-                    note: foundFloor.note || "",
+                    floorName: res.floorName,
+                    note: res.note || "",
                 })
+            }catch (error) {
+                toast.error("Failed to load floors")
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
         }
         fetchFloor()
     }, [id, form])
@@ -54,9 +55,11 @@ export function FloorInfoCard({id}: { id: string }) {
     const onSubmit = async (values: FloorFormValues) => {
         setLoading(true)
         try {
-            await new Promise(r => setTimeout(r, 1000))
-            toast.success("Floor information updated")
+            const res = await putFloor(values, id)
+            toast.success("Floor updated successfully")
             setIsEditing(false)
+        } catch (error) {
+            toast.error("Failed to update floor")
         } finally {
             setLoading(false)
         }

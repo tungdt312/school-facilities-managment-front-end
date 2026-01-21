@@ -18,7 +18,7 @@ export default function Layout({children}: {
                 {/* Persistent Master Tree Section */}
                 <aside className="w-fit border-r bg-slate-50/30 overflow-y-auto hidden md:block shrink-0">
                     <div className="p-4">
-                        <LocationTree data={MOCK_BUILDINGS} />
+                        <LocationTree />
                     </div>
                 </aside>
 
@@ -37,7 +37,7 @@ export default function Layout({children}: {
                                     <SheetTitle>Location Structure</SheetTitle>
                                 </SheetHeader>
                                 <div className="overflow-y-auto h-[calc(100vh-80px)] px-2">
-                                    <LocationTree data={MOCK_BUILDINGS} />
+                                    <LocationTree />
                                 </div>
                             </SheetContent>
                         </Sheet>

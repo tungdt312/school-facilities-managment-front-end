@@ -66,6 +66,12 @@ export enum BookingStatus {
     Completed = 4,
 }
 
+export enum RoomStatus {
+    Available = 0,
+    Unavailable = 1,
+    InUse = 2,
+}
+
 // --- 2. UI LABEL MAPPINGS ---
 
 export const UserRoleLabel: Record<number, string> = {
@@ -100,6 +106,12 @@ export const BorrowStatusLabel: Record<number, string> = {
     [BorrowStatus.Returned]: "Returned",
     [BorrowStatus.Violated]: "Violated",
 };
+
+export const RoomStatusLabel: Record<number, string> = {
+    [RoomStatus.Available]: "Available",
+    [RoomStatus.Unavailable]: "Unavailable",
+    [RoomStatus.InUse]: "In Use",
+}
 
 // --- 3. UI COLOR MAPPINGS (Shadcn/UI Badge Variants) ---
 // You can use these values in the 'className' or 'variant' prop of your Badge

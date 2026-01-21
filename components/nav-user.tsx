@@ -29,6 +29,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
+import {ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY} from "@/constaints";
 
 export function NavUser({
   user,
@@ -41,7 +43,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const [mounted, setMounted] = useState(false)
-
+  const router = useRouter()
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -91,7 +93,12 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              localStorage.removeItem(USER_KEY)
+              localStorage.removeItem(ACCESS_TOKEN_KEY)
+              localStorage.removeItem(REFRESH_TOKEN_KEY)
+              router.push("/login")
+            }}>
               <IconLogout />
               Log out
             </DropdownMenuItem>

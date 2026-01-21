@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "../ui/form"
 import {Input} from "../ui/input"
-import {RoomResponse} from "@/dtos/building"
+import {RoomResponse, RoomTypeResponse} from "@/dtos/building"
 import {
     ColumnDef,
     flexRender,
@@ -52,6 +52,9 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {BorrowStatus} from "@/constaints/enum";
+import {PageRequest} from "@/dtos/base";
+import {getSortString} from "@/lib/utils";
+import {getFloorsList, getRoomsList, postFloor, postRoom} from "@/services/areaService";
 
 // 1. Room Schema
 const createRoomSchema = z.object({
@@ -66,7 +69,10 @@ type RoomFormValues = z.infer<typeof createRoomSchema>
 export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuccess: () => void }) {
     const [open, setOpen] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [roomTypes, setRoomTypes] = useState<RoomTypeResponse[]>([])
+    const fetchRoomTypes = async () => {
 
+    }
     const form = useForm<RoomFormValues>({
         resolver: zodResolver(createRoomSchema),
         defaultValues: {
@@ -80,7 +86,8 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
     async function onSubmit(values: RoomFormValues) {
         setIsSubmitting(true)
         try {
-            await new Promise(r => setTimeout(r, 1000))
+            // Simulated API
+            const res = await postRoom(values)
             toast.success("Room created successfully")
             setOpen(false)
             form.reset()
@@ -118,6 +125,7 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                                 </FormItem>
                             )}
                         />
+                        <div className="flex w-full items-center space-x-2">
                         <FormField
                             control={form.control}
                             name="roomTypeId"
@@ -146,6 +154,8 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                                 </FormItem>
                             )}
                         />
+                            {/*create Roomtype*/}
+                        </div>
                         <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full">Save
                             Room</Button></DialogFooter>
                     </form>
@@ -163,7 +173,7 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
     const [selectedStatus, setSelectedStatus] = useState<BorrowStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -290,23 +300,28 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
         },
     ], []);
 
-    const fetchData = () => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Flatten Buildings -> Floors -> Rooms
-            let allRooms: RoomResponse[] = MOCK_BUILDINGS
-                .flatMap(b => b.floors)
-                .flatMap(f => f.rooms);
-
-            if (floorId) {
-                allRooms = allRooms.filter(r => r.floorId === floorId);
-            }
-
+            let filterQuery = "";
             if (debouncedSearch) {
-                allRooms = allRooms.filter(r => r.roomName.toLowerCase().includes(debouncedSearch.toLowerCase()));
+                filterQuery = `buildingName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
-
-            setData(allRooms);
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getRoomsList(req)
+            setData(res.content)
+            console.log(res)
+            setRowCount(res.totalElements)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load rooms");
+            setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -314,20 +329,32 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
 
     useEffect(() => {
         fetchData();
-    }, [floorId, debouncedSearch]);
+    }, [floorId, debouncedSearch, sorting, pagination]);
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({...prev, pageIndex: 0})); // Reset về trang 1 khi tìm kiếm
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
     const table = useReactTable({
         data,
         columns,
-        state: {sorting, columnVisibility, rowSelection, pagination},
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
+        getRowId: (row) => row.roomId,
     });
 
     return (
@@ -422,14 +449,14 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -438,7 +465,7 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -447,7 +474,7 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -455,8 +482,8 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>

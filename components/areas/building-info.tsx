@@ -13,6 +13,7 @@ import {Input} from "@/components/ui/input"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
 import {BuildingResponse} from "@/dtos/building"
 import {MOCK_BUILDINGS} from "@/components/mock-data/areas-data"
+import {getBuildingById, putBuilding} from "@/services/areaService";
 
 const buildingSchema = z.object({
     buildingName: z.string().min(1, "Building name is required"),
@@ -36,15 +37,15 @@ export function BuildingInfoCard({id}: { id: string }) {
         const fetchBuilding = async () => {
             setLoading(true)
             try {
-                const found = MOCK_BUILDINGS.find(b => b.buildingId === id)
-                if (found) {
-                    setBuilding(found)
-                    form.reset({
-                        buildingName: found.buildingName,
-                        floorCount: found.floorCount,
-                        note: found.note || "",
-                    })
-                }
+                const res = await getBuildingById(id)
+                setBuilding(res)
+                form.reset({
+                    buildingName: res.buildingName,
+                    floorCount: res.floorCount,
+                    note: res.note || "",
+                })
+            }catch (error) {
+                toast.error("Failed to load buildings")
             } finally {
                 setLoading(false)
             }
@@ -55,9 +56,11 @@ export function BuildingInfoCard({id}: { id: string }) {
     const onSubmit = async (values: BuildingFormValues) => {
         setLoading(true)
         try {
-            await new Promise(r => setTimeout(r, 1000))
+            const res = await putBuilding(values, id)
             toast.success("Building updated successfully")
             setIsEditing(false)
+        } catch (error) {
+            toast.error("Failed to update building")
         } finally {
             setLoading(false)
         }

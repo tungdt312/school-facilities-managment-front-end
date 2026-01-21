@@ -15,12 +15,14 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {RoomResponse} from "@/dtos/building"
 import {MOCK_BUILDINGS, MOCK_ROOM_TYPES} from "@/components/mock-data/areas-data"
 import Link from "next/link";
+import {getFloorById, getRoomById, putFloor, putRoom} from "@/services/areaService";
+import {BookingStatus, RoomStatus, RoomStatusLabel, UserRole, UserRoleLabel} from "@/constaints/enum";
 
 const roomSchema = z.object({
     roomName: z.string().min(1, "Room name is required"),
     roomTypeId: z.string().min(1, "Type is required"),
     capacity: z.number().min(1, "Capacity must be at least 1"),
-    status: z.string().optional(),
+    status: z.number().min(0, "Status is required"),
 })
 
 type RoomFormValues = z.infer<typeof roomSchema>
@@ -36,7 +38,7 @@ export function RoomInfoCard({id}: { id: string }) {
             roomName: "",
             roomTypeId: "",
             capacity: 1,
-            status: "Available",
+            status: RoomStatus.Unavailable,
         },
     })
 
@@ -44,21 +46,20 @@ export function RoomInfoCard({id}: { id: string }) {
         const fetchRoom = async () => {
             setLoading(true)
             // Tìm room từ Mock Data
-            const foundRoom = MOCK_BUILDINGS
-                .flatMap(b => b.floors)
-                .flatMap(f => f.rooms)
-                .find(r => r.roomId === id)
-
-            if (foundRoom) {
-                setRoom(foundRoom)
+            try {
+                const res = await getRoomById(id)
+                setRoom(res)
                 form.reset({
-                    roomName: foundRoom.roomName,
-                    roomTypeId: foundRoom.roomTypeId,
-                    capacity: foundRoom.capacity,
-                    status: foundRoom.status || "Available",
+                    roomName: res.roomName,
+                    roomTypeId: res.roomTypeId,
+                    capacity: res.capacity,
+                    status: res.status ,
                 })
+            }catch (error) {
+                toast.error("Failed to load room")
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
         }
         fetchRoom()
     }, [id, form])
@@ -66,17 +67,15 @@ export function RoomInfoCard({id}: { id: string }) {
     const onSubmit = async (values: RoomFormValues) => {
         setLoading(true)
         try {
-            console.log("Submit Update Room:", values)
-            await new Promise(r => setTimeout(r, 1000))
+            const res = await putRoom(values, id)
             toast.success("Room updated successfully")
             setIsEditing(false)
+        } catch (error) {
+            toast.error("Failed to update room")
         } finally {
             setLoading(false)
         }
     }
-    const currentRoomTypeName = MOCK_ROOM_TYPES.find(
-        t => t.roomTypeId === form.watch("roomTypeId")
-    )?.typeName || room?.roomTypeName
 
     if (loading) return <div className="flex justify-center p-12"><Loader2
         className="animate-spin h-8 w-8 text-primary"/></div>
@@ -185,14 +184,21 @@ export function RoomInfoCard({id}: { id: string }) {
                                             <FormItem>
                                                 <FormLabel className="flex items-center gap-2"><Activity
                                                     className="h-3.5 w-3.5"/> Status</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}
+                                                <Select onValueChange={(val) => field.onChange(Number(val))}  value={field.value?.toString()}
                                                         disabled={!isEditing}>
                                                     <FormControl><SelectTrigger
                                                         className={!isEditing ? "bg-muted/50" : ""}><SelectValue/></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="Available">Available</SelectItem>
-                                                        <SelectItem value="In Use">In Use</SelectItem>
-                                                        <SelectItem value="Maintenance">Maintenance</SelectItem>
+                                                        {Object.values(RoomStatus)
+                                                            .filter((v) => typeof v === "number") // Only numeric values
+                                                            .map((statusValue) => (
+                                                                <SelectItem
+                                                                    key={statusValue}
+                                                                    value={statusValue.toString()}
+                                                                >
+                                                                    {RoomStatusLabel[statusValue as number]}
+                                                                </SelectItem>
+                                                            ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage/>

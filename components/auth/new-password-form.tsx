@@ -9,6 +9,8 @@ import z from 'zod';
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import {toast} from "sonner";
+import {forgotPassword, resetPassword} from "@/services/authService";
+import {ResetPasswordRequest} from "@/dtos/auth";
 
 const formSchema = z.object({
     email: z.email("Invalid email address"),
@@ -54,25 +56,42 @@ export default function NewPasswordForm({
         return () => clearInterval(timer); // Cleanup khi component unmount hoặc countdown = 0
     }, [countdown]);
 
-    const handleGetCode = () => {
+    const handleGetCode = async () => {
         if (!emailValue || errors.email) {
             toast.error("Please enter a valid email address first");
             return;
         }
-        setCountdown(60);
-        toast.success("Verification code sent to your email");
-        console.log("Sending OTP to:", emailValue);
+        try {
+            const res = await forgotPassword({email: emailValue});
+            toast.success("Verification code sent to your email");
+            console.log("Sending OTP to:", emailValue);
+        } catch (error) {
+            toast.error("Failed to send OTP to: " + emailValue);
+        }
+
+
     };
 
     // 4. Xử lý khi form hợp lệ
-    const onSubmit = (data: FormValues) => {
+    const onSubmit = async (data: FormValues) => {
         setIsLoading(true);
         console.log("Form submitted successfully:", data);
 
-        // Simulate API Call
+        try {
+            const req: ResetPasswordRequest = {
+                email: data.email,
+                otp: data.otp,
+                newPassword: data.password,
+            }
+            const res = await resetPassword(req);
+            toast.success("Password changed successfully!");
+            console.log(res);
+        } catch (error) {
+            toast.error("Failed to send OTP to: " + emailValue);
+        } finally {
+            setIsLoading(false);
+        }
 
-        toast.success("Password changed successfully!");
-        setIsLoading(false);
     };
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -100,9 +119,9 @@ export default function NewPasswordForm({
                                            inputMode="numeric"
                                            pattern="[0-9]*"
                                            placeholder="000000"
-                                           onClick={handleGetCode}
+
                                            {...register("otp")}/>
-                                    <Button disabled={countdown > 0} type="button" variant="outline" className="shrink-0">{countdown > 0 ? `${countdown}s` : "Get code"}</Button>
+                                    <Button onClick={handleGetCode} disabled={countdown > 0} type="button" variant="outline" className="shrink-0">{countdown > 0 ? `${countdown}s` : "Get code"}</Button>
                                 </div>
                                 {errors.otp && <p className="text-sm text-destructive">{errors.otp.message}</p>}
                                 <div className="flex items-center">

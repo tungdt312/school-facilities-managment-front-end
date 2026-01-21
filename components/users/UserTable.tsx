@@ -52,7 +52,7 @@ import {
 } from '../ui/dialog';
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from '../ui/form';
 import {formatISODate, getSortString} from "@/lib/utils";
-import {getUsersList} from "@/services/userService";
+import {getUsersList, postUser} from "@/services/userService";
 import {PageRequest} from "@/dtos/base";
 
 export const UserTable = () => {
@@ -430,10 +430,10 @@ export const UserTable = () => {
 //Create user
 
 const createUserSchema = z.object({
-    fullName: z.string().min(2, "Full name must be at least 2 characters"),
+    fullname: z.string().min(2, "Full name must be at least 2 characters"),
     email: z.email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    role: z.string().min(2, "Please select a role"),
+    role: z.number().min(0, "Role is required"),
 
 })
 type FormValues = z.infer<typeof createUserSchema>
@@ -451,7 +451,7 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
     const form = useForm<FormValues>({
         resolver: zodResolver(createUserSchema),
         defaultValues: {
-            fullName: "",
+            fullname: "",
             email: "",
             password: "",
             role: UserRole.Student,
@@ -463,8 +463,8 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
         try {
             // Simulate API Call
             console.log("Submitting:", values)
-            await new Promise(resolve => setTimeout(resolve, 1500))
-
+            const res = await postUser(values)
+            console.log(res)
             toast.success("User created successfully")
             setOpen(false)
             form.reset()
@@ -496,7 +496,7 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="fullName"
+                            name="fullname"
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Full Name</FormLabel>
@@ -539,18 +539,24 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Role</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={(val) => field.onChange(Number(val))}
+                                            value={field.value?.toString()}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a role"/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {Object.values(UserRole).map((role) => (
-                                                <SelectItem key={role} value={role}>
-                                                    {role}
-                                                </SelectItem>
-                                            ))}
+                                            {Object.values(UserRole)
+                                                .filter((v) => typeof v === "number") // Only numeric values
+                                                .map((roleValue) => (
+                                                    <SelectItem
+                                                        key={roleValue}
+                                                        value={roleValue.toString()}
+                                                    >
+                                                        {UserRoleLabel[roleValue as number]}
+                                                    </SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
                                     <FormMessage/>

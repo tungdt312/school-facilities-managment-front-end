@@ -51,6 +51,9 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../
 import Link from "next/link";
 import {MOCK_FLOORS_FLAT} from "@/components/mock-data/areas-data";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {PageRequest} from "@/dtos/base";
+import {getSortString} from "@/lib/utils";
+import {getBuildingsList, getFloorsList, postBuilding, postFloor} from "@/services/areaService";
 
 // 1. Floor Schema
 const createFloorSchema = z.object({
@@ -76,11 +79,11 @@ export function CreateFloorDialog({buildingId, onSuccess}: { buildingId?: string
         },
     })
 
-    async function onSubmit(values: FloorFormValues) {
+    async function onSubmit(values: z.infer<typeof createFloorSchema>) {
         setIsSubmitting(true)
         try {
-            console.log("Submitting Floor:", values)
-            await new Promise(r => setTimeout(r, 1000))
+            // Simulated API
+            const res = await postFloor(values)
             toast.success("Floor created successfully")
             setOpen(false)
             form.reset()
@@ -129,7 +132,8 @@ export function CreateFloorDialog({buildingId, onSuccess}: { buildingId?: string
                                 <FormItem>
                                     <FormLabel>Room Count</FormLabel>
                                     <FormControl>
-                                        <Input type="number" {...field} />
+                                        <Input type="number" {...field}
+                                               onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -172,7 +176,7 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -252,27 +256,28 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
             ),
         },
     ], []);
-    const fetchData = () => {
+    const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Lấy tất cả floors từ mock data phẳng
-            let allFloors: FloorResponse[] = MOCK_FLOORS_FLAT;
-
-            // Nếu có buildingId, lọc theo buildingId
-            if (buildingId) {
-                allFloors = allFloors.filter(f => f.buildingId === buildingId);
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery = `buildingName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
-
-            // Lọc theo search term
-            if (searchTerm) {
-                allFloors = allFloors.filter(f =>
-                    f.floorName.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
             }
-
-            setData(allFloors);
-        } catch (error) {
-            console.error("Failed to fetch floors", error);
+            const res = await getFloorsList(req)
+            setData(res.content)
+            console.log(res)
+            setRowCount(res.totalElements)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load floor");
+            setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -280,22 +285,34 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
 
     useEffect(() => {
         fetchData();
-    }, [buildingId, searchTerm]);
+    }, [ buildingId,pagination, sorting, debouncedSearch]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({...prev, pageIndex: 0})); // Reset về trang 1 khi tìm kiếm
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
 
     const table = useReactTable({
         data,
         columns,
-        state: {sorting, columnVisibility, rowSelection, pagination},
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
+        getRowId: (row) => row.floorId,
     });
 
     return (
@@ -329,8 +346,7 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
                             ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                    <CreateFloorDialog onSuccess={() => {
-                    }} buildingId={buildingId}/>
+                    <CreateFloorDialog onSuccess={fetchData} buildingId={buildingId}/>
                 </div>
             </div>
 
@@ -395,14 +411,14 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -411,7 +427,7 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -420,7 +436,7 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -428,8 +444,8 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>

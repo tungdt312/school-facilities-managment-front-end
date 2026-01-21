@@ -13,14 +13,15 @@ import {Input} from "@/components/ui/input"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"
-import {UserRole} from "@/constaints/enum"
+import {UserRole, UserRoleLabel} from "@/constaints/enum"
 import {UserResponse} from "@/dtos/user"
 import {MOCK_USERS} from "@/components/mock-data/users-data";
+import {getUserById, putUser} from "@/services/userService";
 
 const userSchema = z.object({
     fullName: z.string().min(2, "Full name must be at least 2 characters"),
     email: z.email("Invalid email address"),
-    role: z.string().min(2, "Please select a role"),
+    role: z.number().min(0, "Role is required"),
 })
 
 type UserFormValues = z.infer<typeof userSchema>
@@ -47,17 +48,15 @@ export function UserInfoCard({id}: { id: string }) {
         const fetchData = async () => {
             setLoading(true)
             try {
-                // Simulate API call
-                const foundUser = MOCK_USERS.find(u => u.userId === id)
-                if (foundUser) {
-                    setUser(foundUser)
-                    // Reset form with fetched data
-                    form.reset({
-                        fullName: foundUser.fullName,
-                        email: foundUser.email,
-                        role: foundUser.role,
-                    })
-                }
+                const res = await getUserById(id)
+                setUser(res)
+                form.reset({
+                    fullName: res.fullname,
+                    email: res.email,
+                    role: res.role,
+                })
+            } catch (error) {
+                toast.error("Failed to fetch user data")
             } finally {
                 setLoading(false)
             }
@@ -82,8 +81,8 @@ export function UserInfoCard({id}: { id: string }) {
         try {
             // Simulate API update call
             console.log("Saving changes:", values)
-            await new Promise(r => setTimeout(r, 1000))
-
+            const res = await putUser(values, id)
+            setUser(res)
             toast.success("Profile updated successfully")
             setIsEditing(false)
         } catch (error) {
@@ -121,8 +120,8 @@ export function UserInfoCard({id}: { id: string }) {
                                 className="flex flex-col items-center gap-4 md:w-1/3 border-b md:border-b-0 md:border-r pb-6 md:pb-0 md:pr-6">
                                 <Avatar className="h-24 w-24 border-4 border-primary/10 shadow-sm">
                                     <AvatarImage
-                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.fullName}`}/>
-                                    <AvatarFallback>{user.fullName.substring(0, 2)}</AvatarFallback>
+                                        src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.fullname}`}/>
+                                    <AvatarFallback>{user.fullname.substring(0, 2)}</AvatarFallback>
                                 </Avatar>
                                 <div className="text-center">
                                     <h3 className="font-medium text-foreground">{form.getValues("fullName")}</h3>
@@ -163,7 +162,7 @@ export function UserInfoCard({id}: { id: string }) {
                                                 <FormLabel className="flex items-center gap-2">
                                                     <ShieldCheck className="h-3.5 w-3.5"/> Role
                                                 </FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}
+                                                <Select onValueChange={(val) => field.onChange(Number(val))}  value={field.value?.toString()}
                                                         disabled={!isEditing}>
                                                     <FormControl>
                                                         <SelectTrigger
@@ -172,9 +171,16 @@ export function UserInfoCard({id}: { id: string }) {
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        {Object.values(UserRole).map(role => (
-                                                            <SelectItem key={role} value={role}>{role}</SelectItem>
-                                                        ))}
+                                                        {Object.values(UserRole)
+                                                            .filter((v) => typeof v === "number") // Only numeric values
+                                                            .map((roleValue) => (
+                                                                <SelectItem
+                                                                    key={roleValue}
+                                                                    value={roleValue.toString()}
+                                                                >
+                                                                    {UserRoleLabel[roleValue as number]}
+                                                                </SelectItem>
+                                                            ))}
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage/>
