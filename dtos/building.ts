@@ -47,7 +47,7 @@ export interface RoomResponse {
     roomTypeId: string;
     roomTypeName: string;
     capacity: number;
-    status?: RoomStatus;
+    status: RoomStatus;
 }
 
 //Room Type DTOs

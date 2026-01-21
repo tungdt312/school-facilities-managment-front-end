@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import {
     Calendar, Clock, User, DoorOpen, FileText,
-    Check, X, Pencil, Save, Info, Loader2, AlertCircle
+    Check, X, Pencil, Save, Info, Loader2, AlertCircle, Activity
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -16,13 +16,15 @@ import { Badge } from "@/components/ui/badge"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RoomBookingResponse } from '@/dtos/booking'
-import { BookingStatus } from '@/constaints/enum'
+import {BookingStatus, BookingStatusLabel, DeviceStatus, DeviceStatusLabel} from '@/constaints/enum'
 import { formatISODate } from '@/lib/utils'
 import {MOCK_DEVICES} from "@/components/mock-data/devices-data";
 import {MOCK_ROOM_BOOKINGS} from "@/components/mock-data/booking-data";
+import {getDeviceById} from "@/services/deviceService";
+import {approveBooking, getBookingById, updateBooking} from "@/services/bookingService";
 
 const bookingSchema = z.object({
-    status: z.string().min(0, "Status is required"),
+    status: z.number().min(0, "Status is required"),
 })
 type BookingInfo = z.infer<typeof bookingSchema>
 interface BookingInfoCardProps {
@@ -34,16 +36,17 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
     const [loading, setLoading] = useState(false)
     const [booking, setBooking] = useState<RoomBookingResponse | undefined>(undefined)
     const fetchData = async () => {
-
-        setLoading(true)
-        const found = MOCK_ROOM_BOOKINGS.find(d => d.bookingId === id)
-        if (found) {
-            setBooking(found)
+        try {
+            setLoading(true)
+            const res = await getBookingById(id)
             form.reset({
-                ...found,
+                ...res
             })
+        } catch (e) {
+            toast.error("Failed to fetch booking info")
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
     useEffect(() => {
         fetchData()
@@ -59,7 +62,8 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
     const handleQuickAction = async (newStatus: BookingStatus) => {
         setLoading(true)
         try {
-            toast.success(`Booking ${newStatus.toLowerCase()} successfully`)
+            const res = await updateBooking(id, {status: newStatus})
+            toast.success(`Booking ${BookingStatusLabel[newStatus].toLowerCase()} successfully`)
         } catch (error) {
             toast.error("Failed to update status")
         } finally {
@@ -71,6 +75,7 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
         setLoading(true)
         try {
             setIsEditing(false)
+            const res = await updateBooking(id, values)
             toast.success("Status updated successfully")
         } catch (error) {
             toast.error("Update failed")
@@ -147,26 +152,17 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
                                     name="status"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel className="flex items-center gap-2">
-                                                <Info className="h-3.5 w-3.5" /> Current Status
-                                            </FormLabel>
-                                            <Select
-                                                disabled={!isEditing || loading}
-                                                onValueChange={field.onChange}
-                                                defaultValue={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger className={!isEditing ? "bg-muted/50" : "border-primary"}>
-                                                        <SelectValue placeholder="Select status" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                            <FormLabel className="flex items-center gap-2"><Activity
+                                                className="h-3.5 w-3.5"/> Status</FormLabel>
+                                            <Select onValueChange={(val) => field.onChange(Number(val))}
+                                                    value={field.value?.toString()} disabled={!isEditing}>
+                                                <FormControl><SelectTrigger className={!isEditing ? "bg-muted/50" : ""}><SelectValue/></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {Object.values(BookingStatus).map((status) => (
-                                                        <SelectItem key={status} value={status}>{status}</SelectItem>
-                                                    ))}
+                                                    {Object.values(DeviceStatus).map(s => <SelectItem key={s}
+                                                                                                      value={s.toString()}>{BookingStatusLabel[s as number]}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
-                                            <FormMessage />
+                                            <FormMessage/>
                                         </FormItem>
                                     )}
                                 />

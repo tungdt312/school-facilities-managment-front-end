@@ -1,6 +1,6 @@
 import {apiFetch, processResponse} from "@/services/baseService";
 import {PageRequest, PageV0, toQueryString} from "@/dtos/base";
-import {ApproveBookingRequest, CreateBookingRequest, RoomBookingResponse} from "@/dtos/booking";
+import {ApproveBookingRequest, CreateBookingRequest, RoomBookingResponse, UpdateBookingRequest} from "@/dtos/booking";
 
 export async function getBookingById(id: string): Promise<RoomBookingResponse> {
     const res = await apiFetch(`/room-bookings/${id}`, true, {
@@ -41,6 +41,19 @@ export async function postBooking(data: CreateBookingRequest): Promise<RoomBooki
 
 export async function approveBooking(id: string, data: ApproveBookingRequest): Promise<RoomBookingResponse> {
     const res = await apiFetch(`/room-booking/${id}/approve`, true, {
+        method: "PUT",
+        headers: {
+            "accept": "application/json",
+            "content-type": "application/json",
+        },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    return processResponse(res);
+}
+
+export async function updateBooking(id: string, data: UpdateBookingRequest): Promise<RoomBookingResponse> {
+    const res = await apiFetch(`/room-booking/${id}/status`, true, {
         method: "PUT",
         headers: {
             "accept": "application/json",

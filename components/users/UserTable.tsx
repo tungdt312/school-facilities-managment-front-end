@@ -200,14 +200,19 @@ export const UserTable = () => {
         },
 
     ], [selectedRoles]); // Dùng useMemo để tránh re-render columns không cần thiết
-
     // 4. Fetch Data Function
     const fetchData = async () => {
         setIsLoading(true);
         try {
             let filterQuery = "";
             if (debouncedSearch) {
-                filterQuery = `fullName=~${debouncedSearch}&email=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+                filterQuery += `Fullname=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedRoles.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Role==${selectedRoles.join(",=")}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,
@@ -228,14 +233,11 @@ export const UserTable = () => {
             setIsLoading(false);
         }
     };
-
     // 5. Trigger Fetch khi dependency thay đổi
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pagination.pageIndex, pagination.pageSize, sorting, debouncedSearch, selectedRoles]);
-
-
     // 6. Table Configuration
     const table = useReactTable({
         data,
@@ -259,13 +261,11 @@ export const UserTable = () => {
         getCoreRowModel: getCoreRowModel(),
         getRowId: (row) => row.userId,
     });
-
     // Handle Search Change
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
         setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
-
     const handleBulkBlock = async () => {
         const selectedIds = Object.keys(rowSelection);
         // Lưu ý: Không cần try-catch hay setLoading ở đây nữa

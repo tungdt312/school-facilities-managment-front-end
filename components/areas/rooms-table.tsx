@@ -23,6 +23,7 @@ import {
     Columns2,
     DoorOpen,
     ExternalLink,
+    Filter,
     Loader2,
     PlusCircle
 } from "lucide-react"
@@ -40,21 +41,23 @@ import {
 import {useDebounce} from "@/hooks/use-rebounce"
 import {Checkbox} from "../ui/checkbox"
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../ui/table"
-import {MOCK_BUILDINGS, MOCK_ROOM_TYPES} from "../mock-data/areas-data"
+import {MOCK_ROOM_TYPES} from "../mock-data/areas-data"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../ui/select"
 import Link from "next/link"
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {BorrowStatus} from "@/constaints/enum";
+import {RoomStatus, RoomStatusLabel, UserRoleLabel} from "@/constaints/enum";
 import {PageRequest} from "@/dtos/base";
 import {getSortString} from "@/lib/utils";
-import {getFloorsList, getRoomsList, postFloor, postRoom} from "@/services/areaService";
+import {getRoomsList, postRoom} from "@/services/areaService";
+import {Badge} from "@/components/ui/badge";
 
 // 1. Room Schema
 const createRoomSchema = z.object({
@@ -126,34 +129,34 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                             )}
                         />
                         <div className="flex w-full items-center space-x-2">
-                        <FormField
-                            control={form.control}
-                            name="roomTypeId"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>Room Type</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a type"/>
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {MOCK_ROOM_TYPES.map((type) => (
-                                                <SelectItem key={type.roomTypeId} value={type.roomTypeId}>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium">{type.typeName}</span>
-                                                        <span
-                                                            className="text-[10px] text-muted-foreground">{type.description}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
+                            <FormField
+                                control={form.control}
+                                name="roomTypeId"
+                                render={({field}) => (
+                                    <FormItem>
+                                        <FormLabel>Room Type</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a type"/>
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {MOCK_ROOM_TYPES.map((type) => (
+                                                    <SelectItem key={type.roomTypeId} value={type.roomTypeId}>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-medium">{type.typeName}</span>
+                                                            <span
+                                                                className="text-[10px] text-muted-foreground">{type.description}</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage/>
+                                    </FormItem>
+                                )}
+                            />
                             {/*create Roomtype*/}
                         </div>
                         <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full">Save
@@ -170,7 +173,7 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
 
-    const [selectedStatus, setSelectedStatus] = useState<BorrowStatus[]>([]);
+    const [selectedStatus, setSelectedStatus] = useState<RoomStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
@@ -237,58 +240,62 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             header: "Floor",
             cell: ({row}) => <span className="text-muted-foreground text-xs">{row.original.floorName}</span>,
         },
-        // {
-        //     accessorKey: "status",
-        //     header: ({column}) => {
-        //         return (<div className="flex items-center gap-2">
-        //             <span>Role</span>
-        //             <DropdownMenu>
-        //                 <DropdownMenuTrigger asChild>
-        //                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-        //                         <Filter
-        //                             className={`h-4 w-4 ${selectedRoles.length > 0 ? "text-primary fill-primary" : ""}`}/>
-        //                     </Button>
-        //                 </DropdownMenuTrigger>
-        //                 <DropdownMenuContent align="start" className="w-52">
-        //                     <DropdownMenuLabel>Role filter</DropdownMenuLabel>
-        //                     <DropdownMenuSeparator/>
-        //                     {Object.values(UserRole).map((role) => (
-        //                         <DropdownMenuCheckboxItem
-        //                             key={role}
-        //                             checked={selectedRoles.includes(role)}
-        //                             onCheckedChange={(checked) => {
-        //                                 setSelectedRoles(prev =>
-        //                                     checked
-        //                                         ? [...prev, role]
-        //                                         : prev.filter(r=> r != role)
-        //                                 );
-        //                                 setPagination(p => ({...p, pageIndex: 0})); // Reset về trang 1
-        //                             }}
-        //                         >
-        //                             {role}
-        //                         </DropdownMenuCheckboxItem>
-        //                     ))}
-        //                     {selectedRoles.length > 0 && (
-        //                         <>
-        //                             <DropdownMenuSeparator/>
-        //                             <DropdownMenuItem
-        //                                 onClick={() => setSelectedRoles([])}
-        //                                 className="justify-center text-destructive focus:text-destructive"
-        //                             >
-        //                                 Delete filter
-        //                             </DropdownMenuItem>
-        //                         </>
-        //                     )}
-        //                 </DropdownMenuContent>
-        //             </DropdownMenu>
-        //         </div>)
-        //     },
-        //     cell: ({row}) => (
-        //         <div className="flex flex-wrap gap-1">
-        //             <Badge variant="outline">{row.original.role}</Badge>
-        //         </div>
-        //     ),
-        // },
+        {
+            accessorKey: "status",
+            header: ({column}) => {
+                return (<div className="flex items-center gap-2">
+                    <span>Status</span>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <Filter
+                                    className={`h-4 w-4 ${selectedStatus.length > 0 ? "text-primary fill-primary" : ""}`}/>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-52">
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(RoomStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatus.includes(statusValue as RoomStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatus(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as RoomStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({...p, pageIndex: 1}));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {UserRoleLabel[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatus.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatus([])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>)
+            },
+            cell: ({row}) => (
+                <div className="flex flex-wrap gap-1">
+                    <Badge variant="outline">{RoomStatusLabel[row.original.status] || "Unknown"}</Badge>
+                </div>
+            ),
+        },
         {
             id: "actions",
             header: "",
@@ -305,7 +312,13 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
         try {
             let filterQuery = "";
             if (debouncedSearch) {
-                filterQuery = `buildingName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+                filterQuery += `RoomName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedStatus.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatus.join(",=")}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,
@@ -319,7 +332,7 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load rooms");
+            toast.error(`Failed to load rooms`);
             setData([]);
             setRowCount(0);
         } finally {

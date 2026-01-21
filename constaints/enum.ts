@@ -67,8 +67,8 @@ export enum BookingStatus {
 }
 
 export enum RoomStatus {
-    Available = 0,
-    Unavailable = 1,
+    Available = 1,
+    Unavailable = 0,
     InUse = 2,
 }
 export enum AuditStatus {
@@ -111,6 +111,14 @@ export const BorrowStatusLabel: Record<number, string> = {
     [BorrowStatus.Returned]: "Returned",
     [BorrowStatus.Violated]: "Violated",
 };
+
+export const BookingStatusLabel: Record<number, string> = {
+    [BookingStatus.Pending]: "Pending",
+    [BookingStatus.Approved]: "Approved",
+    [BookingStatus.Rejected]: "Rejected",
+    [BookingStatus.Cancelled]: "Cancelled",
+    [BookingStatus.Completed]: "Completed",
+}
 
 export const RoomStatusLabel: Record<number, string> = {
     [RoomStatus.Available]: "Available",

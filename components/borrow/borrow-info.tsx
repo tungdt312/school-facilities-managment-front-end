@@ -1,27 +1,24 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, {useEffect, useState} from 'react'
+import {useForm} from 'react-hook-form'
+import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {
-    Calendar, Clock, User, Package, FileText,
-    Check, X, Pencil, Save, Info, Loader2, AlertCircle, Hash
-} from 'lucide-react'
-import { toast } from 'sonner'
+import {AlertCircle, Check, Clock, Hash, Info, Loader2, Package, Pencil, Save, User, X} from 'lucide-react'
+import {toast} from 'sonner'
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BorrowVoucherResponse } from '@/dtos/borrow'
-import { BorrowStatus } from '@/constaints/enum'
-import { formatISODate } from '@/lib/utils'
-import { MOCK_BORROW_VOUCHERS } from '@/components/mock-data/borrow-data'
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
+import {Button} from "@/components/ui/button"
+import {Badge} from "@/components/ui/badge"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
+import {BorrowVoucherResponse} from '@/dtos/borrow'
+import {BorrowStatus, BorrowStatusLabel, DeviceStatus} from '@/constaints/enum'
+import {formatISODate} from '@/lib/utils'
+import {approveBorrow, getBorrowById} from "@/services/borrowService";
 
 const borrowSchema = z.object({
-    status: z.string().min(0, "Status is required"),
+    status: z.number().min(0, "Status is required"),
 })
 
 type BorrowFormValues = z.infer<typeof borrowSchema>
@@ -49,16 +46,13 @@ export const BorrowInfoCard = ({ id }: BorrowInfoCardProps) => {
         const fetchDetail = async () => {
             setLoading(true)
             try {
-                // Giả lập API call
-                await new Promise(resolve => setTimeout(resolve, 600))
-                const data = MOCK_BORROW_VOUCHERS.find(b => b.borrowId === id)
-                if (data) {
-                    setBorrow(data)
-                    // 3. Reset form khi có dữ liệu mới
-                    form.reset({ status: data.status })
-                }
+                const res = await getBorrowById(id)
+                setBorrow(res)
+                form.reset({
+                   ...res
+                })
             } catch (error) {
-                toast.error("Failed to fetch borrow details")
+                toast.error("Failed to fetch borrow data")
             } finally {
                 setLoading(false)
             }
@@ -69,8 +63,7 @@ export const BorrowInfoCard = ({ id }: BorrowInfoCardProps) => {
     const handleUpdateStatus = async (newStatus: BorrowStatus) => {
         setUpdating(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 800))
-            setBorrow(prev => prev ? { ...prev, status: newStatus } : null)
+            const res = await approveBorrow(id, {status: newStatus})
             form.setValue("status", newStatus)
             setIsEditing(false)
             toast.success(`Status updated to ${newStatus}`)
@@ -180,20 +173,12 @@ export const BorrowInfoCard = ({ id }: BorrowInfoCardProps) => {
                                             <FormLabel className="flex items-center gap-2 text-muted-foreground">
                                                 <Info className="h-3.5 w-3.5" /> Change Status
                                             </FormLabel>
-                                            <Select
-                                                disabled={!isEditing || updating}
-                                                onValueChange={field.onChange}
-                                                value={field.value}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger className={!isEditing ? "bg-muted/30 border-none shadow-none focus:ring-0" : "border-primary"}>
-                                                        <SelectValue placeholder="Select status" />
-                                                    </SelectTrigger>
-                                                </FormControl>
+                                            <Select onValueChange={(val) => field.onChange(Number(val))}
+                                                    value={field.value?.toString()} disabled={!isEditing}>
+                                                <FormControl><SelectTrigger className={!isEditing ? "bg-muted/50" : ""}><SelectValue/></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {Object.values(BorrowStatus).map((status) => (
-                                                        <SelectItem key={status} value={status}>{status}</SelectItem>
-                                                    ))}
+                                                    {Object.values(DeviceStatus).map(s => <SelectItem key={s}
+                                                                                                      value={s.toString()}>{BorrowStatusLabel[s as number]}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />

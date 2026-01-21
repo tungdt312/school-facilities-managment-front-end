@@ -30,7 +30,7 @@ import {Input} from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -40,12 +40,16 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {formatNumber} from "@/lib/utils";
-import {DeviceStatus, LocationType} from '@/constaints/enum';
+import {formatNumber, getSortString} from "@/lib/utils";
+import {DeviceStatus, LocationType, RoomStatus, UserRoleLabel} from '@/constaints/enum';
 import {MOCK_DEVICES} from "@/components/mock-data/devices-data";
+import {PageRequest} from "@/dtos/base";
+import {getUsersList} from "@/services/userService";
+import {toast} from "sonner";
+import {getDevicesList} from "@/services/deviceService";
 
 // Hàm format số có dấu ngăn cách hàng nghìn như bạn yêu cầu trước đó
-export const DeviceTable = ({locationId}: {locationId: string}) => {
+export const DeviceTable = ({locationId}: { locationId: string }) => {
     const [data, setData] = useState<DeviceResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
@@ -128,35 +132,52 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
         },
         {
             accessorKey: "status",
-            header: ({column}) => (
-                <div className="flex items-center gap-2">
-                    <span>Status</span>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Filter
-                                    className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`}/>
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Status Filter</DropdownMenuLabel>
-                            <DropdownMenuSeparator/>
-                            {Object.values(DeviceStatus).map((status) => (
+            header: ({column}) => (<div className="flex items-center gap-2">
+                <span>Status</span>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <Filter
+                                className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`}/>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-52">
+                        <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                        <DropdownMenuSeparator/>
+                        {Object.values(DeviceStatus)
+                            .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                            .map((statusValue) => (
                                 <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
+                                    key={statusValue}
+                                    // roleValue ở đây là 0, 1, 2...
+                                    checked={selectedStatuses.includes(statusValue as DeviceStatus)}
                                     onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                        setPagination(p => ({...p, pageIndex: 0}));
+                                        setSelectedStatuses(prev =>
+                                            checked
+                                                ? [...prev, statusValue as DeviceStatus]
+                                                : prev.filter(r => r !== statusValue)
+                                        );
+                                        setPagination(p => ({...p, pageIndex: 1}));
                                     }}
                                 >
-                                    {status}
+                                    {/* Hiển thị label tương ứng */}
+                                    {UserRoleLabel[statusValue as number]}
                                 </DropdownMenuCheckboxItem>
                             ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            ),
+                        {selectedStatuses.length > 0 && (
+                            <>
+                                <DropdownMenuSeparator/>
+                                <DropdownMenuItem
+                                    onClick={() => setSelectedStatuses(prev => [])}
+                                    className="justify-center text-destructive focus:text-destructive"
+                                >
+                                    Delete filter
+                                </DropdownMenuItem>
+                            </>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>),
             cell: ({row}) => {
                 const status = row.original.status;
                 return (
@@ -188,19 +209,32 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            // Logic lọc giả lập từ MOCK_DEVICES
-            let filtered = [...MOCK_DEVICES];
+            let filterQuery = "";
             if (debouncedSearch) {
-                filtered = filtered.filter(d => d.equipmentName.toLowerCase().includes(debouncedSearch.toLowerCase()));
+                filterQuery += `EquipmentName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
             if (selectedStatuses.length > 0) {
-                filtered = filtered.filter(d => selectedStatuses.includes(d.status));
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
             }
-            if (locationId){
-                filtered = filtered.filter(d => d.locationId.toLowerCase().includes(locationId));
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
             }
-            setData(filtered);
-            setRowCount(filtered.length);
+            const res = await getDevicesList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);
+            res.totalElements
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices");
+            setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -223,14 +257,17 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
         getCoreRowModel: getCoreRowModel(),
         getRowId: (row) => row.equipmentId,
     });
-
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     return (
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
                     placeholder="Search equipment name..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-8 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">
@@ -324,14 +361,14 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -340,7 +377,7 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -349,7 +386,7 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -357,8 +394,8 @@ export const DeviceTable = ({locationId}: {locationId: string}) => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>

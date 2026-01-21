@@ -261,7 +261,7 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
         try {
             let filterQuery = "";
             if (debouncedSearch) {
-                filterQuery = `buildingName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+                filterQuery = `FloorName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,
