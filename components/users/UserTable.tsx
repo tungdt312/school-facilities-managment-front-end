@@ -433,7 +433,7 @@ const createUserSchema = z.object({
     fullName: z.string().min(2, "Full name must be at least 2 characters"),
     email: z.email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
-    role: z.string().min(2, "Please select a role"),
+    role: z.number().min(2, "Please select a role"),
 
 })
 type FormValues = z.infer<typeof createUserSchema>
@@ -539,16 +539,16 @@ export function CreateUserDialog({onSuccess}: CreateUserDialogProps) {
                             render={({field}) => (
                                 <FormItem>
                                     <FormLabel>Role</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a role"/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {Object.values(UserRole).map((role) => (
-                                                <SelectItem key={role} value={role}>
-                                                    {role}
+                                            {Object.values(UserRole).filter((v) => typeof v === "number").map((role) => (
+                                                <SelectItem key={role} value={String(role)}>
+                                                    {UserRoleLabel[role as number]}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
