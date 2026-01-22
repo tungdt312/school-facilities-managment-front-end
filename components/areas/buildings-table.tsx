@@ -126,7 +126,7 @@ export function CreateBuildingDialog({onSuccess}: { onSuccess: () => void }) {
                                     <FormLabel>Number of Floors</FormLabel>
                                     <FormControl>
                                         <Input type="number" {...field}
-                                               onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}/>
+                                               onChange={(e) => field.onChange(e.target.valueAsNumber)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>

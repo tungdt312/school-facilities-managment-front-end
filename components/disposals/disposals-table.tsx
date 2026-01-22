@@ -67,7 +67,7 @@ export const LiquidateVoucherTable = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);

@@ -133,7 +133,7 @@ export function CreateFloorDialog({buildingId, onSuccess}: { buildingId?: string
                                     <FormLabel>Room Count</FormLabel>
                                     <FormControl>
                                         <Input type="number" {...field}
-                                               onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}/>
+                                               onChange={(e) => field.onChange(e.target.valueAsNumber)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -262,6 +262,12 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
             let filterQuery = "";
             if (debouncedSearch) {
                 filterQuery = `FloorName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (buildingId) {
+                if (debouncedSearch) {
+                    filterQuery += '&'
+                }
+                filterQuery += `BuildingId==${buildingId}`;
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,

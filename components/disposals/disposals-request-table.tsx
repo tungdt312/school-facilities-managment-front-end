@@ -36,7 +36,7 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {VoucherStatus} from '@/constaints/enum';
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum';
 import {LiquidateRequestResponse} from '@/dtos/liquidate';
 import {MOCK_LIQUIDATE_REQUESTS} from "@/components/mock-data/liquidates-data";
 import {formatISODate, getSortString} from "@/lib/utils";
@@ -166,7 +166,7 @@ export const LiquidateRequestTable = () => {
                             status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 status === VoucherStatus.Rejected ? "bg-destructive hover:bg-destructive/90" : "bg-slate-500"
                     }>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 )
             },

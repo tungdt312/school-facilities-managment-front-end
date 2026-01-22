@@ -47,8 +47,9 @@ import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialo
 import {PageRequest} from "@/dtos/base";
 import {getBorrowList} from "@/services/borrowService";
 import {toast} from "sonner";
+import {useCurrentUser} from "@/hooks/use-user";
 
-export const BorrowVoucherTable = () => {
+export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
     const [data, setData] = useState<BorrowVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStatuses, setSelectedStatuses] = useState<BorrowStatus[]>([]);
@@ -193,11 +194,17 @@ export const BorrowVoucherTable = () => {
         {
             id: "action",
             header: "",
-            cell: ({ row }) => (
-                <Link href={`/borrow/${row.original.borrowId}`}>
-                    <ExternalLink className="text-muted-foreground size-4 hover:text-primary transition-colors" />
-                </Link>
-            ),
+            cell: ({row}) => {
+                // Check if isUser is true and bookingId exists
+                if (!isUser) {
+                    return (
+                        <Link href={`/borrow/${row.original.borrowId}`}>
+                            <ExternalLink className="text-muted-foreground size-4"/>
+                        </Link>
+                    );
+                }
+                return null; // Explicitly return null if condition isn't met
+            },
         },
     ], [selectedStatuses]);
     const fetchData = async () => {
@@ -212,6 +219,12 @@ export const BorrowVoucherTable = () => {
                     filterQuery += `&`
                 }
                 filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            if (isUser) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `BorrowerId==${useCurrentUser().userId}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,

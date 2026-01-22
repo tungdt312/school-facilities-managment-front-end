@@ -17,7 +17,7 @@ export async function getBorrowById(id: string): Promise<BorrowVoucherResponse> 
 export async function getBorrowList(page?: PageRequest): Promise<PageV0<BorrowVoucherResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/borrow-vouchers/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/borrow-vouchers?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

@@ -1,15 +1,21 @@
 "use client"
 
-import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { CreateMaintenanceRequestRequest, MaintenanceRequestDetailRequest } from "@/dtos/maintenance";
-import { X } from "lucide-react";
+import {useMemo, useState} from "react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {Label} from "@/components/ui/label";
+import {Checkbox} from "@/components/ui/checkbox";
+import {Input} from "@/components/ui/input";
+import {ScrollArea} from "@/components/ui/scroll-area";
+import {CreateMaintenanceRequestRequest} from "@/dtos/maintenance";
+import {X} from "lucide-react";
 
 interface CreateMaintenanceRequestDialogProps {
     open: boolean;

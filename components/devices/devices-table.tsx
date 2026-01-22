@@ -49,7 +49,7 @@ import {toast} from "sonner";
 import {getDevicesList} from "@/services/deviceService";
 
 // Hàm format số có dấu ngăn cách hàng nghìn như bạn yêu cầu trước đó
-export const DeviceTable = ({locationId, locationType}: { locationId: string, locationType: LocationType }) => {
+export const DeviceTable = ({locationId, locationType}: { locationId?: string, locationType?: LocationType }) => {
     const [data, setData] = useState<DeviceResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);

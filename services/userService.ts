@@ -15,7 +15,7 @@ export async function getUserById(id:string):Promise<UserResponse>{
 export async function getUsersList(page?: PageRequest): Promise<PageV0<UserResponse>>{
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/users/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/users?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

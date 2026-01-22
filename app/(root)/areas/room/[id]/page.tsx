@@ -11,6 +11,7 @@ import {BuildingInfoCard} from "@/components/areas/building-info";
 import React from "react";
 import {RoomInfoCard} from "@/components/areas/room-info";
 import {DeviceTable} from "@/components/devices/devices-table";
+import {LocationType} from "@/constaints/enum";
 
 type PageProps = {
     params: Promise<{ id: string }>
@@ -27,7 +28,7 @@ export default async function Page({ params }: PageProps) {
                     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
                         <RoomInfoCard id={id}/>
                         <h2 className="text-lg font-medium text-slate-800">Devices</h2>
-                        <DeviceTable locationId={id} />
+                        <DeviceTable locationId={id} locationType={LocationType.Room} />
                     </div>
                 </div>
             </div>

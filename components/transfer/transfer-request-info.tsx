@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TransferRequestResponse } from '@/dtos/transfer'
-import { VoucherStatus } from '@/constaints/enum'
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum'
 import { formatISODate } from '@/lib/utils'
 import { MOCK_TRANSFER_REQUESTS } from '@/components/mock-data/transfer-data'
 import {getImportRequestById, putImportRequestStatus} from "@/services/importService";
@@ -56,7 +56,7 @@ export const TransferRequestInfoCard = ({ id }: TransferRequestInfoCardProps) =>
         setUpdating(true)
         try {
             const res = await putTransferRequestStatus(id, {status: newStatus})
-            toast.success(`Request marked as ${newStatus}`)
+            toast.success(`Request marked as ${VoucherStatusLabel[newStatus]}`)
         } catch (error) {
             toast.error("Update failed")
         } finally {
@@ -104,7 +104,7 @@ export const TransferRequestInfoCard = ({ id }: TransferRequestInfoCardProps) =>
                             request.status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 "bg-red-500 hover:bg-red-600"
                     }>
-                        {request.status}
+                        {VoucherStatusLabel[request.status]}
                     </Badge>
                 </div>
             </CardHeader>

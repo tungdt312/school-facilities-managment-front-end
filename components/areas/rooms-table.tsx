@@ -236,10 +236,10 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             ),
         },
         {
-            accessorKey: "roomTypeName",
+            accessorKey: "typeName",
             header: "Type",
             cell: ({row}) => {
-                const type = row.original.roomTypeName;
+                const type = row.original.typeName;
                 return (
                     <div className="flex items-center gap-1.5 text-sm text-slate-600">
                         <span>{type}</span>
@@ -331,8 +331,14 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             if (debouncedSearch) {
                 filterQuery += `RoomName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
-            if (selectedStatus.length > 0) {
+            if (floorId) {
                 if (debouncedSearch) {
+                    filterQuery += '&'
+                }
+                filterQuery += `FloorId==${floorId}`;
+            }
+            if (selectedStatus.length > 0) {
+                if (debouncedSearch || floorId) {
                     filterQuery += `&`
                 }
                 filterQuery += `Status==${selectedStatus.join(",=")}`

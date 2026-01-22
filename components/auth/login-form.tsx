@@ -54,7 +54,7 @@ export function LoginForm({
     console.log("Logging in with:", data)
     try{
       const res = await login(data)
-
+      console.log(res)
       localStorage.setItem(ACCESS_TOKEN_KEY, res.accessToken);
       localStorage.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
       localStorage.setItem(USER_KEY, JSON.stringify(res.user))

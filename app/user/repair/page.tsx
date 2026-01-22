@@ -1,4 +1,3 @@
-import {SectionCards} from "@/components/section-cards";
 import {SidebarTrigger} from "@/components/ui/sidebar";
 import {Separator} from "@/components/ui/separator";
 import {
@@ -8,21 +7,16 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import {UserInfoCard} from "@/components/users/UserInfo";
-type PageProps = {
-    params: Promise<{ id: string }>
-}
+import {RepairRequestTable} from "@/components/repair/RepairRequestTable";
 
-// 2. Destructure { params } từ props
-export default async function Page({ params }: PageProps) {
-    const { id } = await params;
+export default function Page() {
     return (
         <>
-            <SiteHeader id={id}/>
+            <SiteHeader/>
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
-                        <UserInfoCard id={id}/>
+                        <RepairRequestTable />
                     </div>
                 </div>
             </div>
@@ -30,12 +24,11 @@ export default async function Page({ params }: PageProps) {
     )
 }
 
-function SiteHeader( {id}: { id: string }) {
+function SiteHeader() {
     return (
-        <header
-            className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+        <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
             <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
-                <SidebarTrigger className="-ml-1"/>
+                <SidebarTrigger className="-ml-1" />
                 <Separator
                     orientation="vertical"
                     className="mx-2 data-[orientation=vertical]:h-4"
@@ -43,11 +36,7 @@ function SiteHeader( {id}: { id: string }) {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/users">Users</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator/>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href={`/users/${id}`}>Detail [{id}]</BreadcrumbLink>
+                            <BreadcrumbLink href="/user/repair">Devices Repair Request</BreadcrumbLink>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>

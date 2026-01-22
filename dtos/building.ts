@@ -45,7 +45,7 @@ export interface RoomResponse {
     floorId: string;
     floorName: string;
     roomTypeId: string;
-    roomTypeName: string;
+    typeName: string;
     capacity: number;
     status: RoomStatus;
 }

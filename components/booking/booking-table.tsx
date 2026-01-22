@@ -52,9 +52,10 @@ import {PageRequest} from "@/dtos/base";
 import {getBorrowList} from "@/services/borrowService";
 import {toast} from "sonner";
 import {getBookingList} from "@/services/bookingService";
+import {useCurrentUser} from "@/hooks/use-user";
 
 
-export const RoomBookingTable = () => {
+export const RoomBookingTable = ({isUser}: {isUser?: boolean}) => {
     const [data, setData] = useState<RoomBookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
@@ -203,11 +204,17 @@ export const RoomBookingTable = () => {
         {
             id: "action",
             header: "",
-            cell: ({ row }) => (
-                <Link href={`/booking/${row.original.bookingId}`}>
-                    <ExternalLink className="text-muted-foreground size-4" />
-                </Link>
-            ),
+            cell: ({row}) => {
+                // Check if isUser is true and bookingId exists
+                if (!isUser) {
+                    return (
+                        <Link href={`/booking/${row.original.bookingId}`}>
+                            <ExternalLink className="text-muted-foreground size-4"/>
+                        </Link>
+                    );
+                }
+                return null; // Explicitly return null if condition isn't met
+            },
         },
     ], [selectedStatuses]);
 
@@ -223,6 +230,12 @@ export const RoomBookingTable = () => {
                     filterQuery += `&`
                 }
                 filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            if (isUser) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `BorrowerId==${useCurrentUser().userId}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,

@@ -38,6 +38,8 @@ import {VoucherStatus} from "@/constaints/enum";
 import {getImportRequestsList, postImportVoucher} from "@/services/importService";
 import {postTransferRequest, postTransferVoucher} from "@/services/transferService";
 import {CreateTransferVoucherRequest} from "@/dtos/transfer";
+import {getDevicesList} from "@/services/deviceService";
+import {DeviceResponse} from "@/dtos/device";
 
 const transferVoucherSchema = z.object({
     requestId: z.string().min(1, "Reference Request ID is required"),
@@ -51,7 +53,26 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [requests, setRequests] = useState<ImportRequestResponse[]>([])
+    const [devices, setDevices] = useState<DeviceResponse[]>([])
 
+    const fetchDevices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getDevicesList(req)
+            setDevices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices data");
+            setDevices([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    }, []);
     const fetchRequests = async () => {
         try {
             const req: PageRequest = {
@@ -162,7 +183,7 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {MOCK_DEVICES.map((d) => (
+                                                                {devices.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>

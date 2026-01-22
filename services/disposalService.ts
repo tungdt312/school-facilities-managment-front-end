@@ -24,7 +24,7 @@ export async function getLiquidateRequestById(id: string): Promise<LiquidateRequ
 }
 
 export async function getLiquidateRequestsList(page?: PageRequest): Promise<PageV0<LiquidateRequestResponse>> {
-    const res = await apiFetch(`/liquidate-requests/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/liquidate-requests?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -72,7 +72,7 @@ export async function getLiquidateRequestDetailById(id: string): Promise<Liquida
 }
 
 export async function getLiquidateRequestDetailsList(page?: PageRequest): Promise<PageV0<LiquidateRequestDetailResponse>> {
-    const res = await apiFetch(`/liquidate-request-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/liquidate-request-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -120,7 +120,7 @@ export async function getLiquidateVoucherById(id: string): Promise<LiquidateVouc
 }
 
 export async function getLiquidateVouchersList(page?: PageRequest): Promise<PageV0<LiquidateVoucherResponse>> {
-    const res = await apiFetch(`/liquidate-vouchers/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/liquidate-vouchers?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -168,7 +168,7 @@ export async function getLiquidateVoucherDetailById(id: string): Promise<Liquida
 }
 
 export async function getLiquidateVoucherDetailsList(page?: PageRequest): Promise<PageV0<LiquidateVoucherDetailResponse>> {
-    const res = await apiFetch(`/liquidate-voucher-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/liquidate-voucher-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

@@ -43,11 +43,11 @@ function SiteHeader( {id}: { id: string }) {
                 <Breadcrumb>
                     <BreadcrumbList>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href="/users">Users</BreadcrumbLink>
+                            <BreadcrumbLink href="/user">User</BreadcrumbLink>
                         </BreadcrumbItem>
                         <BreadcrumbSeparator/>
                         <BreadcrumbItem>
-                            <BreadcrumbLink href={`/users/${id}`}>Detail [{id}]</BreadcrumbLink>
+                            <BreadcrumbLink href={`/user/${id}`}>Detail [{id}]</BreadcrumbLink>
                         </BreadcrumbItem>
                     </BreadcrumbList>
                 </Breadcrumb>

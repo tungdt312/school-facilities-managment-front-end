@@ -1,14 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, {useEffect, useState} from 'react'
+import {useForm} from 'react-hook-form'
+import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {
-    Plus, Calendar, Clock, DoorOpen, FileText,
-    Loader2, CheckCircle2
-} from 'lucide-react'
-import { toast } from 'sonner'
+import {Calendar, CheckCircle2, Clock, DoorOpen, FileText, Loader2} from 'lucide-react'
+import {toast} from 'sonner'
 
 import {
     Dialog,
@@ -19,26 +16,15 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { CreateBookingRequest } from '@/dtos/booking'
-import { MOCK_ROOMS_FLAT } from "@/components/mock-data/areas-data"
+import {Button} from "@/components/ui/button"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form"
+import {Textarea} from "@/components/ui/textarea"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
+import {Input} from "@/components/ui/input"
+import {CreateBookingRequest} from '@/dtos/booking'
+import {PageRequest} from "@/dtos/base";
+import {RoomResponse} from "@/dtos/building";
+import {getRoomsList} from "@/services/areaService";
 
 // Validation Schema
 const bookingSchema = z.object({
@@ -60,7 +46,25 @@ type FormValues = z.infer<typeof bookingSchema>
 export const CreateBookingVoucherDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [rooms, setRooms] = useState<RoomResponse[]>([])
 
+    const fetchRooms = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getRoomsList(req)
+            setRooms(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load rooms data");
+            setRooms([]);
+        }
+    }
+    useEffect(() => {
+        fetchRooms()
+    }, []);
     const form = useForm<FormValues>({
         resolver: zodResolver(bookingSchema),
         defaultValues: {
@@ -98,7 +102,7 @@ export const CreateBookingVoucherDialog = () => {
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <DoorOpen className="h-6 w-6 text-primary" />
+                        <DoorOpen className="h-6 w-6 text-primary"/>
                         Create Booking
                     </DialogTitle>
                     <DialogDescription>
@@ -112,26 +116,26 @@ export const CreateBookingVoucherDialog = () => {
                         <FormField
                             control={form.control}
                             name="roomId"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2">
-                                        <DoorOpen className="h-3.5 w-3.5" /> Select Room
+                                        <DoorOpen className="h-3.5 w-3.5"/> Select Room
                                     </FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Choose an available room..." />
+                                                <SelectValue placeholder="Choose an available room..."/>
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {MOCK_ROOMS_FLAT.map((room) => (
+                                            {rooms.map((room) => (
                                                 <SelectItem key={room.roomId} value={room.roomId}>
                                                     {room.roomName} (Floor {room.floorName})
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -140,15 +144,15 @@ export const CreateBookingVoucherDialog = () => {
                         <FormField
                             control={form.control}
                             name="startTime"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2">
-                                        <Clock className="h-3.5 w-3.5" /> Start Date & Time
+                                        <Clock className="h-3.5 w-3.5"/> Start Date & Time
                                     </FormLabel>
                                     <FormControl>
                                         <Input type="datetime-local" {...field} />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -157,15 +161,15 @@ export const CreateBookingVoucherDialog = () => {
                         <FormField
                             control={form.control}
                             name="endTime"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2">
-                                        <Calendar className="h-3.5 w-3.5" /> End Date & Time
+                                        <Calendar className="h-3.5 w-3.5"/> End Date & Time
                                     </FormLabel>
                                     <FormControl>
                                         <Input type="datetime-local" {...field} />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -174,10 +178,10 @@ export const CreateBookingVoucherDialog = () => {
                         <FormField
                             control={form.control}
                             name="purpose"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2">
-                                        <FileText className="h-3.5 w-3.5" /> Booking Purpose
+                                        <FileText className="h-3.5 w-3.5"/> Booking Purpose
                                     </FormLabel>
                                     <FormControl>
                                         <Textarea
@@ -186,7 +190,7 @@ export const CreateBookingVoucherDialog = () => {
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -202,9 +206,9 @@ export const CreateBookingVoucherDialog = () => {
                             </Button>
                             <Button type="submit" disabled={loading} className="gap-2 px-8">
                                 {loading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Loader2 className="h-4 w-4 animate-spin"/>
                                 ) : (
-                                    <CheckCircle2 className="h-4 w-4" />
+                                    <CheckCircle2 className="h-4 w-4"/>
                                 )}
                                 Confirm Booking
                             </Button>

@@ -40,7 +40,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import {BorrowStatus, UserRoleLabel, VoucherStatus} from '@/constaints/enum';
+import {BorrowStatus, UserRoleLabel, VoucherStatus, VoucherStatusLabel} from '@/constaints/enum';
 import { ImportRequestResponse } from '@/dtos/import';
 import { MOCK_IMPORT_REQUESTS } from "@/components/mock-data/import-data";
 import {formatISODate, getSortString} from "@/lib/utils";
@@ -170,7 +170,7 @@ export const ImportRequestTable = () => {
                             status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 status === VoucherStatus.Rejected ? "bg-destructive hover:bg-destructive/90" : "bg-slate-500"
                     }>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 )
             },

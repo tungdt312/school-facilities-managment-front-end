@@ -41,7 +41,7 @@ export const MOCK_BUILDINGS: BuildingResponse[] = [
                         floorId: floorId,
                         floorName: `Floor ${fNum}`,
                         roomTypeId: rNum === 5 ? "rt-002" : "rt-001", // 5th room is a Lab
-                        roomTypeName: rNum === 5 ? "Laboratory" : "Classroom",
+                        typeName: rNum === 5 ? "Laboratory" : "Classroom",
                         capacity: rNum === 5 ? 20 : 40,
                         status: RoomStatus.Available
                     }))

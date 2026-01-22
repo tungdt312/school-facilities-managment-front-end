@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LiquidateRequestResponse } from '@/dtos/liquidate'
-import { VoucherStatus } from '@/constaints/enum'
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum'
 import { formatISODate } from '@/lib/utils'
 import { MOCK_LIQUIDATE_REQUESTS } from '@/components/mock-data/liquidates-data'
 import {getImportRequestById, putImportRequestStatus} from "@/services/importService";
@@ -48,7 +48,7 @@ export const LiquidateRequestInfoCard = ({ id }: LiquidateRequestInfoCardProps) 
         setUpdating(true)
         try {
             const res = await putLiquidateRequestStatus(id, {status: newStatus})
-            toast.success(`Request marked as ${newStatus}`)
+            toast.success(`Request marked as ${VoucherStatusLabel[newStatus]}`)
         } catch (error) {
             toast.error("Update failed")
         } finally {
@@ -97,7 +97,7 @@ export const LiquidateRequestInfoCard = ({ id }: LiquidateRequestInfoCardProps) 
                             request.status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 "bg-red-500 hover:bg-red-600"
                     }>
-                        {request.status}
+                        {VoucherStatusLabel[request.status]}
                     </Badge>
                 </div>
             </CardHeader>
