@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, {useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -30,23 +30,36 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select"
 import { CreateTransferRequestRequest } from '@/dtos/transfer'
 import { LocationType } from '@/constaints/enum'
 import { MOCK_ROOMS_FLAT } from "@/components/mock-data/areas-data"
 import { MOCK_DEVICES } from "@/components/mock-data/devices-data"
+import {postTransferRequest} from "@/services/transferService";
+import {BuildingResponse} from "@/dtos/building";
+import {getBuildingsList} from "@/services/areaService";
+import {PageRequest} from "@/dtos/base";
+import {getSortString} from "@/lib/utils";
 
 const transferRequestSchema = z.object({
     sourceLocationId: z.string().min(1, "Source is required"),
-    sourceLocationType: z.nativeEnum(LocationType),
-    destinationRoomId: z.string().min(1, "Destination is required"),
-    destinationLocationType: z.nativeEnum(LocationType),
+    sourceLocationType: z.number().min(1, "Source Type is required"),
+    destinationLocationId: z.string().min(1, "Destination is required"),
+    destinationLocationType: z.number().min(1, "Destination Type is required"),
     note: z.string().optional(),
     details: z.array(z.object({
         equipmentId: z.string().min(1, "Please select equipment"),
         note: z.string().optional()
     })).min(1, "At least one item must be selected")
-}).refine(data => data.sourceLocationId !== data.destinationRoomId, {
+}).refine(data => data.sourceLocationId !== data.destinationLocationId, {
     message: "Source and Destination cannot be the same",
     path: ["destinationRoomId"]
 })
@@ -54,7 +67,7 @@ const transferRequestSchema = z.object({
 export const CreateTransferRequestDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-
+    const [buildings, setBuildings] = useState<BuildingResponse[]>([])
     const form = useForm<z.infer<typeof transferRequestSchema>>({
         resolver: zodResolver(transferRequestSchema),
         defaultValues: {
@@ -68,11 +81,23 @@ export const CreateTransferRequestDialog = () => {
         control: form.control,
         name: "details"
     })
+    const fetchLocation = async () => {
+        try {
+            const res = await getBuildingsList({page: 1, size: 100})
+            setBuildings(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load buildings");
+        }
 
-    const onSubmit = async (data: any) => {
+    }
+    useEffect(() => {
+        fetchLocation()
+    }, [])
+    const onSubmit = async (data: CreateTransferRequestRequest) => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            const res = await postTransferRequest(data)
             toast.success("Transfer request created successfully")
             setOpen(false)
             form.reset()
@@ -107,11 +132,41 @@ export const CreateTransferRequestDialog = () => {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="font-bold text-slate-600">Source Location</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select
+                                            onValueChange={(combinedValue) => {
+                                                const [type, id] = combinedValue.split("|");
+
+                                                form.setValue("sourceLocationId", id);
+                                                form.setValue("sourceLocationType", Number(type));
+
+                                                form.trigger(["sourceLocationId", "sourceLocationType"]);
+                                            }}
+                                            defaultValue={field.value}>
                                             <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="From..." /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                {MOCK_ROOMS_FLAT.map(room => (
-                                                    <SelectItem key={room.roomId} value={room.roomId}>{room.roomName}</SelectItem>
+                                                {buildings.map(building => (
+                                                    <SelectGroup key={building.buildingId}>
+                                                        {/* Mục chọn cho chính tòa nhà */}
+                                                        <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                            {building.buildingName}
+                                                        </SelectItem>
+
+                                                        {building.floors?.map(floor => (
+                                                            <React.Fragment key={floor.floorId}>
+                                                                {/* Mục chọn cho tầng */}
+                                                                <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                    {floor.floorName}
+                                                                </SelectItem>
+
+                                                                {/* Mục chọn cho phòng */}
+                                                                {floor.rooms?.map(room => (
+                                                                    <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                        {room.roomName}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </React.Fragment>
+                                                        ))}
+                                                    </SelectGroup>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -121,15 +176,44 @@ export const CreateTransferRequestDialog = () => {
                             />
                             <FormField
                                 control={form.control}
-                                name="destinationRoomId"
+                                name="destinationLocationId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel className="font-bold text-slate-600">Destination Location</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select onValueChange={(combinedValue) => {
+                                            const [type, id] = combinedValue.split("|");
+
+                                            form.setValue("destinationLocationId", id);
+                                            form.setValue("destinationLocationType", Number(type));
+
+                                            form.trigger(["destinationLocationId", "destinationLocationType"]);
+                                        }}
+                                                defaultValue={field.value}>
                                             <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="To..." /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                {MOCK_ROOMS_FLAT.map(room => (
-                                                    <SelectItem key={room.roomId} value={room.roomId}>{room.roomName}</SelectItem>
+                                                {buildings.map(building => (
+                                                    <SelectGroup key={building.buildingId}>
+                                                        {/* Mục chọn cho chính tòa nhà */}
+                                                        <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                            {building.buildingName}
+                                                        </SelectItem>
+
+                                                        {building.floors?.map(floor => (
+                                                            <React.Fragment key={floor.floorId}>
+                                                                {/* Mục chọn cho tầng */}
+                                                                <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                    {floor.floorName}
+                                                                </SelectItem>
+
+                                                                {/* Mục chọn cho phòng */}
+                                                                {floor.rooms?.map(room => (
+                                                                    <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                        {room.roomName}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </React.Fragment>
+                                                        ))}
+                                                    </SelectGroup>
                                                 ))}
                                             </SelectContent>
                                         </Select>

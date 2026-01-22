@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateImportRequestRequest } from '@/dtos/import'
+import {postImportRequest} from "@/services/importService";
 
 // Validation Schema
 const importRequestSchema = z.object({
@@ -68,9 +69,7 @@ export const CreateImportRequestDialog = () => {
         setLoading(true)
         try {
             console.log("Submitting Import Request:", data)
-            // Simulated API Call
-            await new Promise(resolve => setTimeout(resolve, 1000))
-
+            const res = await postImportRequest(data)
             toast.success("Procurement request submitted successfully")
             setOpen(false)
             form.reset()

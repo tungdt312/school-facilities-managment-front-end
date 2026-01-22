@@ -7,12 +7,11 @@ export interface ApproveTransferRequest {
 }
 
 export interface CreateTransferRequestRequest {
-    createdBy: string;
 
     sourceLocationId: string;
     sourceLocationType: LocationType;
 
-    destinationRoomId: string;
+    destinationLocationId: string;
     destinationLocationType: LocationType;
 
     note?: string;
@@ -21,7 +20,6 @@ export interface CreateTransferRequestRequest {
 
 export interface CreateTransferVoucherRequest {
     requestId: string;
-    createdBy: string;
     details: TransferRequestDetailRequest[];
 }
 

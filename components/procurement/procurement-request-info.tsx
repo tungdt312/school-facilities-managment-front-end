@@ -23,6 +23,7 @@ import {ImportRequestResponse} from '@/dtos/import'
 import {VoucherStatus} from '@/constaints/enum'
 import {formatISODate} from '@/lib/utils'
 import {MOCK_IMPORT_REQUESTS} from '@/components/mock-data/import-data'
+import {getImportRequestById, putImportRequestStatus} from "@/services/importService";
 
 interface ImportRequestInfoCardProps {
     id: string
@@ -37,12 +38,8 @@ export const ImportRequestInfoCard = ({ id }: ImportRequestInfoCardProps) => {
     const fetchDetail = async () => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 600))
-            const data = MOCK_IMPORT_REQUESTS.find(r => r.requestId === id)
-            if (data) {
-                setRequest(data)
-
-            }
+            const res = await getImportRequestById(id)
+            setRequest(res)
         } catch (error) {
             toast.error("Failed to fetch import request details")
         } finally {
@@ -57,8 +54,7 @@ export const ImportRequestInfoCard = ({ id }: ImportRequestInfoCardProps) => {
     const handleUpdateStatus = async (newStatus: VoucherStatus) => {
         setUpdating(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 800))
-            setRequest(prev => prev ? { ...prev, status: newStatus } : null)
+            const res = await putImportRequestStatus(id, {status: newStatus})
             setIsEditing(false)
             toast.success(`Request marked as ${newStatus}`)
         } catch (error) {

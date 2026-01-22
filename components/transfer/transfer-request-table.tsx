@@ -32,7 +32,7 @@ import { Input } from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -43,9 +43,13 @@ import Link from "next/link";
 import { VoucherStatus } from '@/constaints/enum';
 import { TransferRequestResponse } from '@/dtos/transfer';
 import { MOCK_TRANSFER_REQUESTS } from "@/components/mock-data/transfer-data";
-import { formatISODate } from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {CreateTransferRequestDialog} from "@/components/transfer/create-transfer-request-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportRequestsList} from "@/services/importService";
+import {toast} from "sonner";
+import { getTransferRequestsList } from '@/services/transferService';
 
 export const TransferRequestTable = () => {
     const [data, setData] = useState<TransferRequestResponse[]>([]);
@@ -133,19 +137,39 @@ export const TransferRequestTable = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(VoucherStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(VoucherStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatuses.includes(statusValue as VoucherStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatuses(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as VoucherStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({ ...p, pageIndex: 1 }));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {VoucherStatus[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatuses.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatuses(prev =>[])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -193,23 +217,43 @@ export const TransferRequestTable = () => {
         },
     ], [selectedStatuses]);
 
+    const fetchData = async () => {
+        try {
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedStatuses.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getTransferRequestsList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load transfer request data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     useEffect(() => {
-        setIsLoading(true);
-        let filtered = [...MOCK_TRANSFER_REQUESTS];
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.sourceLocationName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.destinationLocationName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
-        }
-        if (selectedStatuses.length > 0) {
-            filtered = filtered.filter(d => selectedStatuses.includes(d.status));
-        }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch, selectedStatuses]);
-
+        fetchData()
+    }, [debouncedSearch, selectedStatuses, sorting]);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     const table = useReactTable({
         data,
         columns,
@@ -300,14 +344,14 @@ export const TransferRequestTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -316,7 +360,7 @@ export const TransferRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -325,7 +369,7 @@ export const TransferRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -333,8 +377,8 @@ export const TransferRequestTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
@@ -342,6 +386,7 @@ export const TransferRequestTable = () => {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }

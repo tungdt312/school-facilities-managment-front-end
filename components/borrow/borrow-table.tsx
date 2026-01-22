@@ -54,7 +54,7 @@ export const BorrowVoucherTable = () => {
     const [selectedStatuses, setSelectedStatuses] = useState<BorrowStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -247,14 +247,17 @@ export const BorrowVoucherTable = () => {
         getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.borrowId,
     });
-
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     return (
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
-                    placeholder="Search Borrow ID or Borrower..."
+                    placeholder="Search Borrower..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">

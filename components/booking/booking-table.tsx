@@ -60,7 +60,7 @@ export const RoomBookingTable = () => {
     const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -245,7 +245,10 @@ export const RoomBookingTable = () => {
     useEffect(() => {
         fetchData()
     }, [debouncedSearch, selectedStatuses, sorting]);
-
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     const table = useReactTable({
         data,
         columns,
@@ -265,7 +268,7 @@ export const RoomBookingTable = () => {
                 <Input
                     placeholder="Search Borrower..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">

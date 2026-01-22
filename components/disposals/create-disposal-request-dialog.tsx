@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreateLiquidateRequestRequest } from '@/dtos/liquidate'
 import { MOCK_DEVICES } from "@/components/mock-data/devices-data"
+import {postImportRequest} from "@/services/importService";
 
 const liquidateRequestSchema = z.object({
     note: z.string().optional(),
@@ -62,7 +63,7 @@ export const CreateLiquidateRequestDialog = () => {
     const onSubmit = async (data: any) => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            const res = await postImportRequest(data)
             toast.success("Liquidation request submitted")
             setOpen(false)
             form.reset()
