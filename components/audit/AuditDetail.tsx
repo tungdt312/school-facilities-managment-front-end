@@ -4,12 +4,30 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {ArrowLeft, Loader} from "lucide-react";
+import {ArrowLeft, Loader, Trash2, Plus, Edit2} from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
-import { getInventoryAuditById } from "@/services/auditService";
-import { InventoryAuditResponse } from "@/dtos/audit";
+import { getInventoryAuditById, deleteAuditDetail, getAuditDetailsByAuditId, createAuditDetail, updateAuditDetail } from "@/services/auditService";
+import { InventoryAuditResponse, AuditDetailResponse, CreateAuditDetailRequest } from "@/dtos/audit";
 import { AuditStatus, AuditStatusLabel, DeviceStatus, DeviceStatusLabel } from "@/constaints/enum";
+import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export interface AuditDetail extends InventoryAuditResponse {
     locationName: string;
@@ -63,18 +81,52 @@ const getConditionLabel = (condition: DeviceStatus | number): string => {
     return conditionMap[condition as number] || "Unknown";
 };
 
+// Convert condition string from API to DeviceStatus enum
+const convertConditionToEnum = (condition: any): DeviceStatus => {
+    if (typeof condition === 'number') return condition as DeviceStatus;
+    
+    const conditionStringMap: Record<string, DeviceStatus> = {
+        'Unassigned': DeviceStatus.Unassigned,
+        'Available': DeviceStatus.Available,
+        'Borrowed': DeviceStatus.Borrowed,
+        'UnderMaintenance': DeviceStatus.UnderMaintenance,
+        'Broken': DeviceStatus.Broken,
+        'Lost': DeviceStatus.Lost,
+        'Disposed': DeviceStatus.Disposed,
+    };
+    
+    return conditionStringMap[condition as string] || DeviceStatus.Available;
+};
+
 export const AuditDetail = ({ id }: { id: string }) => {
     const [data, setData] = useState<AuditDetail | null>(null);
+    const [details, setDetails] = useState<AuditDetailResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [isDeletingDetail, setIsDeletingDetail] = useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingDetail, setEditingDetail] = useState<AuditDetailResponse | null>(null);
+    const [formData, setFormData] = useState<CreateAuditDetailRequest>({
+        equipmentId: "",
+        condition: DeviceStatus.Available,
+        note: "",
+    });
 
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
                 const auditData = await getInventoryAuditById(id);
+                console.log("📊 Audit Data:", auditData);
                 setData(auditData as AuditDetail);
+                
+                // Fetch details separately
+                await fetchDetails(id);
             } catch (error) {
                 console.error("Failed to fetch audit detail:", error);
+                toast.error("Failed to load audit details");
                 setData(null);
             } finally {
                 setIsLoading(false);
@@ -83,6 +135,154 @@ export const AuditDetail = ({ id }: { id: string }) => {
 
         fetchData();
     }, [id]);
+
+    const fetchDetails = async (auditId: string) => {
+        try {
+            setIsLoadingDetails(true);
+            const detailsData = await getAuditDetailsByAuditId(auditId);
+            console.log("📋 Details:", detailsData);
+            // Convert condition strings back to enum numbers
+            const convertedDetails = detailsData.map(detail => ({
+                ...detail,
+                condition: convertConditionToEnum(detail.condition),
+            }));
+            setDetails(convertedDetails);
+        } catch (error) {
+            console.error("Failed to fetch audit details:", error);
+            toast.error("Failed to load equipment details");
+            setDetails([]);
+        } finally {
+            setIsLoadingDetails(false);
+        }
+    };
+
+    const handleAddDetail = async () => {
+        if (!formData.equipmentId) {
+            toast.error("Please select equipment");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            const newDetail = await createAuditDetail(id, formData.equipmentId, {
+                condition: formData.condition,
+                note: formData.note,
+            });
+            toast.success("Equipment added successfully");
+            
+            // Convert condition string back to enum
+            const convertedDetail = {
+                ...newDetail,
+                condition: convertConditionToEnum(newDetail.condition),
+            };
+            
+            // Add to local state
+            setDetails([...details, convertedDetail]);
+            
+            // Reset form and close dialog
+            setFormData({
+                equipmentId: "",
+                condition: DeviceStatus.Available,
+                note: "",
+            });
+            setIsCreateDialogOpen(false);
+        } catch (error) {
+            toast.error("Failed to add equipment");
+            console.error("Error adding audit detail:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteDetail = async (equipmentId: string) => {
+        try {
+            setIsDeletingDetail(equipmentId);
+            console.log("🗑️ Deleting detail - equipmentId:", equipmentId);
+            
+            // Find the detail to get equipmentId
+            const detail = details.find(d => d.equipmentId === equipmentId);
+            if (!detail) {
+                toast.error("Equipment detail not found");
+                console.error("❌ Detail not found for equipmentId:", equipmentId);
+                console.log("Available details:", details.map(d => ({ detailId: d.detailId, equipmentId: d.equipmentId, name: d.equipmentName })));
+                return;
+            }
+            
+            console.log("🗑️ Found detail:", {
+                detailId: detail.detailId,
+                equipmentId: detail.equipmentId,
+                equipmentName: detail.equipmentName,
+            });
+            console.log("🗑️ Calling deleteAuditDetail with auditId:", id, "equipmentId:", detail.equipmentId);
+            
+            await deleteAuditDetail(id, detail.equipmentId);
+            toast.success("Equipment detail deleted successfully");
+            
+            // Refetch details to ensure consistency with backend
+            await fetchDetails(id);
+        } catch (error) {
+            console.error("Error deleting audit detail:", error);
+            const errorMsg = error instanceof Error ? error.message : "Failed to delete equipment detail";
+            toast.error(errorMsg);
+        } finally {
+            setIsDeletingDetail(null);
+        }
+    };
+
+    const handleEditDetail = (detail: AuditDetailResponse) => {
+        setEditingDetail(detail);
+        setFormData({
+            equipmentId: detail.equipmentId,
+            condition: detail.condition,
+            note: detail.note || "",
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateDetail = async () => {
+        if (!editingDetail) {
+            toast.error("No detail selected for update");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            console.log("✏️ Updating detail:", editingDetail.detailId);
+            
+            const updatedDetail = await updateAuditDetail(id, editingDetail.equipmentId, {
+                condition: formData.condition,
+                note: formData.note,
+            });
+            toast.success("Equipment detail updated successfully");
+            
+            // Convert condition string back to enum
+            const convertedDetail = {
+                ...updatedDetail,
+                condition: convertConditionToEnum(updatedDetail.condition),
+            };
+            
+            // Update local state
+            setDetails(
+                details.map(d =>
+                    d.detailId === editingDetail.detailId ? convertedDetail : d
+                )
+            );
+            
+            // Reset form and close dialog
+            setFormData({
+                equipmentId: "",
+                condition: DeviceStatus.Available,
+                note: "",
+            });
+            setEditingDetail(null);
+            setIsEditDialogOpen(false);
+        } catch (error) {
+            toast.error("Failed to update equipment detail");
+            console.error("Error updating audit detail:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -159,49 +359,229 @@ export const AuditDetail = ({ id }: { id: string }) => {
                 {/* Audit Details Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Equipment Details</CardTitle>
-                        <CardDescription>
-                            {data.details?.length || 0} item(s) audited
-                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>Equipment Details</CardTitle>
+                                <CardDescription>
+                                    {details.length} item(s) audited
+                                </CardDescription>
+                            </div>
+                            <Button size="sm" className="gap-2" onClick={() => setIsCreateDialogOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                                Add Equipment
+                            </Button>
+                        </div>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Equipment Name</TableHead>
-                                    <TableHead>Condition</TableHead>
-                                    <TableHead>Note</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {data.details && data.details.length > 0 ? (
-                                    data.details.map((detail) => (
-                                        <TableRow key={detail.detailId}>
-                                            <TableCell className="font-medium">
-                                                {detail.equipmentName}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className={`${getConditionBadge(detail.condition)} border-0`}>
-                                                    {getConditionLabel(detail.condition)}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {detail.note || "-"}
+                        {isLoadingDetails ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader className="h-5 w-5 animate-spin mr-2" />
+                                <span className="text-muted-foreground">Loading equipment details...</span>
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Equipment Name</TableHead>
+                                        <TableHead>Condition</TableHead>
+                                        <TableHead>Note</TableHead>
+                                        <TableHead className="w-12">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {details && details.length > 0 ? (
+                                        details.map((detail, index) => (
+                                            <TableRow key={detail.detailId || detail.equipmentId || `detail-${index}`}>
+                                                <TableCell className="font-medium">
+                                                    {detail.equipmentName}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={`${getConditionBadge(detail.condition)} border-0`}>
+                                                        {getConditionLabel(detail.condition)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {detail.note || "-"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                                                            onClick={() => handleEditDetail(detail)}
+                                                            disabled={isDeletingDetail === detail.detailId}
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                                            onClick={() => handleDeleteDetail(detail.equipmentId)}
+                                                            disabled={isDeletingDetail === detail.detailId}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                                                No equipment details found.
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-muted-foreground">
-                                            No equipment details found.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Create Audit Detail Dialog */}
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Add Equipment Detail</DialogTitle>
+                        <DialogDescription>
+                            Add a new equipment to this audit
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="equipmentId">Equipment ID *</Label>
+                            <Input
+                                id="equipmentId"
+                                placeholder="Enter equipment ID"
+                                value={formData.equipmentId}
+                                onChange={(e) => setFormData({ ...formData, equipmentId: e.target.value })}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="condition">Condition *</Label>
+                            <Select
+                                value={(formData.condition ?? DeviceStatus.Available).toString()}
+                                onValueChange={(value) => setFormData({ ...formData, condition: parseInt(value) as DeviceStatus })}
+                                disabled={isSubmitting}
+                            >
+                                <SelectTrigger id="condition">
+                                    <SelectValue placeholder="Select condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={DeviceStatus.Available.toString()}>Available</SelectItem>
+                                    <SelectItem value={DeviceStatus.Borrowed.toString()}>Borrowed</SelectItem>
+                                    <SelectItem value={DeviceStatus.UnderMaintenance.toString()}>Under Maintenance</SelectItem>
+                                    <SelectItem value={DeviceStatus.Broken.toString()}>Broken</SelectItem>
+                                    <SelectItem value={DeviceStatus.Lost.toString()}>Lost</SelectItem>
+                                    <SelectItem value={DeviceStatus.Disposed.toString()}>Disposed</SelectItem>
+                                    <SelectItem value={DeviceStatus.Unassigned.toString()}>Unassigned</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="note">Note</Label>
+                            <Input
+                                id="note"
+                                placeholder="Add a note (optional)"
+                                value={formData.note || ""}
+                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsCreateDialogOpen(false)}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleAddDetail}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Adding..." : "Add Equipment"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Audit Detail Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Edit Equipment Detail</DialogTitle>
+                        <DialogDescription>
+                            Update the equipment details
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-equipmentId">Equipment ID</Label>
+                            <Input
+                                id="edit-equipmentId"
+                                value={formData.equipmentId}
+                                disabled
+                                className="bg-muted"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-condition">Condition *</Label>
+                            <Select
+                                value={(formData.condition ?? DeviceStatus.Available).toString()}
+                                onValueChange={(value) => setFormData({ ...formData, condition: parseInt(value) as DeviceStatus })}
+                                disabled={isSubmitting}
+                            >
+                                <SelectTrigger id="edit-condition">
+                                    <SelectValue placeholder="Select condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={DeviceStatus.Available.toString()}>Available</SelectItem>
+                                    <SelectItem value={DeviceStatus.Borrowed.toString()}>Borrowed</SelectItem>
+                                    <SelectItem value={DeviceStatus.UnderMaintenance.toString()}>Under Maintenance</SelectItem>
+                                    <SelectItem value={DeviceStatus.Broken.toString()}>Broken</SelectItem>
+                                    <SelectItem value={DeviceStatus.Lost.toString()}>Lost</SelectItem>
+                                    <SelectItem value={DeviceStatus.Disposed.toString()}>Disposed</SelectItem>
+                                    <SelectItem value={DeviceStatus.Unassigned.toString()}>Unassigned</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-note">Note</Label>
+                            <Input
+                                id="edit-note"
+                                placeholder="Add a note (optional)"
+                                value={formData.note || ""}
+                                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsEditDialogOpen(false);
+                                setEditingDetail(null);
+                            }}
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleUpdateDetail}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Updating..." : "Update Equipment"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

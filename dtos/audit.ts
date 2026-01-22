@@ -28,9 +28,8 @@ export interface CreateAuditDetailRequest {
 }
 
 export interface UpdateAuditDetailRequest {
-    detailId: string;
-    condition: string;
-    note: string;
+    condition: DeviceStatus;
+    note?: string;
 }
 
 // --- Responses ---

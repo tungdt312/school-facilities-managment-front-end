@@ -225,6 +225,24 @@ export async function deleteInventoryAudit(id: string): Promise<void> {
 // ===== AUDIT DETAIL =====
 
 /**
+ * Lấy danh sách audit details của một phiếu kiểm kê
+ */
+export async function getAuditDetailsByAuditId(
+    auditId: string
+): Promise<AuditDetailResponse[]> {
+    const res = await apiFetch(`${AUDIT_DETAIL_API}?auditId=${auditId}`, true, {
+        method: 'GET',
+        headers: {
+            'accept': 'application/json',
+        },
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    const response = await processResponse<any>(res);
+    // API có thể trả về array hoặc object với content property
+    return Array.isArray(response) ? response : response.content || [];
+}
+
+/**
  * Lấy chi tiết một audit detail
  */
 export async function getAuditDetailById(
@@ -241,17 +259,38 @@ export async function getAuditDetailById(
 }
 
 export async function createAuditDetail(
-    request: CreateAuditDetailRequest
+    auditId: string,
+    equipmentId: string,
+    request: Omit<CreateAuditDetailRequest, 'equipmentId'>
 ): Promise<AuditDetailResponse> {
-    const res = await apiFetch(AUDIT_DETAIL_API, true, {
+    const url = `${AUDIT_DETAIL_API}/${auditId}/${equipmentId}`;
+    console.log('➕ Calling createAuditDetail:', url);
+    
+    const requestBody = {
+        condition: request.condition,
+        note: request.note ? request.note : null,
+    };
+    
+    console.log('➕ Request body:', JSON.stringify(requestBody));
+    
+    const res = await apiFetch(url, true, {
         method: 'POST',
         headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(requestBody),
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ createAuditDetail Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<AuditDetailResponse>(res);
 }
 
@@ -259,32 +298,66 @@ export async function createAuditDetail(
  * Cập nhật chi tiết kiểm kê (condition & note của một thiết bị)
  */
 export async function updateAuditDetail(
-    id: string,
-    request: UpdateAuditDetailRequest
+    auditId: string,
+    equipmentId: string,
+    request: Omit<UpdateAuditDetailRequest, 'detailId'>
 ): Promise<AuditDetailResponse> {
-    const res = await apiFetch(`${AUDIT_DETAIL_API}/${id}`, true, {
+    const url = `${AUDIT_DETAIL_API}/${auditId}/${equipmentId}`;
+    console.log('✏️ Calling updateAuditDetail:', url);
+    
+    const requestBody = {
+        condition: request.condition,
+        note: request.note ? request.note : null,
+    };
+    
+    console.log('✏️ Request body:', JSON.stringify(requestBody));
+    
+    const res = await apiFetch(url, true, {
         method: 'PUT',
         headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(requestBody),
     });
-    if (!res.ok) throw new Error(res.statusText);
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ updateAuditDetail Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
     return processResponse<AuditDetailResponse>(res);
 }
 
 /**
  * Xóa chi tiết kiểm kê
  */
-export async function deleteAuditDetail(id: string): Promise<void> {
-    const res = await apiFetch(`${AUDIT_DETAIL_API}/${id}`, true, {
+export async function deleteAuditDetail(auditId: string, equipmentId: string): Promise<void> {
+    const url = `${AUDIT_DETAIL_API}/${auditId}/${equipmentId}`;
+    console.log('🗑️ Calling deleteAuditDetail:', url);
+    
+    const res = await apiFetch(url, true, {
         method: 'DELETE',
         headers: {
             'accept': 'application/json',
             'content-type': 'application/json',
         },
     });
-    if (!res.ok) throw new Error(res.statusText);
+    
+    if (!res.ok) {
+        const errorText = await res.text().catch(() => res.statusText);
+        console.error('❌ deleteAuditDetail Error:', {
+            status: res.status,
+            statusText: res.statusText,
+            url,
+            error: errorText
+        });
+        throw new Error(`API Error (${res.status}): ${errorText}`);
+    }
+    
     return processResponse<void>(res);
 }
