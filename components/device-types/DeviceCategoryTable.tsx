@@ -1,69 +1,35 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DeviceCategoryResponse } from "@/dtos/device";
 import { CreateDeviceCategoryDialog } from "./CreateDeviceCategoryDialog";
 import { EditDeviceCategoryDialog } from "./EditDeviceCategoryDialog";
+import { DeviceCategoryDetail } from "./DeviceCategoryDetail";
 import { Badge } from "@/components/ui/badge";
-
-const MOCK_DEVICE_CATEGORIES: DeviceCategoryResponse[] = [
-    {
-        categoryId: "CAT001",
-        categoryName: "Computers",
-        description: "Desktop computers, laptops, and workstations",
-        deviceCount: 45,
-    },
-    {
-        categoryId: "CAT002",
-        categoryName: "Projectors",
-        description: "Projection systems for classrooms and meetings",
-        deviceCount: 12,
-    },
-    {
-        categoryId: "CAT003",
-        categoryName: "Printers",
-        description: "Laser and inkjet printers",
-        deviceCount: 8,
-    },
-    {
-        categoryId: "CAT004",
-        categoryName: "Audio/Video Equipment",
-        description: "Speakers, microphones, cameras, and recording devices",
-        deviceCount: 25,
-    },
-    {
-        categoryId: "CAT005",
-        categoryName: "Network Equipment",
-        description: "Routers, switches, and network infrastructure",
-        deviceCount: 15,
-    },
-    {
-        categoryId: "CAT006",
-        categoryName: "Laboratory Equipment",
-        description: "Scientific instruments and lab tools",
-        deviceCount: 32,
-    },
-];
+import { getDeviceCategories, deleteDeviceCategory } from "@/services/device-typeService";
+import { toast } from "sonner";
 
 export const DeviceCategoryTable = () => {
     const [data, setData] = useState<DeviceCategoryResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
-    const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<DeviceCategoryResponse | null>(null);
 
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        equipmentCategoryId: false,
+    });
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
@@ -75,36 +41,35 @@ export const DeviceCategoryTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        let filteredData = MOCK_DEVICE_CATEGORIES;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.categoryName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.categoryId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            setIsLoading(true);
+            const response = await getDeviceCategories({
+                page: pagination.pageIndex + 1,
+                size: pagination.pageSize,
+                search: debouncedSearch || undefined,
+            });
+            
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
+        } catch (error) {
+            console.error("Error fetching device categories:", error);
+            toast.error("Failed to load device categories");
+            setData([]);
+            setRowCount(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
+    // Fetch data khi component mount hoặc dependencies thay đổi
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
+    }, [pagination.pageIndex, pagination.pageSize, debouncedSearch]);
 
     const columns: ColumnDef<DeviceCategoryResponse>[] = useMemo(() => [
         {
-            accessorKey: "categoryId",
+            accessorKey: "equipmentCategoryId",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
@@ -115,10 +80,10 @@ export const DeviceCategoryTable = () => {
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
-            cell: ({ row }) => row.getValue("categoryId"),
+            cell: ({ row }) => row.getValue("equipmentCategoryId"),
         },
         {
-            accessorKey: "categoryName",
+            accessorKey: "equipmentCategoryName",
             header: ({ column }) => (
                 <Button
                     variant="ghost"
@@ -130,35 +95,26 @@ export const DeviceCategoryTable = () => {
                 </Button>
             ),
             cell: ({ row }) => (
-                <div className="font-medium">{row.getValue("categoryName")}</div>
+                <div className="font-medium">{row.getValue("equipmentCategoryName")}</div>
             ),
         },
         {
-            accessorKey: "description",
-            header: "Description",
+            accessorKey: "note",
+            header: "Note",
             cell: ({ row }) => (
                 <div className="text-sm text-muted-foreground max-w-md truncate">
-                    {row.getValue("description") || "-"}
+                    {row.getValue("note") || "-"}
                 </div>
             ),
         },
         {
-            id: "deviceCount",
-            header: ({ column }) => (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    className="h-8 p-0 px-0 hover:bg-transparent"
-                >
-                    Device Count
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            ),
+            id: "equipmentCount",
+            header: "Equipment Count",
             cell: ({ row }) => {
-                const count = row.original.deviceCount || 0;
+                const count = row.original.equipments?.length || 0;
                 return (
                     <Badge variant="secondary">
-                        {count} device{count !== 1 ? "s" : ""}
+                        {count} equipment{count !== 1 ? "s" : ""}
                     </Badge>
                 );
             },
@@ -171,6 +127,19 @@ export const DeviceCategoryTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
+                        title="View Details"
+                        onClick={() => {
+                            setSelectedCategory(row.original);
+                            setIsDetailDialogOpen(true);
+                        }}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"                       
+                        title="Edit"
                         onClick={() => {
                             setSelectedCategory(row.original);
                             setIsEditDialogOpen(true);
@@ -182,7 +151,8 @@ export const DeviceCategoryTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(row.original.categoryId)}
+                        title="Delete"
+                        onClick={() => handleDelete(row.original.equipmentCategoryId)}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -194,6 +164,8 @@ export const DeviceCategoryTable = () => {
     const table = useReactTable({
         data,
         columns,
+        pageCount: Math.ceil(rowCount / pagination.pageSize),
+        manualPagination: true,
         state: {
             sorting,
             columnVisibility,
@@ -205,7 +177,6 @@ export const DeviceCategoryTable = () => {
         onRowSelectionChange: setRowSelection,
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
@@ -214,34 +185,36 @@ export const DeviceCategoryTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    const handleDelete = (categoryId: string) => {
-        // TODO: Implement delete API call
-        console.log("Deleting device category:", categoryId);
-        setData(data.filter(item => item.categoryId !== categoryId));
+    const handleDelete = async (categoryId: string) => {
+        if (!confirm("Are you sure you want to delete this device category?")) {
+            return;
+        }
+
+        try {
+            await deleteDeviceCategory(categoryId);
+            toast.success("Device category deleted successfully");
+            fetchData();
+        } catch (error) {
+            console.error("Error deleting device category:", error);
+            toast.error("Failed to delete device category");
+        }
     };
 
-    if (!isMounted) {
-        return (
-            <div className="w-full space-y-4 pt-6">
-                <div className="rounded-md border bg-card">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Loading...</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-24 text-center">
-                                    <Loader className="animate-spin inline-block mr-2" /> Loading data...
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
-        );
-    }
+    const handleCreateSuccess = () => {
+        setIsCreateDialogOpen(false);
+        fetchData();
+    };
+
+    const handleEditSuccess = () => {
+        setIsEditDialogOpen(false);
+        setSelectedCategory(null);
+        fetchData();
+    };
+
+    const handleDetailEdit = () => {
+        setIsDetailDialogOpen(false);
+        setIsEditDialogOpen(true);
+    };
 
     return (
         <div className="w-full space-y-4 pt-6">
@@ -325,7 +298,7 @@ export const DeviceCategoryTable = () => {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    Data not found
+                                    No data found
                                 </TableCell>
                             </TableRow>
                         )}
@@ -360,7 +333,7 @@ export const DeviceCategoryTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex + 1} / {Math.max(1, table.getPageCount())}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
@@ -403,12 +376,25 @@ export const DeviceCategoryTable = () => {
                 </div>
             </div>
 
-            <CreateDeviceCategoryDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateDeviceCategoryDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={handleCreateSuccess}
+            />
+            {selectedCategory && (
+                <DeviceCategoryDetail
+                    open={isDetailDialogOpen}
+                    onOpenChange={setIsDetailDialogOpen}
+                    category={selectedCategory}
+                    onEdit={handleDetailEdit}
+                />
+            )}
             {selectedCategory && (
                 <EditDeviceCategoryDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                     category={selectedCategory}
+                    onSuccess={handleEditSuccess}
                 />
             )}
         </div>
