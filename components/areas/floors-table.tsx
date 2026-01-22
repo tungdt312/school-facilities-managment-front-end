@@ -59,7 +59,6 @@ import {getBuildingsList, getFloorsList, postBuilding, postFloor} from "@/servic
 const createFloorSchema = z.object({
     buildingId: z.string().min(0, "Building is required"), // Usually passed from parent context
     floorName: z.string().min(1, "Floor name is required"),
-    roomCount: z.number().min(0, "Room count cannot be negative"),
     note: z.string().optional(),
 })
 
@@ -74,7 +73,6 @@ export function CreateFloorDialog({buildingId, onSuccess}: { buildingId?: string
         defaultValues: {
             buildingId: buildingId || "",
             floorName: "",
-            roomCount: 0,
             note: ""
         },
     })
@@ -120,20 +118,6 @@ export function CreateFloorDialog({buildingId, onSuccess}: { buildingId?: string
                                     <FormLabel>Floor Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="e.g., 1st Floor, Basement" {...field} />
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="roomCount"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>Room Count</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" {...field}
-                                               onChange={(e) => field.onChange(e.target.valueAsNumber)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>

@@ -2,7 +2,6 @@ import {BookingStatus, RoomStatus, RoomTypeName } from "@/constaints/enum";
 
 export interface CreateBuildingRequest {
     buildingName?: string;
-    floorCount?: number;
     note?: string;
 }
 export interface BuildingResponse {
@@ -16,7 +15,6 @@ export interface BuildingResponse {
 export interface CreateFloorRequest {
     buildingId?: string;
     floorName?: string;
-    roomCount?: number;
     note?: string;
 }
 
