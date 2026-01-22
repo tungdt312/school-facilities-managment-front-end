@@ -1,62 +1,21 @@
 "use client"
 
+// External units table with list view
 import { useState, useEffect, useMemo } from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExternalUnitResponse } from "@/dtos/other";
+import { getExternalUnits, deleteExternalUnit } from "@/services/external-unitService";
 import { CreateExternalUnitDialog } from "./CreateExternalUnitDialog";
 import { EditExternalUnitDialog } from "./EditExternalUnitDialog";
-
-const MOCK_EXTERNAL_UNITS: ExternalUnitResponse[] = [
-    {
-        unitId: "EU001",
-        unitName: "ABC Equipment Supplier",
-        address: "123 Main Street, District 1, Ho Chi Minh City",
-        phoneNumber: "0123456789",
-        taxCode: "0123456789",
-        bankAccountNumber: "1234567890123",
-        bankName: "Vietcombank",
-        fax: "0123456788",
-        fromContractPeriod: "2025-01-01",
-        toContractPeriod: "2026-12-31",
-        fieldOfActivity: "Equipment Supply",
-        supply: "Computers, printers, and IT equipment",
-    },
-    {
-        unitId: "EU002",
-        unitName: "XYZ Maintenance Services",
-        address: "456 Service Road, District 3, Ho Chi Minh City",
-        phoneNumber: "0987654321",
-        taxCode: "0987654321",
-        bankAccountNumber: "9876543210123",
-        bankName: "ACB",
-        fax: "0987654320",
-        fromContractPeriod: "2025-06-01",
-        toContractPeriod: "2027-05-31",
-        fieldOfActivity: "Maintenance Services",
-        supply: "Building maintenance, repair and cleaning services",
-    },
-    {
-        unitId: "EU003",
-        unitName: "Global Construction Ltd",
-        address: "789 Construction Ave, Binh Thanh, Ho Chi Minh City",
-        phoneNumber: "0246813579",
-        taxCode: "0246813579",
-        bankAccountNumber: "2468135790123",
-        bankName: "Techcombank",
-        fax: "0246813578",
-        fromContractPeriod: "2024-01-01",
-        toContractPeriod: "2026-12-31",
-        fieldOfActivity: "Construction & Renovation",
-        supply: "Building renovation, construction materials",
-    },
-];
+import { ExternalUnitDetailDialog } from "./ExternalUnitDetailDialog";
+import { toast } from "sonner";
 
 export const ExternalUnitTable = () => {
     const [data, setData] = useState<ExternalUnitResponse[]>([]);
@@ -65,14 +24,18 @@ export const ExternalUnitTable = () => {
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [selectedExternalUnit, setSelectedExternalUnit] = useState<ExternalUnitResponse | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        unitId: false,
+    });
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1,
         pageSize: 10,
     });
 
@@ -80,30 +43,26 @@ export const ExternalUnitTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        let filteredData = MOCK_EXTERNAL_UNITS;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.unitName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.unitId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.address?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.phoneNumber?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.taxCode?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            setIsLoading(true);
+            const response = await getExternalUnits({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
+        } catch (error) {
+            toast.error("Failed to load external units");
+            console.error("Error fetching external units:", error);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [pagination.pageIndex, pagination.pageSize]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -178,6 +137,17 @@ export const ExternalUnitTable = () => {
                         className="h-8 w-8 p-0"
                         onClick={() => {
                             setSelectedExternalUnit(row.original);
+                            setIsDetailDialogOpen(true);
+                        }}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                            setSelectedExternalUnit(row.original);
                             setIsEditDialogOpen(true);
                         }}
                     >
@@ -188,13 +158,14 @@ export const ExternalUnitTable = () => {
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         onClick={() => handleDelete(row.original.unitId)}
+                        disabled={isDeleting}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
             ),
         },
-    ], []);
+    ], [isDeleting]);
 
     const table = useReactTable({
         data,
@@ -203,26 +174,39 @@ export const ExternalUnitTable = () => {
             sorting,
             columnVisibility,
             rowSelection,
-            pagination,
         },
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
-        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
 
-    const handleDelete = (unitId: string) => {
-        // TODO: Implement delete API call
-        console.log("Deleting external unit:", unitId);
-        setData(data.filter(item => item.unitId !== unitId));
+    const handleDelete = async (unitId: string) => {
+        if (!window.confirm("Are you sure you want to delete this external unit?")) {
+            return;
+        }
+
+        try {
+            setIsDeleting(true);
+            await deleteExternalUnit(unitId);
+            setData(data.filter(item => item.unitId !== unitId));
+            toast.success("External unit deleted successfully");
+        } catch (error) {
+            toast.error("Failed to delete external unit");
+            console.error("Error deleting external unit:", error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        fetchData();
     };
 
     if (!isMounted) {
@@ -365,14 +349,14 @@ export const ExternalUnitTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex} / {Math.ceil(rowCount / pagination.pageSize)}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 1 }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
@@ -380,8 +364,8 @@ export const ExternalUnitTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.max(1, prev.pageIndex - 1) }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
@@ -389,8 +373,8 @@ export const ExternalUnitTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
@@ -398,8 +382,8 @@ export const ExternalUnitTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.ceil(rowCount / pagination.pageSize) }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />
@@ -408,13 +392,25 @@ export const ExternalUnitTable = () => {
                 </div>
             </div>
 
-            <CreateExternalUnitDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateExternalUnitDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={handleRefresh}
+            />
             {selectedExternalUnit && (
-                <EditExternalUnitDialog
-                    open={isEditDialogOpen}
-                    onOpenChange={setIsEditDialogOpen}
-                    externalUnit={selectedExternalUnit}
-                />
+                <>
+                    <EditExternalUnitDialog
+                        open={isEditDialogOpen}
+                        onOpenChange={setIsEditDialogOpen}
+                        externalUnit={selectedExternalUnit}
+                        onSuccess={handleRefresh}
+                    />
+                    <ExternalUnitDetailDialog
+                        open={isDetailDialogOpen}
+                        onOpenChange={setIsDetailDialogOpen}
+                        externalUnit={selectedExternalUnit}
+                    />
+                </>
             )}
         </div>
     );

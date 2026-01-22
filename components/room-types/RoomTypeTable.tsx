@@ -144,7 +144,8 @@ export const RoomTypeTable = () => {
                         size="sm"
                         className="h-8 w-8 p-0"
                         title="View Details"
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedRoomType(row.original);
                             setIsDetailDialogOpen(true);
                         }}
@@ -156,7 +157,8 @@ export const RoomTypeTable = () => {
                         size="sm"
                         className="h-8 w-8 p-0"
                         title="Edit"
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedRoomType(row.original);
                             setIsEditDialogOpen(true);
                         }}
@@ -168,7 +170,10 @@ export const RoomTypeTable = () => {
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                         title="Delete"
-                        onClick={() => handleDelete(row.original.roomTypeId)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(row.original.roomTypeId);
+                        }}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -320,10 +325,6 @@ export const RoomTypeTable = () => {
                             table.getRowModel().rows.map((row) => (
                                 <TableRow 
                                     key={row.id}
-                                    onClick={() => {
-                                        setSelectedRoomType(row.original);
-                                        setIsDetailDialogOpen(false);
-                                    }}
                                     className="cursor-pointer hover:bg-muted/50"
                                 >
                                     {row.getVisibleCells().map((cell) => (

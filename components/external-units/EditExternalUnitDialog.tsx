@@ -6,14 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UpdateExternalUnitRequest, ExternalUnitResponse } from "@/dtos/other";
+import { updateExternalUnit } from "@/services/external-unitService";
+import { toast } from "sonner";
 
 interface EditExternalUnitDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     externalUnit: ExternalUnitResponse;
+    onSuccess?: () => void;
 }
 
-export function EditExternalUnitDialog({ open, onOpenChange, externalUnit }: EditExternalUnitDialogProps) {
+export function EditExternalUnitDialog({ open, onOpenChange, externalUnit, onSuccess }: EditExternalUnitDialogProps) {
     const [formData, setFormData] = useState<UpdateExternalUnitRequest>({
         unitName: "",
         address: "",
@@ -27,6 +30,7 @@ export function EditExternalUnitDialog({ open, onOpenChange, externalUnit }: Edi
         fieldOfActivity: "",
         supply: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (externalUnit) {
@@ -46,10 +50,24 @@ export function EditExternalUnitDialog({ open, onOpenChange, externalUnit }: Edi
         }
     }, [externalUnit, open]);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to update external unit
-        console.log("Updating external unit:", externalUnit.unitId, formData);
-        onOpenChange(false);
+    const handleSubmit = async () => {
+        if (!formData.unitName || !formData.address || !formData.phoneNumber) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await updateExternalUnit(externalUnit.unitId, formData);
+            toast.success("External unit updated successfully");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to update external unit");
+            console.error("Error updating external unit:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -189,11 +207,11 @@ export function EditExternalUnitDialog({ open, onOpenChange, externalUnit }: Edi
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
-                        Update External Unit
+                    <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? "Updating..." : "Update External Unit"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

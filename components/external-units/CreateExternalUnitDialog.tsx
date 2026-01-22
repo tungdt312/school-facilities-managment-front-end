@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CreateExternalUnitRequest } from "@/dtos/other";
+import { createExternalUnit } from "@/services/external-unitService";
+import { toast } from "sonner";
 
 interface CreateExternalUnitDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onSuccess?: () => void;
 }
 
-export function CreateExternalUnitDialog({ open, onOpenChange }: CreateExternalUnitDialogProps) {
+export function CreateExternalUnitDialog({ open, onOpenChange, onSuccess }: CreateExternalUnitDialogProps) {
     const [formData, setFormData] = useState<CreateExternalUnitRequest>({
         unitName: "",
         address: "",
@@ -26,24 +29,39 @@ export function CreateExternalUnitDialog({ open, onOpenChange }: CreateExternalU
         fieldOfActivity: "",
         supply: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to create external unit
-        console.log("Creating external unit:", formData);
-        onOpenChange(false);
-        setFormData({
-            unitName: "",
-            address: "",
-            phoneNumber: "",
-            taxCode: "",
-            bankAccountNumber: "",
-            bankName: "",
-            fax: "",
-            fromContractPeriod: "",
-            toContractPeriod: "",
-            fieldOfActivity: "",
-            supply: "",
-        });
+    const handleSubmit = async () => {
+        if (!formData.unitName || !formData.address || !formData.phoneNumber) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await createExternalUnit(formData);
+            toast.success("External unit created successfully");
+            onOpenChange(false);
+            setFormData({
+                unitName: "",
+                address: "",
+                phoneNumber: "",
+                taxCode: "",
+                bankAccountNumber: "",
+                bankName: "",
+                fax: "",
+                fromContractPeriod: "",
+                toContractPeriod: "",
+                fieldOfActivity: "",
+                supply: "",
+            });
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to create external unit");
+            console.error("Error creating external unit:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -183,11 +201,11 @@ export function CreateExternalUnitDialog({ open, onOpenChange }: CreateExternalU
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
-                        Create External Unit
+                    <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? "Creating..." : "Create External Unit"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
