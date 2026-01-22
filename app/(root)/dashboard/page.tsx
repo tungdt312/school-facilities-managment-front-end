@@ -6,6 +6,15 @@ import data from "./data.json"
 import {SidebarTrigger} from "@/components/ui/sidebar";
 import {Separator} from "@/components/ui/separator";
 import {Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList} from "@/components/ui/breadcrumb";
+import {ImportRequestTable} from "@/components/procurement/procurement-request-table";
+import {LiquidateRequestTable} from "@/components/disposals/disposals-request-table";
+import {TransferRequestTable} from "@/components/transfer/transfer-request-table";
+import {MaintenanceRequestTable} from "@/components/maintenance/MaintenanceRequestTable";
+import {InventoryAuditTable} from "@/components/audit/InventoryAuditTable";
+import {RepairRequestTable} from "@/components/repair/RepairRequestTable";
+import {Donut} from "lucide-react";
+import {DeviceStatisticsDashboard} from "@/components/statistic/donut";
+import {MainDashboard} from "@/components/statistic/main";
 
 export default function Page() {
     return (
@@ -13,12 +22,15 @@ export default function Page() {
             <SiteHeader/>
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
-                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                        <SectionCards/>
-                        <div className="px-4 lg:px-6">
-                            <ChartAreaInteractive/>
-                        </div>
-                        <DataTable data={data}/>
+                    <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
+
+                        <ImportRequestTable/>
+                        <LiquidateRequestTable/>
+                        <TransferRequestTable/>
+                        <MaintenanceRequestTable/>
+                        <RepairRequestTable/>
+                        <InventoryAuditTable/>
+                        <MainDashboard/>
                     </div>
                 </div>
             </div>

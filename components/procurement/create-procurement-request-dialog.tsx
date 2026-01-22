@@ -83,7 +83,7 @@ export const CreateImportRequestDialog = () => {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="gap-2">Create Import Request
+                <Button className="gap-2">Create Request
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

@@ -40,7 +40,7 @@ export async function postBooking(data: CreateBookingRequest): Promise<RoomBooki
 }
 
 export async function approveBooking(id: string, data: ApproveBookingRequest): Promise<RoomBookingResponse> {
-    const res = await apiFetch(`/room-booking/${id}/approve`, true, {
+    const res = await apiFetch(`/room-bookings/${id}/approve`, true, {
         method: "PUT",
         headers: {
             "accept": "application/json",
@@ -53,7 +53,7 @@ export async function approveBooking(id: string, data: ApproveBookingRequest): P
 }
 
 export async function updateBooking(id: string, data: UpdateBookingRequest): Promise<RoomBookingResponse> {
-    const res = await apiFetch(`/room-booking/${id}/status`, true, {
+    const res = await apiFetch(`/room-bookings/${id}/status`, true, {
         method: "PUT",
         headers: {
             "accept": "application/json",
@@ -66,7 +66,7 @@ export async function updateBooking(id: string, data: UpdateBookingRequest): Pro
 }
 
 export async function cancelBooking(id: string): Promise<RoomBookingResponse> {
-    const res = await apiFetch(`/room-booking/${id}/cancel`, true, {
+    const res = await apiFetch(`/room-bookings/${id}/cancel`, true, {
         method: "PUT",
         headers: {
             "accept": "application/json",

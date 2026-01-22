@@ -25,6 +25,8 @@ import {CreateBookingRequest} from '@/dtos/booking'
 import {PageRequest} from "@/dtos/base";
 import {RoomResponse} from "@/dtos/building";
 import {getRoomsList} from "@/services/areaService";
+import {RoomStatus, VoucherStatus} from "@/constaints/enum";
+import {postBooking} from "@/services/bookingService";
 
 // Validation Schema
 const bookingSchema = z.object({
@@ -53,6 +55,7 @@ export const CreateBookingVoucherDialog = () => {
             const req: PageRequest = {
                 page: 1,
                 size: 100,
+                filter: `Status==${RoomStatus.Available}`,
             }
             const res = await getRoomsList(req)
             setRooms(res.content)
@@ -80,7 +83,7 @@ export const CreateBookingVoucherDialog = () => {
         try {
             // Simulated API Call
             console.log("Submitting Booking Request:", data)
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            const res = await postBooking(data)
 
             toast.success("Room booking created successfully")
             setOpen(false)
@@ -130,7 +133,7 @@ export const CreateBookingVoucherDialog = () => {
                                         <SelectContent>
                                             {rooms.map((room) => (
                                                 <SelectItem key={room.roomId} value={room.roomId}>
-                                                    {room.roomName} (Floor {room.floorName})
+                                                    {room.roomName} ({room.floorName})
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

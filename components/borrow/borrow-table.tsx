@@ -38,7 +38,7 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {BorrowStatus, DeviceStatus, UserRoleLabel} from '@/constaints/enum';
+import {BorrowStatus, BorrowStatusLabel, DeviceStatus, UserRoleLabel} from '@/constaints/enum';
 import {BorrowVoucherResponse} from '@/dtos/borrow';
 import {MOCK_BORROW_VOUCHERS} from "@/components/mock-data/borrow-data";
 import {formatISODate, getSortString} from "@/lib/utils";
@@ -165,7 +165,7 @@ export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
                                     status === BorrowStatus.Approved ? "bg-purple-500 hover:bg-purple-600" :
                                         status === BorrowStatus.Rejected ? "bg-red-500 hover:bg-red-600":"bg-slate-500"
                     }>
-                        {status}
+                        {BorrowStatusLabel[status]}
                     </Badge>
                 )
             },

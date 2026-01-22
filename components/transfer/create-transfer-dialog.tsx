@@ -36,8 +36,8 @@ import {ImportRequestResponse} from "@/dtos/import";
 import {PageRequest} from "@/dtos/base";
 import {VoucherStatus} from "@/constaints/enum";
 import {getImportRequestsList, postImportVoucher} from "@/services/importService";
-import {postTransferRequest, postTransferVoucher} from "@/services/transferService";
-import {CreateTransferVoucherRequest} from "@/dtos/transfer";
+import {getTransferRequestsList, postTransferRequest, postTransferVoucher} from "@/services/transferService";
+import {CreateTransferVoucherRequest, TransferRequestResponse} from "@/dtos/transfer";
 import {getDevicesList} from "@/services/deviceService";
 import {DeviceResponse} from "@/dtos/device";
 
@@ -52,7 +52,7 @@ const transferVoucherSchema = z.object({
 export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultRequestId?: string }) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [requests, setRequests] = useState<ImportRequestResponse[]>([])
+    const [requests, setRequests] = useState<TransferRequestResponse[]>([])
     const [devices, setDevices] = useState<DeviceResponse[]>([])
 
     const fetchDevices = async () => {
@@ -80,11 +80,11 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                 size: 100,
                 filter: `Status==${VoucherStatus.Approved}`,
             }
-            const res = await getImportRequestsList(req)
+            const res = await getTransferRequestsList(req)
             setRequests(res.content)
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load procurement request data");
+            toast.error("Failed to load transfer request data");
             setRequests([]);
         }
     }
