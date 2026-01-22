@@ -6,17 +6,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MaintenanceRequestResponse } from "@/dtos/maintenance";
 import { CreateMaintenanceRequestDialog } from "./CreateMaintenanceRequestDialog";
-import { EditMaintenanceRequestDialog } from "./EditMaintenanceRequestDialog";
-import { CreateMaintenanceVoucherDialog } from "./CreateMaintenanceVoucherDialog";
 import { Badge } from "@/components/ui/badge";
 import { VoucherStatus, VoucherStatusLabel } from "@/constaints/enum";
 import { getMaintenanceRequests } from "@/services/maintenanceService";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const getStatusColor = (status: VoucherStatus) => {
     switch (status) {
@@ -35,12 +34,7 @@ export const MaintenanceRequestTable = () => {
     const [data, setData] = useState<MaintenanceRequestResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
-    const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isCreateVoucherDialogOpen, setIsCreateVoucherDialogOpen] = useState(false);
-    const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequestResponse | null>(null);
-    const [selectedRequestForVoucher, setSelectedRequestForVoucher] = useState<string | undefined>();
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -77,10 +71,6 @@ export const MaintenanceRequestTable = () => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pagination.pageIndex, pagination.pageSize]);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     const columns: ColumnDef<MaintenanceRequestResponse>[] = useMemo(() => [
         {
@@ -146,41 +136,15 @@ export const MaintenanceRequestTable = () => {
         {
             id: "actions",
             cell: ({ row }) => (
-                <div className="flex gap-2">
+                <Link href={`/maintenance/request/${row.original.requestId}`}>
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => {
-                            setSelectedRequest(row.original);
-                            setIsEditDialogOpen(true);
-                        }}
+                        className="h-8 px-2 gap-1"
                     >
-                        <Edit2 className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" />
                     </Button>
-                    {row.original.status === VoucherStatus.Approved && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 gap-1"
-                            onClick={() => {
-                                setSelectedRequestForVoucher(row.original.requestId);
-                                setIsCreateVoucherDialogOpen(true);
-                            }}
-                        >
-                            <Plus className="h-4 w-4" />
-                            Voucher
-                        </Button>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(row.original.requestId)}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
+                </Link>
             ),
         },
     ], []);
@@ -204,38 +168,6 @@ export const MaintenanceRequestTable = () => {
         setSearchTerm(e.target.value);
         setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
-
-    const handleDelete = (requestId: string) => {
-        if (!window.confirm("Are you sure you want to delete this maintenance request?")) {
-            return;
-        }
-        console.log("Deleting request:", requestId);
-        setData(data.filter(item => item.requestId !== requestId));
-        toast.success("Request deleted successfully");
-    };
-
-    if (!isMounted) {
-        return (
-            <div className="w-full space-y-4 pt-6">
-                <div className="rounded-md border bg-card">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Loading...</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
-                                    <Loader className="animate-spin inline-block mr-2" /> Loading data...
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="w-full space-y-4 pt-6">
@@ -396,20 +328,6 @@ export const MaintenanceRequestTable = () => {
             <CreateMaintenanceRequestDialog 
                 open={isCreateDialogOpen} 
                 onOpenChange={setIsCreateDialogOpen}
-                onSuccess={fetchData}
-            />
-            {selectedRequest && (
-                <EditMaintenanceRequestDialog
-                    open={isEditDialogOpen}
-                    onOpenChange={setIsEditDialogOpen}
-                    request={selectedRequest}
-                    onSuccess={fetchData}
-                />
-            )}
-            <CreateMaintenanceVoucherDialog
-                open={isCreateVoucherDialogOpen}
-                onOpenChange={setIsCreateVoucherDialogOpen}
-                requestId={selectedRequestForVoucher}
                 onSuccess={fetchData}
             />
         </div>

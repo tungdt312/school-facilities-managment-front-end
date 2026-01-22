@@ -28,7 +28,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { MaintenanceStatus } from "@/constaints/enum";
+import { MaintenanceStatus, MaintenanceStatusLabel } from "@/constaints/enum";
 import { getMaintenanceVouchers } from '@/services/maintenanceService';
 
 export const MaintenanceTable = () => {
@@ -124,20 +124,20 @@ export const MaintenanceTable = () => {
                         <DropdownMenuContent align="start" className="w-52">
                             <DropdownMenuLabel>Status filter</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {Object.values(MaintenanceStatus).map((status) => (
+                            {Object.entries(MaintenanceStatusLabel).map(([statusKey, statusLabel]) => (
                                 <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status as MaintenanceStatus)}
+                                    key={statusKey}
+                                    checked={selectedStatuses.includes(Number(statusKey) as MaintenanceStatus)}
                                     onCheckedChange={(checked) => {
                                         setSelectedStatuses(prev =>
                                             checked
-                                                ? [...prev, status as MaintenanceStatus]
-                                                : prev.filter(s => s !== status)
+                                                ? [...prev, Number(statusKey) as MaintenanceStatus]
+                                                : prev.filter(s => s !== Number(statusKey))
                                         );
                                         setPagination(p => ({ ...p, pageIndex: 1 }));
                                     }}
                                 >
-                                    {status}
+                                    {statusLabel}
                                 </DropdownMenuCheckboxItem>
                             ))}
                             {selectedStatuses.length > 0 && (
@@ -158,7 +158,7 @@ export const MaintenanceTable = () => {
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-1">
                     <Badge variant={row.original.status === MaintenanceStatus.Completed ? "default" : "secondary"}>
-                        {row.original.status}
+                        {MaintenanceStatusLabel[row.original.status]}
                     </Badge>
                 </div>
             ),

@@ -6,7 +6,7 @@ import { Badge } from '../ui/badge';
 import { Loader, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
-import { MaintenanceStatus } from '@/constaints/enum';
+import { MaintenanceStatus, MaintenanceStatusLabel } from '@/constaints/enum';
 import { getMaintenanceVoucherById } from '@/services/maintenanceService';
 import { toast } from 'sonner';
 
@@ -87,7 +87,7 @@ export const MaintenanceVoucherDetail = ({ id }: MaintenanceVoucherDetailProps) 
                         <div className="space-y-2">
                             <p className="text-sm text-muted-foreground">Status</p>
                             <div>
-                                <Badge variant={statusColor}>{data.status}</Badge>
+                                <Badge variant={statusColor}>{MaintenanceStatusLabel[data.status]}</Badge>
                             </div>
                         </div>
                     </CardContent>

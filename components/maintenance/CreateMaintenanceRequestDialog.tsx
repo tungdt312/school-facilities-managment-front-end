@@ -12,6 +12,7 @@ import { CreateMaintenanceRequestRequest, MaintenanceRequestDetailRequest } from
 import { X } from "lucide-react";
 import { createMaintenanceRequest } from "@/services/maintenanceService";
 import { getDevicesList } from "@/services/deviceService";
+import { getMe } from "@/services/authService";
 import { toast } from "sonner";
 
 interface CreateMaintenanceRequestDialogProps {
@@ -28,7 +29,7 @@ interface Equipment {
 
 export function CreateMaintenanceRequestDialog({ open, onOpenChange, onSuccess }: CreateMaintenanceRequestDialogProps) {
     const [formData, setFormData] = useState<CreateMaintenanceRequestRequest>({
-        createdBy: "USER001", // TODO: Get from current user
+        createdBy: "",
         note: "",
         details: [],
     });
@@ -40,9 +41,31 @@ export function CreateMaintenanceRequestDialog({ open, onOpenChange, onSuccess }
     // Fetch equipment on dialog open
     useEffect(() => {
         if (open) {
+            fetchCurrentUser();
             fetchEquipment();
+        } else {
+            // Reset form when dialog closes
+            setFormData({
+                createdBy: "",
+                note: "",
+                details: [],
+            });
+            setSelectedEquipmentIds(new Set());
         }
     }, [open]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const user = await getMe();
+            setFormData(prev => ({
+                ...prev,
+                createdBy: user.userId,
+            }));
+        } catch (error) {
+            toast.error("Failed to load current user");
+            console.error("Error fetching current user:", error);
+        }
+    };
 
     const fetchEquipment = async () => {
         setIsLoadingEquipment(true);
@@ -106,12 +129,6 @@ export function CreateMaintenanceRequestDialog({ open, onOpenChange, onSuccess }
             await createMaintenanceRequest(formData);
             toast.success("Maintenance request created successfully");
             onOpenChange(false);
-            setFormData({
-                createdBy: "USER001",
-                note: "",
-                details: [],
-            });
-            setSelectedEquipmentIds(new Set());
             onSuccess?.();
         } catch (error) {
             toast.error("Failed to create maintenance request");

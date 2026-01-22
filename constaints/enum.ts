@@ -110,6 +110,12 @@ export const VoucherStatusLabel: Record<number, string> = {
     [VoucherStatus.Rejected]: "Rejected",
 };
 
+export const MaintenanceStatusLabel: Record<number, string> = {
+    [MaintenanceStatus.Completed]: "Completed",
+    [MaintenanceStatus.Failed]: "Failed",
+    [MaintenanceStatus.Lost]: "Lost",
+};
+
 export const BorrowStatusLabel: Record<number, string> = {
     [BorrowStatus.Pending]: "Pending",
     [BorrowStatus.Approved]: "Approved",

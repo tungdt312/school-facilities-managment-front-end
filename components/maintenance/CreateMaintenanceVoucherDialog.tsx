@@ -1,13 +1,16 @@
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateMaintenanceVoucherRequest } from "@/dtos/maintenance";
 import { createMaintenanceVoucher } from "@/services/maintenanceService";
+import { getInvoices } from "@/services/invoiceService";
+import { getMe } from "@/services/authService";
 import { toast } from "sonner";
+import { InvoiceResponse } from "@/dtos/other";
 
 interface CreateMaintenanceVoucherDialogProps {
     open: boolean;
@@ -16,21 +19,50 @@ interface CreateMaintenanceVoucherDialogProps {
     onSuccess?: () => void;
 }
 
-// Mock data - TODO: Replace with API call to getInvoices()
-const MOCK_INVOICES = [
-    { invoiceId: "INV001", invoiceNumber: "INV-2026-001", totalAmount: 5000000 },
-    { invoiceId: "INV002", invoiceNumber: "INV-2026-002", totalAmount: 3000000 },
-    { invoiceId: "INV003", invoiceNumber: "INV-2026-003", totalAmount: 7500000 },
-];
-
 export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, onSuccess }: CreateMaintenanceVoucherDialogProps) {
     const [formData, setFormData] = useState<CreateMaintenanceVoucherRequest>({
         requestId: requestId || "",
-        createdBy: "USER001", // TODO: Get from current user
+        createdBy: "",
         invoiceId: "",
         details: [],
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
+    const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+
+    useEffect(() => {
+        if (open) {
+            fetchInvoices();
+            fetchCurrentUser();
+        }
+    }, [open]);
+
+    const fetchInvoices = async () => {
+        setIsLoadingInvoices(true);
+        try {
+            const response = await getInvoices({ page: 1, size: 100 });
+            setInvoices(response.content || []);
+        } catch (error) {
+            console.error("Error fetching invoices:", error);
+            toast.error("Failed to load invoices");
+            setInvoices([]);
+        } finally {
+            setIsLoadingInvoices(false);
+        }
+    };
+
+    const fetchCurrentUser = async () => {
+        try {
+            const user = await getMe();
+            setFormData(prev => ({
+                ...prev,
+                createdBy: user.userId,
+            }));
+        } catch (error) {
+            console.error("Error fetching current user:", error);
+            toast.error("Failed to load current user");
+        }
+    };
 
     const handleSubmit = async () => {
         if (!formData.requestId || !formData.invoiceId) {
@@ -45,7 +77,7 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
             onOpenChange(false);
             setFormData({
                 requestId: requestId || "",
-                createdBy: "USER001",
+                createdBy: "",
                 invoiceId: "",
                 details: [],
             });
@@ -59,8 +91,8 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
     };
 
     const selectedInvoice = useMemo(() => {
-        return MOCK_INVOICES.find(inv => inv.invoiceId === formData.invoiceId);
-    }, [formData.invoiceId]);
+        return invoices.find(inv => inv.invoiceId === formData.invoiceId);
+    }, [formData.invoiceId, invoices]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -75,28 +107,21 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
                         <Label htmlFor="requestId">Maintenance Request *</Label>
-                        <Select value={formData.requestId} onValueChange={(value) => setFormData({ ...formData, requestId: value })}>
-                            <SelectTrigger id="requestId">
-                                <SelectValue placeholder="Select a maintenance request" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="REQ001">Request REQ001 - 2 equipment</SelectItem>
-                                <SelectItem value="REQ002">Request REQ002 - 1 equipment</SelectItem>
-                                <SelectItem value="REQ003">Request REQ003 - 3 equipment</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="p-2 border rounded-md bg-muted/50">
+                            <p className="text-sm font-medium">{requestId || "No request selected"}</p>
+                        </div>
                     </div>
 
                     <div className="grid gap-2">
                         <Label htmlFor="invoiceId">Invoice *</Label>
-                        <Select value={formData.invoiceId} onValueChange={(value) => setFormData({ ...formData, invoiceId: value })}>
+                        <Select value={formData.invoiceId} onValueChange={(value) => setFormData({ ...formData, invoiceId: value })} disabled={isLoadingInvoices}>
                             <SelectTrigger id="invoiceId">
-                                <SelectValue placeholder="Select an invoice" />
+                                <SelectValue placeholder={isLoadingInvoices ? "Loading invoices..." : "Select an invoice"} />
                             </SelectTrigger>
                             <SelectContent>
-                                {MOCK_INVOICES.map((invoice) => (
+                                {invoices.map((invoice) => (
                                     <SelectItem key={invoice.invoiceId} value={invoice.invoiceId}>
-                                        {invoice.invoiceNumber} - {invoice.totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                                        {invoice.invoiceNumber} - {invoice.totalAmount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -107,7 +132,7 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
                         <div className="border rounded-lg p-3 bg-muted/30">
                             <p className="text-sm text-muted-foreground">Invoice Amount:</p>
                             <p className="font-semibold text-lg">
-                                {selectedInvoice.totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
+                                {selectedInvoice.totalAmount?.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}
                             </p>
                         </div>
                     )}
