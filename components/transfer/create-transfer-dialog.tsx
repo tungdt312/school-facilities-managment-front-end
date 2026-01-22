@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, {useEffect, useState} from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -32,6 +32,12 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MOCK_TRANSFER_REQUESTS } from "@/components/mock-data/transfer-data"
 import {MOCK_DEVICES} from "@/components/mock-data/devices-data";
+import {ImportRequestResponse} from "@/dtos/import";
+import {PageRequest} from "@/dtos/base";
+import {VoucherStatus} from "@/constaints/enum";
+import {getImportRequestsList, postImportVoucher} from "@/services/importService";
+import {postTransferRequest, postTransferVoucher} from "@/services/transferService";
+import {CreateTransferVoucherRequest} from "@/dtos/transfer";
 
 const transferVoucherSchema = z.object({
     requestId: z.string().min(1, "Reference Request ID is required"),
@@ -44,7 +50,27 @@ const transferVoucherSchema = z.object({
 export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultRequestId?: string }) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [requests, setRequests] = useState<ImportRequestResponse[]>([])
 
+    const fetchRequests = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+                filter: `Status==${VoucherStatus.Approved}`,
+            }
+            const res = await getImportRequestsList(req)
+            setRequests(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load procurement request data");
+            setRequests([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchRequests()
+    }, []);
     const form = useForm<z.infer<typeof transferVoucherSchema>>({
         resolver: zodResolver(transferVoucherSchema),
         defaultValues: {
@@ -58,11 +84,11 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
         name: "details"
     })
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: CreateTransferVoucherRequest) => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            toast.success("Transfer voucher finalized")
+            const res = await postTransferVoucher(data)
+            toast.success("Transfer voucher created successfully")
             setOpen(false)
             form.reset()
         } catch (error) {
@@ -98,8 +124,11 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Select Request ID" /></SelectTrigger></FormControl>
                                         <SelectContent>
-                                            {MOCK_TRANSFER_REQUESTS.map((req) => (
-                                                <SelectItem key={req.requestId} value={req.requestId}>{req.requestId}</SelectItem>
+                                            {requests.map((req) => (
+                                                <SelectItem key={req.requestId} value={req.requestId}>
+                                                    <span className={"text-muted-foreground tetx-xs"}>{req.requestId}</span>
+                                                    <span>({req.createdByName})</span>
+                                                </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>

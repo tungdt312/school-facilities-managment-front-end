@@ -8,6 +8,8 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
 import {formatISODate} from '@/lib/utils'
 import {TransferVoucherResponse} from "@/dtos/transfer"
 import {MOCK_TRANSFER_VOUCHERS} from "@/components/mock-data/transfer-data"
+import {getLiquidateVoucherById} from "@/services/disposalService";
+import {getTransferVoucherById} from "@/services/transferService";
 
 interface TransferVoucherInfoCardProps {
     id: string
@@ -22,11 +24,8 @@ export const TransferVoucherInfoCard = ({id}: TransferVoucherInfoCardProps) => {
             setLoading(true)
             try {
                 // Simulating API call
-                await new Promise(resolve => setTimeout(resolve, 600))
-                const data = MOCK_TRANSFER_VOUCHERS.find(v => v.transferId === id)
-                if (data) {
-                    setVoucher(data)
-                }
+                const res = await getTransferVoucherById(id)
+                setVoucher(res)
             } catch (error) {
                 toast.error("Failed to load transfer voucher details")
             } finally {

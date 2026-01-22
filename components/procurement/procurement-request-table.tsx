@@ -206,6 +206,7 @@ export const ImportRequestTable = () => {
 
     const fetchData = async () => {
         try {
+            setIsLoading(true);
             let filterQuery = "";
             if (debouncedSearch) {
                 filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
@@ -225,7 +226,7 @@ export const ImportRequestTable = () => {
             const res = await getImportRequestsList(req)
             setData(res.content)
             console.log(res)
-            setIsLoading(false);
+
         } catch (e) {
             console.error(e);
             toast.error("Failed to load procurement request data");

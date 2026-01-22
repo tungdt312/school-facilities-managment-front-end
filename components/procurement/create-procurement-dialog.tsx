@@ -1,6 +1,6 @@
 "use client"
 
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
 import {useFieldArray, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -20,8 +20,12 @@ import {Button} from "@/components/ui/button"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form"
 import {Input} from "@/components/ui/input"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
-import {CreateImportVoucherRequest} from '@/dtos/import'
+import {CreateImportVoucherRequest, ImportRequestResponse} from '@/dtos/import'
 import {MOCK_IMPORT_REQUESTS} from "@/components/mock-data/import-data"
+import {getImportRequestsList, postImportVoucher} from "@/services/importService";
+import {PageRequest} from "@/dtos/base";
+import {getSortString} from "@/lib/utils";
+import {VoucherStatus} from "@/constaints/enum";
 
 // Validation Schema
 const importVoucherSchema = z.object({
@@ -38,6 +42,27 @@ type FormValues = z.infer<typeof importVoucherSchema>
 export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [requests, setRequests] = useState<ImportRequestResponse[]>([])
+
+    const fetchRequests = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+                filter: `Status==${VoucherStatus.Approved}`,
+            }
+            const res = await getImportRequestsList(req)
+            setRequests(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load procurement request data");
+            setRequests([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchRequests()
+    }, []);
 
     const form = useForm<FormValues>({
         resolver: zodResolver(importVoucherSchema),
@@ -56,8 +81,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
     const onSubmit = async (data: CreateImportVoucherRequest) => {
         setLoading(true)
         try {
-            console.log("Submitting Import Voucher:", data)
-            await new Promise(resolve => setTimeout(resolve, 1000))
+           const res = await postImportVoucher(data)
 
             toast.success("Import voucher created successfully")
             setOpen(false)
@@ -105,9 +129,10 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {MOCK_IMPORT_REQUESTS.map((req) => (
+                                                {requests.map((req) => (
                                                     <SelectItem key={req.requestId} value={req.requestId}>
-                                                        {req.requestId} ({req.createdByName})
+                                                        <span className={"text-muted-foreground tetx-xs"}>{req.requestId}</span>
+                                                        <span>({req.createdByName})</span>
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

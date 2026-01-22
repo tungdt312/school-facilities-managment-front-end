@@ -41,9 +41,13 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { TransferVoucherResponse } from '@/dtos/transfer';
 import { MOCK_TRANSFER_VOUCHERS } from "@/components/mock-data/transfer-data";
-import { formatISODate } from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {CreateTransferVoucherDialog} from "@/components/transfer/create-transfer-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportVouchersList} from "@/services/importService";
+import {toast} from "sonner";
+import {getTransferVouchersList} from "@/services/transferService";
 
 export const TransferVoucherTable = () => {
     const [data, setData] = useState<TransferVoucherResponse[]>([]);
@@ -152,20 +156,38 @@ export const TransferVoucherTable = () => {
         },
     ], []);
 
-    useEffect(() => {
-        setIsLoading(true);
-        let filtered = [...MOCK_TRANSFER_VOUCHERS];
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.transferId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
-        }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch]);
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getTransferVouchersList(req)
+            setData(res.content)
+            console.log(res)
 
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load transfer voucher data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    useEffect(() => {
+        fetchData()
+    }, [debouncedSearch, sorting]);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     const table = useReactTable({
         data,
         columns,
@@ -186,7 +208,7 @@ export const TransferVoucherTable = () => {
                 <Input
                     placeholder="Search Voucher, Request or Processor..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">
@@ -251,44 +273,74 @@ export const TransferVoucherTable = () => {
             {/* Pagination - Giống hệt bảng Request */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
-                    {Object.keys(rowSelection).length} voucher(s) selected.
+                    {/* Logic hiển thị row selected chỉ đúng trên trang hiện tại với server-side */}
+                    {Object.keys(rowSelection).length} row(s) selected.
                 </div>
                 <div className="flex items-center space-x-6 lg:space-x-8 ml-auto">
                     <div className="flex items-center space-x-2">
-                        <p className="text-sm font-medium">Rows/Page</p>
+                        <p className="text-sm font-medium hidden sm:block">row(s) / page</p>
                         <Select
                             value={`${pagination.pageSize}`}
-                            onValueChange={(val) => table.setPageSize(Number(val))}
+                            onValueChange={(value) => {
+                                table.setPageSize(Number(value));
+                            }}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
-                                <SelectValue />
+                                <SelectValue placeholder={pagination.pageSize}/>
                             </SelectTrigger>
                             <SelectContent side="top">
-                                {[10, 20, 50].map((size) => (
-                                    <SelectItem key={size} value={`${size}`}>{size}</SelectItem>
+                                {[10, 20, 30, 40, 50].map((pageSize) => (
+                                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                                        {pageSize}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
-                            <ChevronsLeft className="size-4" />
+                        <Button
+                            variant="outline"
+                            className="hidden h-8 w-8 p-0 lg:flex"
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
+                        >
+                            <span className="sr-only">First page</span>
+                            <ChevronsLeft className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                            <ChevronLeft className="size-4" />
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => table.previousPage()}
+                            disabled={pagination.pageIndex === 1}
+                        >
+                            <span className="sr-only">Previous page</span>
+                            <ChevronLeft className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                            <ChevronRight className="size-4" />
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => table.nextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
+                        >
+                            <span className="sr-only">Next page</span>
+                            <ChevronRight className="size-4"/>
                         </Button>
-                        <Button variant="outline" className="h-8 w-8 p-0" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
-                            <ChevronsRight className="size-4" />
+                        <Button
+                            variant="outline"
+                            className="hidden h-8 w-8 p-0 lg:flex"
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
+                        >
+                            <span className="sr-only">Last page</span>
+                            <ChevronsRight className="size-4"/>
                         </Button>
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }
