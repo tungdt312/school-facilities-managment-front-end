@@ -101,7 +101,7 @@ export const CreateLiquidateRequestDialog = () => {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button className="gap-2">
-                    Request Liquidation
+                    Create Request
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

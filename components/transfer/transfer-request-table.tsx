@@ -297,9 +297,25 @@ export const TransferRequestTable = ({isUser}: { isUser?: boolean }) => {
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="h-9">
-                        <Columns2 className="mr-2 size-4"/> Columns
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-9">
+                                <Columns2 className="mr-2 size-4" /> Columns
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                            {table.getAllColumns().filter(c => c.getCanHide()).map(column => (
+                                <DropdownMenuCheckboxItem
+                                    key={column.id}
+                                    className="capitalize"
+                                    checked={column.getIsVisible()}
+                                    onCheckedChange={(v) => column.toggleVisibility(!!v)}
+                                >
+                                    {(column.columnDef.meta as any)?.label || column.id}
+                                </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
 
                     <CreateTransferRequestDialog/>
                 </div>
