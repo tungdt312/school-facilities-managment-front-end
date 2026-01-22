@@ -55,6 +55,7 @@ import {getImportRequestsList} from "@/services/importService";
 export const ImportRequestTable = () => {
     const [data, setData] = useState<ImportRequestResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [rowCount, setRowCount] = useState(0);
     const [selectedStatuses, setSelectedStatuses] = useState<VoucherStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -226,11 +227,12 @@ export const ImportRequestTable = () => {
             const res = await getImportRequestsList(req)
             setData(res.content)
             console.log(res)
-
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load procurement request data");
             setData([]);
+            setRowCount(0)
         } finally {
             setIsLoading(false);
         }
@@ -245,13 +247,23 @@ export const ImportRequestTable = () => {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.requestId,
     });
 

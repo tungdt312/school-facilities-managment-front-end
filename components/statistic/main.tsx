@@ -87,9 +87,6 @@ export const MainDashboard = () => {
             </div>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-                    <div className="col-span-4">
-                        <BorrowTrendChart data={borrowTrend}/>
-                    </div>
                     <div className="col-span-3">
                         <DeviceStatusPieChart data={deviceStats?.byStatus || []}/>
                     </div>
@@ -191,8 +188,7 @@ export const DeviceStatusPieChart = ({data}: { data: MetricDTO[] }) => {
 export const SemesterCostChart = ({data}: { data: SemesterCostDTO[] }) => {
     // Định dạng tiền tệ VND
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('en-EN', {style: 'currency', currency: '$'}).format(val);
-
+        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
     return (
         <Card className="h-full">
             <CardHeader>

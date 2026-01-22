@@ -88,6 +88,9 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
             setRequests([]);
         }
     }
+    // Thêm dòng này sau khi khởi tạo form
+
+
 
     useEffect(() => {
         fetchRequests()
@@ -99,12 +102,23 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
             details: [{ equipmentId: '', note: '' }]
         }
     })
+    const selectedRequestId = form.watch("requestId");
 
+    const selectedRequest = requests.find(r => r.requestId === selectedRequestId);
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "details"
     })
-
+    useEffect(() => {
+        if (selectedRequest && selectedRequest.details) {
+            // Reset lại danh sách chi tiết khớp với phiếu yêu cầu
+            const newDetails = selectedRequest.details.map(d => ({
+                equipmentId: d.equipmentId,
+                note: ""
+            }));
+            form.setValue("details", newDetails);
+        }
+    }, [selectedRequestId, selectedRequest, form]);
     const onSubmit = async (data: CreateTransferVoucherRequest) => {
         setLoading(true)
         try {
@@ -139,11 +153,19 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                         <FormField
                             control={form.control}
                             name="requestId"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
-                                    <FormLabel className="flex items-center gap-2"><Hash className="h-3.5 w-3.5" /> Approved Request</FormLabel>
+                                    <FormLabel className="flex items-center gap-2">
+                                        <Hash className="h-3.5 w-3.5"/> Reference Request
+                                    </FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder="Select Request ID" /></SelectTrigger></FormControl>
+                                        <FormControl>
+                                            <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                <div className="truncate text-left flex-1 mr-2">
+                                                    <SelectValue placeholder="Select Request ID" />
+                                                </div>
+                                            </SelectTrigger>
+                                        </FormControl>
                                         <SelectContent>
                                             {requests.map((req) => (
                                                 <SelectItem key={req.requestId} value={req.requestId}>
@@ -153,7 +175,7 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -178,16 +200,24 @@ export const CreateTransferVoucherDialog = ({ defaultRequestId }: { defaultReque
                                                         <FormLabel>Select Device</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Search equipment..." />
+                                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                                    <div className="truncate text-left flex-1 mr-2">
+                                                                    <SelectValue placeholder={selectedRequestId ? "Choose devices from request..." : "Please choose a request first"} />
+                                                                    </div>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {devices.map((d) => (
+                                                                {/* Lọc: Chỉ hiển thị các thiết bị nằm trong phiếu yêu cầu đã chọn */}
+                                                                {selectedRequest?.details?.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
+                                                                {!selectedRequest && (
+                                                                    <div className="p-2 text-xs text-center text-muted-foreground">
+                                                                        Please choose a request first
+                                                                    </div>
+                                                                )}
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />

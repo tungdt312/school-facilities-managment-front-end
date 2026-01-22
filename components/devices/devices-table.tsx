@@ -41,7 +41,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
 import {formatNumber, getSortString} from "@/lib/utils";
-import {DeviceStatus, LocationType, RoomStatus, UserRoleLabel} from '@/constaints/enum';
+import {DeviceStatus, DeviceStatusLabel, LocationType, RoomStatus, UserRoleLabel} from '@/constaints/enum';
 import {MOCK_DEVICES} from "@/components/mock-data/devices-data";
 import {PageRequest} from "@/dtos/base";
 import {getUsersList} from "@/services/userService";
@@ -111,9 +111,9 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
             ),
         },
         {
-            accessorKey: "categoryName",
+            accessorKey: "equipmentCategoryName",
             header: "Category",
-            cell: ({row}) => <Badge variant="secondary">{row.original.categoryName}</Badge>,
+            cell: ({row}) => <Badge variant="secondary">{row.original.equipmentCategoryName}</Badge>,
         },
         {
             accessorKey: "locationName",
@@ -161,7 +161,7 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
                                     }}
                                 >
                                     {/* Hiển thị label tương ứng */}
-                                    {UserRoleLabel[statusValue as number]}
+                                    {DeviceStatusLabel[statusValue as number]}
                                 </DropdownMenuCheckboxItem>
                             ))}
                         {selectedStatuses.length > 0 && (
@@ -185,7 +185,7 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
                         status === DeviceStatus.Available ? "bg-emerald-500" :
                             status === DeviceStatus.Broken ? "bg-destructive" : "bg-slate-500"
                     }>
-                        {status}
+                        {DeviceStatus[status || 0]}
                     </Badge>
                 )
             },
@@ -193,7 +193,7 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
         {
             accessorKey: "unitPrice",
             header: "Price",
-            cell: ({row}) => <div>${formatNumber(row.original.unitPrice)}</div>,
+            cell: ({row}) => <div>${formatNumber(row.original.unitPrice || 0)}</div>,
         },
         {
             id: "action",
@@ -235,7 +235,8 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
             setData(res.content)
             console.log(res)
             setIsLoading(false);
-            res.totalElements
+            setRowCount(res.totalElements)
+
         } catch (e) {
             console.error(e);
             toast.error("Failed to load devices");

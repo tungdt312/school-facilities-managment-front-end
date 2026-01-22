@@ -96,8 +96,8 @@ export async function deleteTransferRequestDetail(id: string): Promise<BaseRespo
 }
 
 export async function putTransferRequestStatus(id: string, data: ApproveTransferRequest): Promise<TransferRequestResponse> {
-    const res = await apiFetch(`/transfer-requests/${id}/status`, true, {
-        method: "PATCH",
+    const res = await apiFetch(`/transfer-requests/${id}/approve`, true, {
+        method: "PUT",
         headers: {
             "accept": "application/json",
             "content-type": "application/json",

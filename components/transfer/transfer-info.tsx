@@ -102,14 +102,14 @@ export const TransferVoucherInfoCard = ({id}: TransferVoucherInfoCardProps) => {
                             <div className="flex-1 text-center">
                                 <p className=" mb-1">Source Location</p>
                                 <div className="flex items-center justify-center gap-2 font-semibold ">
-                                    {voucher.sourceLocationId}
+                                    {voucher.sourceLocationName}
                                 </div>
                             </div>
                             <MoveRight className="h-6 w-6 text-blue-500"/>
                             <div className="flex-1 text-center">
                                 <p className="mb-1">Destination Location</p>
                                 <div className="flex items-center justify-center gap-2 font-semibold ">
-                                    {voucher.destinationRoomId}
+                                    {voucher.destinationLocationName}
                                 </div>
                             </div>
                         </div>

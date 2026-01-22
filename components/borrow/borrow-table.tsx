@@ -52,6 +52,7 @@ import {useCurrentUser} from "@/hooks/use-user";
 export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
     const [data, setData] = useState<BorrowVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [rowCount, setRowCount] = useState(0);
     const [selectedStatuses, setSelectedStatuses] = useState<BorrowStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -235,11 +236,13 @@ export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
             const res = await getBorrowList(req)
             setData(res.content)
             console.log(res)
-            setIsLoading(false);res.totalElements
+            setIsLoading(false);
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load borrow data");
             setData([]);
+            setRowCount(0)
         } finally {
             setIsLoading(false);
         }
@@ -251,13 +254,23 @@ export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.borrowId,
     });
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {

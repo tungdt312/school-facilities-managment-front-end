@@ -58,6 +58,7 @@ import {useCurrentUser} from "@/hooks/use-user";
 export const RoomBookingTable = ({isUser}: {isUser?: boolean}) => {
     const [data, setData] = useState<RoomBookingResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [rowCount, setRowCount] = useState(0);
     const [selectedStatuses, setSelectedStatuses] = useState<BookingStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -246,11 +247,13 @@ export const RoomBookingTable = ({isUser}: {isUser?: boolean}) => {
             const res = await getBookingList(req)
             setData(res.content)
             console.log(res)
-            setIsLoading(false);res.totalElements
+            setIsLoading(false);
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load booking data");
             setData([]);
+            setRowCount(0)
         } finally {
             setIsLoading(false);
         }
@@ -265,13 +268,23 @@ export const RoomBookingTable = ({isUser}: {isUser?: boolean}) => {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.bookingId,
     });
 

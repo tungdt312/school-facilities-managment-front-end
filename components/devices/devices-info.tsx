@@ -11,7 +11,7 @@ import {
     DollarSign,
     DoorOpen,
     FileText,
-    Globe,
+    Globe, Hash,
     Layers,
     Loader2,
     MapPin,
@@ -29,18 +29,18 @@ import {Input} from "@/components/ui/input"
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
 import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Checkbox} from "@/components/ui/checkbox"
-import {DeviceResponse} from "@/dtos/device"
+import {DeviceCategoryResponse, DeviceResponse} from "@/dtos/device"
 import {DeviceStatus, DeviceStatusLabel, LocationType} from "@/constaints/enum"
 import {getDeviceById, putDevice} from "@/services/deviceService";
 import {BuildingResponse, RoomResponse} from "@/dtos/building";
 import {getBuildingsList, getRoomsList} from "@/services/areaService";
+import {getDeviceCategories} from "@/services/device-typeService";
 
 const deviceSchema = z.object({
     equipmentName: z.string().min(1, "Equipment name is required"),
     categoryId: z.string().min(1, "Category is required"),
     locationId: z.string().min(1, "Location is required"),
     locationType: z.number().min(1, "Location is required"),
-    quantity: z.number().min(1, "Quantity must be at least 1"),
     unitPrice: z.number().min(0, "Price cannot be negative"),
     isPublic: z.boolean(),
     status: z.number().min(1, "Status is required"),
@@ -55,6 +55,7 @@ export function DeviceInfoCard({id}: { id: string }) {
     const [loading, setLoading] = useState(false)
     const [device, setDevice] = useState<DeviceResponse | undefined>(undefined)
     const [buildings, setBuildings] = useState<BuildingResponse[]>([])
+    const [categories, setCategories] = useState<DeviceCategoryResponse[]>([])
     const form = useForm<DeviceFormValues>({
         resolver: zodResolver(deviceSchema),
         defaultValues: {
@@ -79,8 +80,19 @@ export function DeviceInfoCard({id}: { id: string }) {
         }
 
     }
+    const fetchCategory = async () => {
+        try {
+            const res = await getDeviceCategories({page: 1, size: 100})
+            setCategories(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load buildings");
+        }
+
+    }
     useEffect(() => {
         fetchLocation()
+        fetchCategory()
     }, [])
     useEffect(() => {
         const fetchDevice = async () => {
@@ -156,7 +168,7 @@ export function DeviceInfoCard({id}: { id: string }) {
                                     <div className="flex flex-wrap justify-center gap-1">
                                         <span
                                             className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded">
-                                            {device.categoryName}
+                                            {device.equipmentCategoryName}
                                         </span>
                                     </div>
                                     <h3 className="font-bold text-xl leading-tight">{form.watch("equipmentName")}</h3>
@@ -193,10 +205,14 @@ export function DeviceInfoCard({id}: { id: string }) {
                                                 className="h-3.5 w-3.5"/> Status</FormLabel>
                                             <Select onValueChange={(val) => field.onChange(Number(val))}
                                                     value={field.value?.toString()} disabled={!isEditing}>
-                                                <FormControl><SelectTrigger className={!isEditing ? "bg-muted/50" : ""}><SelectValue/></SelectTrigger></FormControl>
+                                                <FormControl>
+                                                    <SelectTrigger className={!isEditing ? "bg-muted/50" : ""}>
+                                                        <SelectValue placeholder={"status"}/>
+                                                    </SelectTrigger>
+                                                </FormControl>
                                                 <SelectContent>
-                                                    {Object.values(DeviceStatus).map(s => <SelectItem key={s}
-                                                                                                      value={s.toString()}>{DeviceStatusLabel[s as number]}</SelectItem>)}
+                                                    {Object.values(DeviceStatus).map((s ) => <SelectItem key={s}
+                                                                                                      value={s.toString()}>{DeviceStatusLabel[s as DeviceStatus]}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage/>
@@ -204,23 +220,34 @@ export function DeviceInfoCard({id}: { id: string }) {
                                     )}/>
 
                                     {/* Category */}
-                                    <FormField control={form.control} name="categoryId" render={({field}) => (
-                                        <FormItem>
-                                            <FormLabel className="flex items-center gap-2"><Tag
-                                                className="h-3.5 w-3.5"/> Category</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}
-                                                    disabled={!isEditing}>
-                                                <FormControl><SelectTrigger className={!isEditing ? "bg-muted/50" : ""}><SelectValue
-                                                    placeholder="Select category"/></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="CAT-001">Laptop</SelectItem>
-                                                    <SelectItem value="CAT-002">Monitor</SelectItem>
-                                                    <SelectItem value="CAT-003">Projector</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage/>
-                                        </FormItem>
-                                    )}/>
+                                    <FormField
+                                        control={form.control}
+                                        name="categoryId"
+                                        render={({field}) => (
+                                            <FormItem>
+                                                <FormLabel className="flex items-center gap-2">
+                                                    <Tag className="h-3.5 w-3.5"/> Category
+                                                </FormLabel>
+                                                <Select onValueChange={field.onChange} disabled={!isEditing} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                            <div className="truncate text-left flex-1 mr-2">
+                                                                <SelectValue placeholder="Select Category ID" />
+                                                            </div>
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {categories.map((req) => (
+                                                            <SelectItem key={req.equipmentCategoryId} value={req.equipmentCategoryId}>
+                                                                <span className={"text-muted-foreground"}>{req.equipmentCategoryName}</span>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage/>
+                                            </FormItem>
+                                        )}
+                                    />
 
                                     {/* Location */}
                                     <FormField control={form.control} name="locationId" render={({field}) => (
@@ -236,26 +263,33 @@ export function DeviceInfoCard({id}: { id: string }) {
 
                                                     form.trigger(["locationId", "locationType"]);
                                                 }}
-                                                defaultValue={field.value}>
-                                                <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="From..." /></SelectTrigger></FormControl>
+                                                value={`${form.watch("locationType")}|${form.watch("locationId")}`}>
+                                                <FormControl><SelectTrigger className="bg-white w-full"><SelectValue
+                                                    placeholder="From..."/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {buildings.map(building => (
                                                         <SelectGroup key={building.buildingId}>
                                                             {/* Mục chọn cho chính tòa nhà */}
-                                                            <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                            <SelectItem
+                                                                value={`${LocationType.Building}|${building.buildingId}`}
+                                                                className="font-medium">
                                                                 {building.buildingName}
                                                             </SelectItem>
 
                                                             {building.floors?.map(floor => (
                                                                 <React.Fragment key={floor.floorId}>
                                                                     {/* Mục chọn cho tầng */}
-                                                                    <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                    <SelectItem
+                                                                        value={`${LocationType.Floor}|${floor.floorId}`}
+                                                                        className="pl-6 italic">
                                                                         {floor.floorName}
                                                                     </SelectItem>
 
                                                                     {/* Mục chọn cho phòng */}
                                                                     {floor.rooms?.map(room => (
-                                                                        <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                        <SelectItem key={room.roomId}
+                                                                                    value={`${LocationType.Room}|${room.roomId}`}
+                                                                                    className="pl-12">
                                                                             {room.roomName}
                                                                         </SelectItem>
                                                                     ))}
@@ -275,7 +309,7 @@ export function DeviceInfoCard({id}: { id: string }) {
                                             <FormLabel className="flex items-center gap-2"><DollarSign
                                                 className="h-3.5 w-3.5"/> Unit Price</FormLabel>
                                             <FormControl><Input type="number" {...field} disabled={!isEditing}
-                                                                className={!isEditing ? "bg-muted/50" : ""}/></FormControl>
+                                                                className={!isEditing ? "bg-muted/50" : ""} onChange={(e) => field.onChange(e.target.valueAsNumber)}/></FormControl>
                                             <FormMessage/>
                                         </FormItem>
                                     )}/>

@@ -223,10 +223,12 @@ export const LiquidateRequestTable = () => {
             setData(res.content)
             console.log(res)
             setIsLoading(false);
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load disposal request data");
             setData([]);
+            setRowCount(0)
         } finally {
             setIsLoading(false);
         }
@@ -242,12 +244,22 @@ export const LiquidateRequestTable = () => {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
-
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
         getRowId: (row) => row.requestId,
     });

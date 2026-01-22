@@ -4,7 +4,7 @@ import React, {useEffect, useState} from 'react'
 import {useFieldArray, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {Calendar, CheckCircle2, FileText, Loader2, Package, Plus, Trash2, User} from 'lucide-react'
+import {Calendar, CheckCircle2, FileText, Loader2, Package, Plus, Tag, Trash2, User} from 'lucide-react'
 import {toast} from 'sonner'
 
 import {
@@ -26,6 +26,9 @@ import {postBorrow} from "@/services/borrowService";
 import {DeviceResponse} from "@/dtos/device";
 import {PageRequest} from "@/dtos/base";
 import {getDevicesList} from "@/services/deviceService";
+import {UserResponse} from "@/dtos/user";
+import {getBuildingsList} from "@/services/areaService";
+import {getUsersList} from "@/services/userService";
 
 // Validation Schema
 const borrowSchema = z.object({
@@ -42,7 +45,18 @@ export const CreateBorrowVoucherDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [devices, setDevices] = useState<DeviceResponse[]>([])
+    const [users, setUsers] = useState<UserResponse[]>([])
 
+    const fetchUsers = async () => {
+        try {
+            const res = await getUsersList({page: 1, size: 100})
+            setUsers(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load buildings");
+        }
+
+    }
     const fetchDevices = async () => {
         try {
             const req: PageRequest = {
@@ -59,6 +73,7 @@ export const CreateBorrowVoucherDialog = () => {
     }
 
     useEffect(() => {
+        fetchUsers()
         fetchDevices()
     }, []);
     const form = useForm<FormValues>({
@@ -121,9 +136,23 @@ export const CreateBorrowVoucherDialog = () => {
                                         <FormLabel className="flex items-center gap-2">
                                             <User className="h-3.5 w-3.5"/> Borrower ID
                                         </FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="EMP-12345" {...field} />
-                                        </FormControl>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                    <div className="truncate text-left flex-1 mr-2">
+                                                        <SelectValue placeholder="Select Category ID" />
+                                                    </div>
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {users.map((req) => (
+                                                    <SelectItem key={req.userId} value={req.userId}>
+                                                        <span className={"text-muted-foreground"}>{req.fullname}</span>
+                                                        <span>{req.userId}</span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage/>
                                     </FormItem>
                                 )}
@@ -202,9 +231,11 @@ export const CreateBorrowVoucherDialog = () => {
                                                             defaultValue={field.value}
                                                         >
                                                             <FormControl>
-                                                                <SelectTrigger className="bg-white">
+                                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                                    <div className="truncate text-left flex-1 mr-2">
                                                                     <SelectValue
                                                                         placeholder="Select existing device..."/>
+                                                                    </div>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>

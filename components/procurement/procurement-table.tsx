@@ -51,6 +51,7 @@ import {toast} from "sonner";
 export const ImportVoucherTable = () => {
     const [data, setData] = useState<ImportVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [rowCount, setRowCount] = useState(0);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
@@ -174,11 +175,12 @@ export const ImportVoucherTable = () => {
             const res = await getImportVouchersList(req)
             setData(res.content)
             console.log(res)
-
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load procurement voucher data");
             setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
