@@ -1,4 +1,4 @@
-import {BookingStatus, RoomStatus} from "@/constaints/enum";
+import {BookingStatus, RoomStatus, RoomTypeName } from "@/constaints/enum";
 
 export interface CreateBuildingRequest {
     buildingName?: string;
@@ -53,17 +53,17 @@ export interface RoomResponse {
 //Room Type DTOs
 export interface CreateRoomTypeRequest {
     typeName: string;
-    description: string;
+    note?: string;
 }
 
 export interface UpdateRoomTypeRequest {
     typeName?: string;
-    description?: string;
+    note?: string;
 }
 
 export interface RoomTypeResponse {
     roomTypeId: string;
     typeName: string;
-    description: string;
+    note?: string;
     rooms: RoomResponse[];
 }

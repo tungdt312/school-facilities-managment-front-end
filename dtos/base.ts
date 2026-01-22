@@ -28,6 +28,7 @@ export interface PageRequest {
     page?: number;
     size?: number;
     sort?: string;
+    search?: string;
 }
 
 export const toQueryString = (params?: PageRequest): string => {
@@ -43,7 +44,10 @@ export const toQueryString = (params?: PageRequest): string => {
         searchParams.append('size', params.size.toString());
     }
 
-    // 3. Xử lý filter (tự động encode URL)
+    // 3. Xử lý search
+    if (params.search) {
+        searchParams.append('search', params.search);
+    }
 
     // 4. Xử lý sort (Mảng string)
     // Spring Boot thường nhận: ?sort=name,asc&sort=date,desc
@@ -51,5 +55,6 @@ export const toQueryString = (params?: PageRequest): string => {
         searchParams.append('orderBy', params.sort);
     }
 
+    // 5. Xử lý filter (chuỗi thô)
     return searchParams.toString() + (params.filter ? `&${params.filter}` : '');
 };

@@ -5,16 +5,17 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/
 import {Button} from "@/components/ui/button";
 import {Badge} from "@/components/ui/badge";
 import {Input} from "@/components/ui/input";
-import {DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu";
-import {ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns2, ExternalLink, Loader, Plus} from "lucide-react";
+import {DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuItem} from "@/components/ui/dropdown-menu";
+import {ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Columns2, ExternalLink, Loader, Plus, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {useEffect, useState} from "react";
 import {useDebounce} from "@/hooks/use-debounce";
 import {CreateAuditDialog} from "./CreateAuditDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getInventoryAudits } from "@/services/auditService";
+import { getInventoryAudits, deleteInventoryAudit } from "@/services/auditService";
 import { InventoryAuditResponse } from "@/dtos/audit";
 import { AuditStatus, AuditStatusLabel } from "@/constaints/enum";
+import { toast } from "sonner";
 
 export interface InventoryAudit extends InventoryAuditResponse {
     // Fields now come from InventoryAuditResponse
@@ -49,6 +50,7 @@ export const InventoryAuditTable = () => {
     const [selectedStatuses, setSelectedStatuses] = useState<AuditStatus[]>([]);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -91,10 +93,27 @@ export const InventoryAuditTable = () => {
             setData(filteredData as InventoryAudit[]);
         } catch (error) {
             console.error("Failed to fetch inventory audits:", error);
+            toast.error("Failed to load inventory audits");
             setData([]);
             setRowCount(0);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDeleteAudit = async (auditId: string) => {
+        if (!confirm("Are you sure you want to delete this inventory audit?")) return;
+
+        setIsDeleting(auditId);
+        try {
+            await deleteInventoryAudit(auditId);
+            toast.success("Inventory audit deleted successfully");
+            fetchData();
+        } catch (error) {
+            console.error("Failed to delete inventory audit:", error);
+            toast.error("Failed to delete inventory audit");
+        } finally {
+            setIsDeleting(null);
         }
     };
 
@@ -178,14 +197,36 @@ export const InventoryAuditTable = () => {
         },
         {
             id: "actions",
+            header: "Actions",
             cell: ({ row }) => {
                 const auditId = row.original.auditId;
+                const isDeletingThisAudit = isDeleting === auditId;
                 return (
-                    <Link href={`/audit/${auditId}`}>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <ExternalLink className="h-4 w-4" />
-                        </Button>
-                    </Link>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href={`/audit/${auditId}`}>
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    View Details
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => handleDeleteAudit(auditId)}
+                                disabled={isDeletingThisAudit}
+                                className="text-destructive focus:text-destructive"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {isDeletingThisAudit ? "Deleting..." : "Delete"}
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 );
             },
         },
@@ -384,13 +425,13 @@ export const InventoryAuditTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
+                            onClick={() => table.setPageIndex(1)}
                             disabled={!table.getCanPreviousPage()}
                         >
                             <span className="sr-only">First page</span>
@@ -417,7 +458,7 @@ export const InventoryAuditTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
                             disabled={!table.getCanNextPage()}
                         >
                             <span className="sr-only">Last page</span>

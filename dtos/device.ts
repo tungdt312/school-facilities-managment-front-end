@@ -1,4 +1,5 @@
 import { LocationType, DeviceStatus } from "@/constaints/enum";
+import { CriteriaResponse } from "@/dtos/criteria";
 
 export interface CreateDeviceRequest {
     equipmentName: string;
@@ -35,18 +36,19 @@ export interface DeviceResponse {
 
 // --- DEVICE CATEGORY ---
 export interface CreateDeviceCategoryRequest {
-    categoryName: string;
-    description?: string;
+    equipmentCategoryName: string;
+    note?: string;
 }
 
 export interface UpdateDeviceCategoryRequest {
-    categoryName?: string;
-    description?: string;
+    equipmentCategoryName?: string;
+    note?: string;
 }
 
 export interface DeviceCategoryResponse {
-    categoryId: string;
-    categoryName: string;
-    description?: string;
-    deviceCount?: number;
+    equipmentCategoryId: string;
+    equipmentCategoryName: string;
+    note?: string;
+    criterias: CriteriaResponse[];
+    equipments: DeviceResponse[];
 }

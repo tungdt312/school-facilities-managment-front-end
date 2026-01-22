@@ -5,39 +5,77 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { UpdateFundSourceRequest, FundSourceResponse } from "@/dtos/other";
+import { updateFundSource } from "@/services/fund-sourceService";
+import { Loader } from "lucide-react";
 
 interface EditFundSourceDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     fundSource: FundSourceResponse;
+    onSuccess?: () => void;
 }
 
-export function EditFundSourceDialog({ open, onOpenChange, fundSource }: EditFundSourceDialogProps) {
+export function EditFundSourceDialog({ open, onOpenChange, fundSource, onSuccess }: EditFundSourceDialogProps) {
     const [formData, setFormData] = useState<UpdateFundSourceRequest>({
         sourceName: "",
         amount: 0,
-        description: "",
+        note: "",
     });
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (fundSource) {
+        if (fundSource && open) {
             setFormData({
                 sourceName: fundSource.sourceName,
                 amount: fundSource.amount,
-                description: fundSource.description || "",
+                note: fundSource.note || "",
             });
+            setError(null);
         }
     }, [fundSource, open]);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to update fund source
-        console.log("Updating fund source:", fundSource.sourceId, formData);
-        onOpenChange(false);
+    const handleSubmit = async () => {
+        if (!formData.sourceName.trim()) {
+            setError("Source Name is required");
+            return;
+        }
+        if (formData.amount <= 0) {
+            setError("Amount must be greater than 0");
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setError(null);
+            
+            await updateFundSource(fundSource.sourceId, formData);
+            
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to update fund source");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleOpenChange = (newOpen: boolean) => {
+        if (!newOpen) {
+            setError(null);
+            setFormData({
+                sourceName: "",
+                amount: 0,
+                note: "",
+            });
+        }
+        onOpenChange(newOpen);
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Edit Fund Source</DialogTitle>
@@ -46,6 +84,11 @@ export function EditFundSourceDialog({ open, onOpenChange, fundSource }: EditFun
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    {error && (
+                        <div className="bg-destructive/10 text-destructive px-3 py-2 rounded-md text-sm">
+                            {error}
+                        </div>
+                    )}
                     <div className="grid gap-2">
                         <Label htmlFor="sourceName">Source Name *</Label>
                         <Input
@@ -53,6 +96,7 @@ export function EditFundSourceDialog({ open, onOpenChange, fundSource }: EditFun
                             placeholder="e.g., Government Budget 2026"
                             value={formData.sourceName}
                             onChange={(e) => setFormData({ ...formData, sourceName: e.target.value })}
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -61,25 +105,38 @@ export function EditFundSourceDialog({ open, onOpenChange, fundSource }: EditFun
                             id="amount"
                             type="number"
                             placeholder="e.g., 50000000"
-                            value={formData.amount}
+                            value={formData.amount || ""}
                             onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Input
-                            id="description"
-                            placeholder="Enter description"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        <Label htmlFor="note">Note</Label>
+                        <Textarea
+                            id="note"
+                            placeholder="Enter note"
+                            value={formData.note || ""}
+                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                            disabled={isLoading}
+                            rows={3}
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => handleOpenChange(false)}
+                        disabled={isLoading}
+                    >
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
+                    <Button 
+                        type="button" 
+                        onClick={handleSubmit}
+                        disabled={isLoading}
+                    >
+                        {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                         Update Fund Source
                     </Button>
                 </DialogFooter>
