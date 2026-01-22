@@ -38,7 +38,9 @@ export const MaintenanceTable = () => {
     const [selectedStatuses, setSelectedStatuses] = useState<MaintenanceStatus[]>([]);
 
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        invoiceNumber: false,
+    });
 
     const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
