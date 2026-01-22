@@ -39,18 +39,21 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { formatISODate, formatNumber } from "@/lib/utils";
+import {formatISODate, formatNumber, getSortString} from "@/lib/utils";
 import { ImportVoucherResponse } from '@/dtos/import';
 import { MOCK_IMPORT_VOUCHERS } from "@/components/mock-data/import-data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {CreateImportVoucherDialog} from "@/components/procurement/create-procurement-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportRequestsList, getImportVouchersList} from "@/services/importService";
+import {toast} from "sonner";
 
 export const ImportVoucherTable = () => {
     const [data, setData] = useState<ImportVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -155,19 +158,38 @@ export const ImportVoucherTable = () => {
         },
     ], []);
 
-    useEffect(() => {
-        setIsLoading(true);
-        let filtered = [...MOCK_IMPORT_VOUCHERS];
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.importId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.unitName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.invoiceNumber.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+    const fetchData = async () => {
+        try {
+            setIsLoading(true);
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getImportVouchersList(req)
+            setData(res.content)
+            console.log(res)
+
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load procurement voucher data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
         }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch]);
+    }
+    useEffect(() => {
+        fetchData()
+    }, [debouncedSearch, sorting]);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
 
     const table = useReactTable({
         data,
@@ -186,9 +208,9 @@ export const ImportVoucherTable = () => {
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
-                    placeholder="Search Voucher, Supplier or Invoice..."
+                    placeholder="Search Voucher..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">
@@ -276,14 +298,14 @@ export const ImportVoucherTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -292,7 +314,7 @@ export const ImportVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -301,7 +323,7 @@ export const ImportVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -309,8 +331,8 @@ export const ImportVoucherTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>

@@ -28,7 +28,7 @@ import {Input} from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
@@ -36,12 +36,16 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {VoucherStatus} from '@/constaints/enum';
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum';
 import {LiquidateRequestResponse} from '@/dtos/liquidate';
 import {MOCK_LIQUIDATE_REQUESTS} from "@/components/mock-data/liquidates-data";
-import {formatISODate} from "@/lib/utils";
+import {formatISODate, getSortString} from "@/lib/utils";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {CreateLiquidateRequestDialog} from "@/components/disposals/create-disposal-request-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportRequestsList} from "@/services/importService";
+import {toast} from "sonner";
+import {getLiquidateRequestsList} from "@/services/disposalService";
 
 export const LiquidateRequestTable = () => {
     const [data, setData] = useState<LiquidateRequestResponse[]>([]);
@@ -117,20 +121,39 @@ export const LiquidateRequestTable = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(VoucherStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                        setPagination(p => ({ ...p, pageIndex: 0 }));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(VoucherStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatuses.includes(statusValue as VoucherStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatuses(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as VoucherStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({ ...p, pageIndex: 1 }));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {VoucherStatus[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatuses.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatuses(prev =>[])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -143,7 +166,7 @@ export const LiquidateRequestTable = () => {
                             status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 status === VoucherStatus.Rejected ? "bg-destructive hover:bg-destructive/90" : "bg-slate-500"
                     }>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 )
             },
@@ -179,28 +202,42 @@ export const LiquidateRequestTable = () => {
     ], [selectedStatuses]);
 
     const fetchData = async () => {
-        setIsLoading(true);
         try {
-            let filtered = [...MOCK_LIQUIDATE_REQUESTS];
+            let filterQuery = "";
             if (debouncedSearch) {
-                filtered = filtered.filter(d =>
-                    d.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                    d.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase())
-                );
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
             if (selectedStatuses.length > 0) {
-                filtered = filtered.filter(d => selectedStatuses.includes(d.status));
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
             }
-            setData(filtered);
-            setRowCount(filtered.length);
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getLiquidateRequestsList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load disposal request data");
+            setData([]);
         } finally {
             setIsLoading(false);
         }
+    }
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
     };
-
     useEffect(() => {
-        fetchData();
-    }, [debouncedSearch, selectedStatuses]);
+        fetchData()
+    }, [debouncedSearch, selectedStatuses, sorting]);
 
     const table = useReactTable({
         data,
@@ -219,9 +256,9 @@ export const LiquidateRequestTable = () => {
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                     <Input
-                        placeholder="Search Request ID or Requester..."
+                        placeholder="Search Requester..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleSearchChange}
                         className="h-8 w-full max-w-sm"
                     />
                 <div className="ml-auto flex items-center gap-2">
@@ -316,14 +353,14 @@ export const LiquidateRequestTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -332,7 +369,7 @@ export const LiquidateRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -341,7 +378,7 @@ export const LiquidateRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -349,8 +386,8 @@ export const LiquidateRequestTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
@@ -358,6 +395,7 @@ export const LiquidateRequestTable = () => {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }

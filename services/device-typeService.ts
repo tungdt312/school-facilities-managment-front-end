@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateDeviceCategoryRequest, UpdateDeviceCategoryRequest, DeviceCategoryResponse } from '@/dtos/device';
 
-const ENDPOINT = '/api/v1/equipment-categories';
+const ENDPOINT = '/equipment-categories';
 
 /**
  * Lấy danh sách danh mục thiết bị (có phân trang)

@@ -58,6 +58,8 @@ import {PageRequest} from "@/dtos/base";
 import {getSortString} from "@/lib/utils";
 import {getRoomsList, postRoom} from "@/services/areaService";
 import {Badge} from "@/components/ui/badge";
+import {getDevicesList} from "@/services/deviceService";
+import { getRoomTypes } from "@/services/room-typeService"
 
 // 1. Room Schema
 const createRoomSchema = z.object({
@@ -74,8 +76,23 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [roomTypes, setRoomTypes] = useState<RoomTypeResponse[]>([])
     const fetchRoomTypes = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getRoomTypes(req);
+            setRoomTypes(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load room type data");
+            setRoomTypes([]);
+        }
 
     }
+    useEffect(() => {
+        fetchRoomTypes()
+    }, []);
     const form = useForm<RoomFormValues>({
         resolver: zodResolver(createRoomSchema),
         defaultValues: {
@@ -142,12 +159,12 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {MOCK_ROOM_TYPES.map((type) => (
+                                                {roomTypes.map((type) => (
                                                     <SelectItem key={type.roomTypeId} value={type.roomTypeId}>
                                                         <div className="flex flex-col">
                                                             <span className="font-medium">{type.typeName}</span>
                                                             <span
-                                                                className="text-[10px] text-muted-foreground">{type.description}</span>
+                                                                className="text-[10px] text-muted-foreground">{type.note}</span>
                                                         </div>
                                                     </SelectItem>
                                                 ))}
@@ -219,10 +236,10 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             ),
         },
         {
-            accessorKey: "roomTypeName",
+            accessorKey: "typeName",
             header: "Type",
             cell: ({row}) => {
-                const type = row.original.roomTypeName;
+                const type = row.original.typeName;
                 return (
                     <div className="flex items-center gap-1.5 text-sm text-slate-600">
                         <span>{type}</span>
@@ -314,8 +331,14 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
             if (debouncedSearch) {
                 filterQuery += `RoomName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
-            if (selectedStatus.length > 0) {
+            if (floorId) {
                 if (debouncedSearch) {
+                    filterQuery += '&'
+                }
+                filterQuery += `FloorId==${floorId}`;
+            }
+            if (selectedStatus.length > 0) {
+                if (debouncedSearch || floorId) {
                     filterQuery += `&`
                 }
                 filterQuery += `Status==${selectedStatus.join(",=")}`

@@ -16,7 +16,7 @@ export async function getBookingById(id: string): Promise<RoomBookingResponse> {
 export async function getBookingList(page?: PageRequest): Promise<PageV0<RoomBookingResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/room-bookings/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/room-bookings?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

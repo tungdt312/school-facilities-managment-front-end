@@ -8,7 +8,7 @@ import {
     MaintenanceVoucherResponse,
 } from '@/dtos/maintenance';
 
-const MAINTENANCE_API = '/api/v1/maintenance-vouchers';
+const MAINTENANCE_API = '/maintenance-vouchers';
 
 /**
  * Tạo yêu cầu bảo trì mới

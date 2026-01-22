@@ -27,13 +27,13 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
+import {Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
 import {Checkbox} from "@/components/ui/checkbox"
 import {DeviceResponse} from "@/dtos/device"
 import {DeviceStatus, DeviceStatusLabel, LocationType} from "@/constaints/enum"
 import {getDeviceById, putDevice} from "@/services/deviceService";
-import {RoomResponse} from "@/dtos/building";
-import {getRoomsList} from "@/services/areaService";
+import {BuildingResponse, RoomResponse} from "@/dtos/building";
+import {getBuildingsList, getRoomsList} from "@/services/areaService";
 
 const deviceSchema = z.object({
     equipmentName: z.string().min(1, "Equipment name is required"),
@@ -54,7 +54,7 @@ export function DeviceInfoCard({id}: { id: string }) {
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
     const [device, setDevice] = useState<DeviceResponse | undefined>(undefined)
-    const [rooms, setRooms] = useState<RoomResponse[]>([])
+    const [buildings, setBuildings] = useState<BuildingResponse[]>([])
     const form = useForm<DeviceFormValues>({
         resolver: zodResolver(deviceSchema),
         defaultValues: {
@@ -69,28 +69,25 @@ export function DeviceInfoCard({id}: { id: string }) {
             warrantyExpiryDate: "",
         },
     })
-    const fetchRooms = async () => {
-
+    const fetchLocation = async () => {
         try {
-
-            const res = await getRoomsList()
-            setRooms(res.content)
-            console.log(res)
+            const res = await getBuildingsList({page: 1, size: 100})
+            setBuildings(res.content)
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load rooms");
-        } finally {
+            toast.error("Failed to load buildings");
         }
-    };
 
+    }
     useEffect(() => {
-        fetchRooms();
-    }, []);
+        fetchLocation()
+    }, [])
     useEffect(() => {
         const fetchDevice = async () => {
             try {
                 setLoading(true)
                 const res = await getDeviceById(id)
+                setDevice(res)
                 form.reset({
                     ...res,
                     isPublic: true,
@@ -230,14 +227,41 @@ export function DeviceInfoCard({id}: { id: string }) {
                                         <FormItem>
                                             <FormLabel className="flex items-center gap-2"><MapPin
                                                 className="h-3.5 w-3.5"/> Location</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}
-                                                    disabled={!isEditing}>
-                                                <FormControl><SelectTrigger className={!isEditing ? "bg-muted/50" : ""}><SelectValue
-                                                    placeholder="Select location"/></SelectTrigger></FormControl>
+                                            <Select
+                                                onValueChange={(combinedValue) => {
+                                                    const [type, id] = combinedValue.split("|");
+
+                                                    form.setValue("locationId", id);
+                                                    form.setValue("locationType", Number(type));
+
+                                                    form.trigger(["locationId", "locationType"]);
+                                                }}
+                                                defaultValue={field.value}>
+                                                <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="From..." /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {rooms.map(room => (
-                                                        <SelectItem key={room.roomId}
-                                                                    value={room.roomId}>{room.roomName} ({room.floorName})</SelectItem>
+                                                    {buildings.map(building => (
+                                                        <SelectGroup key={building.buildingId}>
+                                                            {/* Mục chọn cho chính tòa nhà */}
+                                                            <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                                {building.buildingName}
+                                                            </SelectItem>
+
+                                                            {building.floors?.map(floor => (
+                                                                <React.Fragment key={floor.floorId}>
+                                                                    {/* Mục chọn cho tầng */}
+                                                                    <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                        {floor.floorName}
+                                                                    </SelectItem>
+
+                                                                    {/* Mục chọn cho phòng */}
+                                                                    {floor.rooms?.map(room => (
+                                                                        <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                            {room.roomName}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </React.Fragment>
+                                                            ))}
+                                                        </SelectGroup>
                                                     ))}
                                                 </SelectContent>
                                             </Select>

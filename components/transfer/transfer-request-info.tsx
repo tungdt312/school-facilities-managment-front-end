@@ -21,9 +21,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TransferRequestResponse } from '@/dtos/transfer'
-import { VoucherStatus } from '@/constaints/enum'
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum'
 import { formatISODate } from '@/lib/utils'
 import { MOCK_TRANSFER_REQUESTS } from '@/components/mock-data/transfer-data'
+import {getImportRequestById, putImportRequestStatus} from "@/services/importService";
+import {getTransferRequestById, putTransferRequestStatus} from "@/services/transferService";
 
 interface TransferRequestInfoCardProps {
     id: string
@@ -37,18 +39,15 @@ export const TransferRequestInfoCard = ({ id }: TransferRequestInfoCardProps) =>
     const fetchDetail = async () => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 600))
-            const data = MOCK_TRANSFER_REQUESTS.find(r => r.requestId === id)
-            if (data) {
-                setRequest(data)
-            }
+            const res = await getTransferRequestById(id)
+            setRequest(res)
         } catch (error) {
-            toast.error("Failed to load transfer request details")
+            toast.error("Failed to fetch transfer request details")
         } finally {
             setLoading(false)
         }
     }
-
+    // 2. Fetch data và reset form
     useEffect(() => {
         fetchDetail()
     }, [id])
@@ -56,9 +55,8 @@ export const TransferRequestInfoCard = ({ id }: TransferRequestInfoCardProps) =>
     const handleUpdateStatus = async (newStatus: VoucherStatus) => {
         setUpdating(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 800))
-            setRequest(prev => prev ? { ...prev, status: newStatus } : null)
-            toast.success(`Request ${newStatus === VoucherStatus.Approved ? 'approved' : 'rejected'} successfully`)
+            const res = await putTransferRequestStatus(id, {status: newStatus})
+            toast.success(`Request marked as ${VoucherStatusLabel[newStatus]}`)
         } catch (error) {
             toast.error("Update failed")
         } finally {
@@ -106,7 +104,7 @@ export const TransferRequestInfoCard = ({ id }: TransferRequestInfoCardProps) =>
                             request.status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 "bg-red-500 hover:bg-red-600"
                     }>
-                        {request.status}
+                        {VoucherStatusLabel[request.status]}
                     </Badge>
                 </div>
             </CardHeader>

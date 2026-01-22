@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { CreateImportRequestRequest } from '@/dtos/import'
+import {postImportRequest} from "@/services/importService";
 
 // Validation Schema
 const importRequestSchema = z.object({
@@ -68,9 +69,7 @@ export const CreateImportRequestDialog = () => {
         setLoading(true)
         try {
             console.log("Submitting Import Request:", data)
-            // Simulated API Call
-            await new Promise(resolve => setTimeout(resolve, 1000))
-
+            const res = await postImportRequest(data)
             toast.success("Procurement request submitted successfully")
             setOpen(false)
             form.reset()
@@ -142,7 +141,7 @@ export const CreateImportRequestDialog = () => {
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
                                     <div key={field.id} className="grid grid-cols-12 gap-3 items-start p-4 rounded-xl border bg-slate-50/50">
-                                        <div className="col-span-12 md:col-span-6">
+                                        <div className="col-span-12 md:col-span-5">
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.equipmentName`}
@@ -157,7 +156,7 @@ export const CreateImportRequestDialog = () => {
                                                 )}
                                             />
                                         </div>
-                                        <div className="col-span-6 md:col-span-2">
+                                        <div className="col-span-6 md:col-span-3">
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.quantity`}
@@ -166,8 +165,8 @@ export const CreateImportRequestDialog = () => {
                                                         <FormLabel>Quantity</FormLabel>
                                                         <FormControl>
                                                             <div className="relative">
-                                                                <Calculator className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
-                                                                <Input type="number" className="pl-8" {...field} />
+                                                                <Input type="number" {...field}
+                                                                       onChange={(e) => field.onChange(e.target.valueAsNumber)}/>
                                                             </div>
                                                         </FormControl>
                                                         <FormMessage />

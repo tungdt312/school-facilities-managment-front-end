@@ -29,12 +29,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import {useCurrentUser} from "@/hooks/use-user";
+import {UserRole, UserRoleLabel} from "@/constaints/enum";
 
 const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
     {
@@ -46,59 +47,59 @@ const data = {
   userMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/user",
       icon: IconDashboard,
     },
     {
       title: "Devices Borrow",
-      url: "/borrow",
+      url: "/user/borrow",
       icon: IconFile3d
     },
     {
       title: "Room Booking",
-      url: "/booking",
+      url: "/user/booking",
       icon: IconFileTime
     },
     {
-      title: "Maintenance",
-      url: "/maintenance",
+      title: "Devices Maintenance",
+      url: "/user/maintenance",
       icon: IconDevicesCog
     },
     {
-      title: "Repair",
-      url: "/repair",
+      title: "Devices Repair",
+      url: "/user/repair",
       icon: IconTool
     },
   ],
   employeeMain: [
     {
       title: "Dashboard",
-      url: "/dashboard",
+      url: "/user",
       icon: IconDashboard,
     },
     {
       title: "Devices Transfer",
-      url: "/transfer",
+      url: "/user/transfer",
       icon: IconTransfer
     },
     {
       title: "Devices Borrow",
-      url: "/borrow",
+      url: "/user/borrow",
       icon: IconFile3d
     },
     {
       title: "Room Booking",
-      url: "/booking",
+      url: "/user/booking",
       icon: IconFileTime
     },
     {
       title: "Devices Maintenance",
-      url: "/maintenance",
+      url: "/user/maintenance",
       icon: IconDevicesCog
     },
     {
       title: "Devices Repair",
-      url: "/repair",
+      url: "/user/repair",
       icon: IconTool
     },
   ],
@@ -196,6 +197,9 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const {role, fullname, email} = useCurrentUser()
+  console.log(fullname, email, role)
+  if (role === undefined) return;
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -214,16 +218,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/*<NavMain items={data.userMain} />*/}
-        {/*<NavMain items={data.employeeMain} />*/}
-        <NavDocuments name={"User Management"} items={data.users} />
-        <NavDocuments name={"Facilites Management"} items={data.managements} />
-        <NavDocuments name={"Other Management"} items={data.other} />
+        {role === UserRole.DepartmentHead && <NavMain items={data.navMain}/>}
+        {role === UserRole.DepartmentHead && <NavDocuments name={"User Management"} items={data.users}/>}
+        {(role === UserRole.DepartmentHead || role === UserRole.FacilityManager) && <NavDocuments name={"Facilites Management"} items={data.managements}/>}
+        {(role === UserRole.DepartmentHead || role === UserRole.FacilityManager) && <NavDocuments name={"Other Management"} items={data.other}/>}
+        {(role === UserRole.Student || role === UserRole.Lecturer) && <NavMain items={data.userMain}/>}
+
+        {role === UserRole.Department &&<NavMain items={data.employeeMain}/>}
+
+
         {/*<NavSecondary items={data.navSecondary} className="mt-auto" />*/}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser fullname={fullname || "user"} email={email || "email@gmail.com"} />
       </SidebarFooter>
     </Sidebar>
   )

@@ -1,14 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, {useEffect, useState} from 'react'
+import {useFieldArray, useForm} from 'react-hook-form'
+import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {
-    Plus, Trash2, Calendar, User, FileText,
-    Loader2, Package, CheckCircle2
-} from 'lucide-react'
-import { toast } from 'sonner'
+import {Calendar, CheckCircle2, FileText, Loader2, Package, Plus, Trash2, User} from 'lucide-react'
+import {toast} from 'sonner'
 
 import {
     Dialog,
@@ -19,21 +16,16 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { CreateBorrowRequest } from '@/dtos/borrow'
+import {Button} from "@/components/ui/button"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form"
+import {Input} from "@/components/ui/input"
+import {Textarea} from "@/components/ui/textarea"
+import {CreateBorrowRequest} from '@/dtos/borrow'
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import { MOCK_DEVICES } from '../mock-data/devices-data'
 import {postBorrow} from "@/services/borrowService";
+import {DeviceResponse} from "@/dtos/device";
+import {PageRequest} from "@/dtos/base";
+import {getDevicesList} from "@/services/deviceService";
 
 // Validation Schema
 const borrowSchema = z.object({
@@ -49,18 +41,37 @@ type FormValues = z.infer<typeof borrowSchema>
 export const CreateBorrowVoucherDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [devices, setDevices] = useState<DeviceResponse[]>([])
 
+    const fetchDevices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getDevicesList(req)
+            setDevices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices data");
+            setDevices([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    }, []);
     const form = useForm<FormValues>({
         resolver: zodResolver(borrowSchema),
         defaultValues: {
             borrowerId: '',
             note: '',
             returnDate: '',
-            details: [{ equipmentId: '', note: '' }]
+            details: [{equipmentId: '', note: ''}]
         }
     })
 
-    const { fields, append, remove } = useFieldArray({
+    const {fields, append, remove} = useFieldArray({
         control: form.control,
         name: "details"
     })
@@ -90,7 +101,7 @@ export const CreateBorrowVoucherDialog = () => {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <Package className="h-6 w-6 text-blue-600" />
+                        <Package className="h-6 w-6 text-blue-600"/>
                         New Borrow Voucher
                     </DialogTitle>
                     <DialogDescription>
@@ -105,30 +116,30 @@ export const CreateBorrowVoucherDialog = () => {
                             <FormField
                                 control={form.control}
                                 name="borrowerId"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
                                         <FormLabel className="flex items-center gap-2">
-                                            <User className="h-3.5 w-3.5" /> Borrower ID
+                                            <User className="h-3.5 w-3.5"/> Borrower ID
                                         </FormLabel>
                                         <FormControl>
                                             <Input placeholder="EMP-12345" {...field} />
                                         </FormControl>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
                                 name="returnDate"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
                                         <FormLabel className="flex items-center gap-2">
-                                            <Calendar className="h-3.5 w-3.5" /> Expected Return
+                                            <Calendar className="h-3.5 w-3.5"/> Expected Return
                                         </FormLabel>
                                         <FormControl>
                                             <Input type="date" {...field} />
                                         </FormControl>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
@@ -137,10 +148,10 @@ export const CreateBorrowVoucherDialog = () => {
                         <FormField
                             control={form.control}
                             name="note"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
                                     <FormLabel className="flex items-center gap-2">
-                                        <FileText className="h-3.5 w-3.5" /> Note
+                                        <FileText className="h-3.5 w-3.5"/> Note
                                     </FormLabel>
                                     <FormControl>
                                         <Textarea
@@ -149,7 +160,7 @@ export const CreateBorrowVoucherDialog = () => {
                                             {...field}
                                         />
                                     </FormControl>
-                                    <FormMessage />
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -164,61 +175,66 @@ export const CreateBorrowVoucherDialog = () => {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({ equipmentId: '', note: '' })}
+                                    onClick={() => append({equipmentId: '', note: ''})}
                                     className="h-8 gap-1"
                                 >
-                                    <Plus className="h-3.5 w-3.5" /> Add Item
+                                    <Plus className="h-3.5 w-3.5"/> Add Item
                                 </Button>
                             </div>
 
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-3 items-start p-3 rounded-lg border bg-slate-50/50">
+                                    <div key={field.id}
+                                         className="flex gap-3 items-start p-3 rounded-lg border bg-slate-50/50">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1">
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.equipmentId`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem className="flex-1">
                                                         <Select
                                                             onValueChange={(val) => {
                                                                 field.onChange(val);
                                                                 // Automatically set the equipment name for the UI
-                                                                const device = MOCK_DEVICES.find(d => d.equipmentId === val);
+                                                                const device = devices.find(d => d.equipmentId === val);
                                                                 form.setValue(`details.${index}.equipmentId`, device?.equipmentId || "");
                                                             }}
                                                             defaultValue={field.value}
                                                         >
                                                             <FormControl>
                                                                 <SelectTrigger className="bg-white">
-                                                                    <SelectValue placeholder="Select existing device..." />
+                                                                    <SelectValue
+                                                                        placeholder="Select existing device..."/>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
                                                                 {/* Filter to show only available devices if needed */}
-                                                                {MOCK_DEVICES.map((device) => (
-                                                                    <SelectItem key={device.equipmentId} value={device.equipmentId}>
+                                                                {devices.map((device) => (
+                                                                    <SelectItem key={device.equipmentId}
+                                                                                value={device.equipmentId}>
                                                                         <div className="flex flex-col items-start">
-                                                                            <span className="font-medium">{device.equipmentName}</span>
-                                                                            <span className="text-[10px] text-muted-foreground">{device.equipmentId}</span>
+                                                                            <span
+                                                                                className="font-medium">{device.equipmentName}</span>
+                                                                            <span
+                                                                                className="text-[10px] text-muted-foreground">{device.equipmentId}</span>
                                                                         </div>
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-                                                        <FormMessage />
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.note`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem>
                                                         <FormControl>
                                                             <Input placeholder="Condition/Item note" {...field} />
                                                         </FormControl>
-                                                        <FormMessage />
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
@@ -231,7 +247,7 @@ export const CreateBorrowVoucherDialog = () => {
                                                 className="text-destructive hover:text-red-700 hover:bg-red-50"
                                                 onClick={() => remove(index)}
                                             >
-                                                <Trash2 className="h-4 w-4" />
+                                                <Trash2 className="h-4 w-4"/>
                                             </Button>
                                         )}
                                     </div>
@@ -255,9 +271,9 @@ export const CreateBorrowVoucherDialog = () => {
                             </Button>
                             <Button type="submit" disabled={loading} className="gap-2 px-8">
                                 {loading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <Loader2 className="h-4 w-4 animate-spin"/>
                                 ) : (
-                                    <CheckCircle2 className="h-4 w-4" />
+                                    <CheckCircle2 className="h-4 w-4"/>
                                 )}
                                 Create Voucher
                             </Button>

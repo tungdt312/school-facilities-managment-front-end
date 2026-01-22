@@ -47,14 +47,15 @@ import {CreateBorrowVoucherDialog} from "@/components/borrow/create-borrow-dialo
 import {PageRequest} from "@/dtos/base";
 import {getBorrowList} from "@/services/borrowService";
 import {toast} from "sonner";
+import {useCurrentUser} from "@/hooks/use-user";
 
-export const BorrowVoucherTable = () => {
+export const BorrowVoucherTable = ({isUser}: {isUser?: boolean}) => {
     const [data, setData] = useState<BorrowVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStatuses, setSelectedStatuses] = useState<BorrowStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -193,11 +194,17 @@ export const BorrowVoucherTable = () => {
         {
             id: "action",
             header: "",
-            cell: ({ row }) => (
-                <Link href={`/borrow/${row.original.borrowId}`}>
-                    <ExternalLink className="text-muted-foreground size-4 hover:text-primary transition-colors" />
-                </Link>
-            ),
+            cell: ({row}) => {
+                // Check if isUser is true and bookingId exists
+                if (!isUser) {
+                    return (
+                        <Link href={`/borrow/${row.original.borrowId}`}>
+                            <ExternalLink className="text-muted-foreground size-4"/>
+                        </Link>
+                    );
+                }
+                return null; // Explicitly return null if condition isn't met
+            },
         },
     ], [selectedStatuses]);
     const fetchData = async () => {
@@ -212,6 +219,12 @@ export const BorrowVoucherTable = () => {
                     filterQuery += `&`
                 }
                 filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            if (isUser) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `BorrowerId==${useCurrentUser().userId}`
             }
             const req: PageRequest = {
                 page: pagination.pageIndex,
@@ -247,14 +260,17 @@ export const BorrowVoucherTable = () => {
         getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.borrowId,
     });
-
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     return (
         <div className="w-full space-y-4">
             <div className="flex flex-col md:flex-row items-center gap-2 w-full">
                 <Input
-                    placeholder="Search Borrow ID or Borrower..."
+                    placeholder="Search Borrower..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     className="h-9 w-full max-w-sm"
                 />
                 <div className="ml-auto flex items-center gap-2">

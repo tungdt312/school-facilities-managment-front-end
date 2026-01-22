@@ -1,14 +1,11 @@
 "use client"
 
-import React, { useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, {useEffect, useState} from 'react'
+import {useFieldArray, useForm} from 'react-hook-form'
+import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {
-    Plus, Trash2, Receipt, Hash, Loader2,
-    CheckCircle2, ClipboardList, Gavel
-} from 'lucide-react'
-import { toast } from 'sonner'
+import {CheckCircle2, Hash, Loader2, Plus, Receipt, Trash2} from 'lucide-react'
+import {toast} from 'sonner'
 
 import {
     Dialog,
@@ -19,19 +16,18 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MOCK_LIQUIDATE_REQUESTS } from "@/components/mock-data/liquidates-data"
-import {MOCK_DEVICES} from "@/components/mock-data/devices-data";
+import {Button} from "@/components/ui/button"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form"
+import {Input} from "@/components/ui/input"
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
+import {ImportRequestResponse} from "@/dtos/import";
+import {PageRequest} from "@/dtos/base";
+import {VoucherStatus} from "@/constaints/enum";
+import {getImportRequestsList} from "@/services/importService";
+import {postLiquidateVoucher} from "@/services/disposalService";
+import {CreateLiquidateVoucherRequest} from "@/dtos/liquidate";
+import {DeviceResponse} from "@/dtos/device";
+import {getDevicesList} from "@/services/deviceService";
 
 const liquidateVoucherSchema = z.object({
     requestId: z.string().min(1, "Reference Request ID is required"),
@@ -42,29 +38,68 @@ const liquidateVoucherSchema = z.object({
     })).min(1, "At least one item must be included")
 })
 
-export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequestId?: string }) => {
+export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultRequestId?: string }) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [requests, setRequests] = useState<ImportRequestResponse[]>([])
+    const [devices, setDevices] = useState<DeviceResponse[]>([])
 
+    const fetchDevices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getDevicesList(req)
+            setDevices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices data");
+            setDevices([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    }, []);
+    const fetchRequests = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+                filter: `Status==${VoucherStatus.Approved}`,
+            }
+            const res = await getImportRequestsList(req)
+            setRequests(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load procurement request data");
+            setRequests([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchRequests()
+    }, []);
     const form = useForm<z.infer<typeof liquidateVoucherSchema>>({
         resolver: zodResolver(liquidateVoucherSchema),
         defaultValues: {
             requestId: defaultRequestId || '',
             invoiceId: '',
-            details: [{ equipmentId: '', note: '' }]
+            details: [{equipmentId: '', note: ''}]
         }
     })
 
-    const { fields, append, remove } = useFieldArray({
+    const {fields, append, remove} = useFieldArray({
         control: form.control,
         name: "details"
     })
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: CreateLiquidateVoucherRequest) => {
         setLoading(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            toast.success("Liquidation voucher finalized")
+            const res = await postLiquidateVoucher(data)
+            toast.success("Liquidation voucher created successfully")
             setOpen(false)
             form.reset()
         } catch (error) {
@@ -83,7 +118,7 @@ export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequ
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                        <Receipt className="h-6 w-6 text-slate-700" />
+                        <Receipt className="h-6 w-6 text-slate-700"/>
                         Finalize Disposal
                     </DialogTitle>
                     <DialogDescription>Record the final disposal or sale receipt of the equipment.</DialogDescription>
@@ -95,29 +130,36 @@ export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequ
                             <FormField
                                 control={form.control}
                                 name="requestId"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
-                                        <FormLabel className="flex items-center gap-2"><Hash className="h-3.5 w-3.5" /> Approved Request</FormLabel>
+                                        <FormLabel className="flex items-center gap-2"><Hash
+                                            className="h-3.5 w-3.5"/> Approved Request</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Select Request" /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger><SelectValue
+                                                placeholder="Select Request"/></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                {MOCK_LIQUIDATE_REQUESTS.map((req) => (
-                                                    <SelectItem key={req.requestId} value={req.requestId}>{req.requestId}</SelectItem>
+                                                {requests.map((req) => (
+                                                    <SelectItem key={req.requestId} value={req.requestId}>
+                                                        <span
+                                                            className={"text-muted-foreground tetx-xs"}>{req.requestId}</span>
+                                                        <span>({req.createdByName})</span>
+                                                    </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
                                 name="invoiceId"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
-                                        <FormLabel className="flex items-center gap-2"><Receipt className="h-3.5 w-3.5" /> Disposal Receipt ID</FormLabel>
+                                        <FormLabel className="flex items-center gap-2"><Receipt
+                                            className="h-3.5 w-3.5"/> Disposal Receipt ID</FormLabel>
                                         <FormControl><Input placeholder="REC-999-DISP" {...field} /></FormControl>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
@@ -126,36 +168,40 @@ export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequ
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b pb-2">
                                 <h3 className="text-sm font-bold ">Disposal Items</h3>
-                                <Button type="button" variant="outline" size="sm" onClick={() => append({ equipmentId: '', note: '' })} className="h-8 gap-1">
-                                    <Plus className="h-3.5 w-3.5" /> Add Item
+                                <Button type="button" variant="outline" size="sm"
+                                        onClick={() => append({equipmentId: '', note: ''})} className="h-8 gap-1">
+                                    <Plus className="h-3.5 w-3.5"/> Add Item
                                 </Button>
                             </div>
 
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
-                                    <div key={field.id} className="grid grid-cols-12 gap-3 items-start p-4 rounded-xl border bg-slate-50/50">
+                                    <div key={field.id}
+                                         className="grid grid-cols-12 gap-3 items-start p-4 rounded-xl border bg-slate-50/50">
                                         <div className="col-span-12 md:col-span-5">
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.equipmentId`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Select Device</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <Select onValueChange={field.onChange}
+                                                                defaultValue={field.value}>
                                                             <FormControl>
                                                                 <SelectTrigger>
-                                                                    <SelectValue placeholder="Search equipment..." />
+                                                                    <SelectValue placeholder="Search equipment..."/>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {MOCK_DEVICES.map((d) => (
-                                                                    <SelectItem key={d.equipmentId} value={d.equipmentId}>
+                                                                {devices.map((d) => (
+                                                                    <SelectItem key={d.equipmentId}
+                                                                                value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-                                                        <FormMessage />
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
@@ -164,18 +210,21 @@ export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequ
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.note`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Note</FormLabel>
-                                                        <FormControl><Input placeholder="Sold for parts / Scrapped" {...field} /></FormControl>
-                                                        <FormMessage />
+                                                        <FormControl><Input
+                                                            placeholder="Sold for parts / Scrapped" {...field} /></FormControl>
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
                                         </div>
                                         <div className="col-span-1 flex justify-end pt-7">
-                                            <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)} disabled={fields.length === 1}>
-                                                <Trash2 className="h-4 w-4" />
+                                            <Button type="button" variant="ghost" size="icon"
+                                                    className="text-destructive" onClick={() => remove(index)}
+                                                    disabled={fields.length === 1}>
+                                                <Trash2 className="h-4 w-4"/>
                                             </Button>
                                         </div>
                                     </div>
@@ -186,7 +235,8 @@ export const CreateLiquidateVoucherDialog = ({ defaultRequestId }: { defaultRequ
                         <DialogFooter className="pt-6 border-t">
                             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
                             <Button type="submit" disabled={loading} className="gap-2 ">
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin"/> :
+                                    <CheckCircle2 className="h-4 w-4"/>}
                                 Finalize Voucher
                             </Button>
                         </DialogFooter>

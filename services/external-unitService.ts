@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateExternalUnitRequest, UpdateExternalUnitRequest, ExternalUnitResponse } from '@/dtos/other';
 
-const ENDPOINT = '/api/v1/externalUnits';
+const ENDPOINT = '/externalUnits';
 
 /**
  * Lấy danh sách đơn vị ngoài (có phân trang)

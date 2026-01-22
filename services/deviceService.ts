@@ -16,7 +16,7 @@ export async function getDeviceById(id: string): Promise<DeviceResponse> {
 export async function getDevicesList(page?: PageRequest): Promise<PageV0<DeviceResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/equipments/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/equipments?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

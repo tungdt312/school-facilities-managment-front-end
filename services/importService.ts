@@ -24,7 +24,7 @@ export async function getImportRequestById(id: string): Promise<ImportRequestRes
 export async function getImportRequestsList(page?: PageRequest): Promise<PageV0<ImportRequestResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/import-requests/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/import-requests?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -74,7 +74,7 @@ export async function getImportRequestDetailById(id: string): Promise<ImportRequ
 export async function getImportRequestDetailsList(page?: PageRequest): Promise<PageV0<ImportRequestDetailResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/import-request-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/import-request-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -122,7 +122,7 @@ export async function getImportVoucherById(id: string): Promise<ImportVoucherRes
 export async function getImportVouchersList(page?: PageRequest): Promise<PageV0<ImportVoucherResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/import-vouchers/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/import-vouchers?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -171,7 +171,7 @@ export async function getImportVoucherDetailById(id: string): Promise<ImportVouc
 export async function getImportVoucherDetailsList(page?: PageRequest): Promise<PageV0<ImportVoucherDetailResponse>> {
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/import-voucher-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/import-voucher-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

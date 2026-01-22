@@ -49,7 +49,7 @@ import {toast} from "sonner";
 import {getDevicesList} from "@/services/deviceService";
 
 // Hàm format số có dấu ngăn cách hàng nghìn như bạn yêu cầu trước đó
-export const DeviceTable = ({locationId}: { locationId: string }) => {
+export const DeviceTable = ({locationId, locationType}: { locationId?: string, locationType?: LocationType }) => {
     const [data, setData] = useState<DeviceResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
@@ -57,7 +57,7 @@ export const DeviceTable = ({locationId}: { locationId: string }) => {
     const [selectedStatuses, setSelectedStatuses] = useState<DeviceStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -209,16 +209,22 @@ export const DeviceTable = ({locationId}: { locationId: string }) => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            let filterQuery = "";
+            const parts = [];
+
             if (debouncedSearch) {
-                filterQuery += `EquipmentName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+                parts.push(`EquipmentName=~${debouncedSearch}`);
             }
-            if (selectedStatuses.length > 0) {
-                if (debouncedSearch) {
-                    filterQuery += `&`
-                }
-                filterQuery += `Status==${selectedStatuses.join(",=")}`
+
+            if (selectedStatuses?.length > 0) {
+                parts.push(`Status==${selectedStatuses.join(",=")}`);
             }
+
+            if (locationType && locationId) {
+                parts.push(`LocationType==${locationType}`);
+                parts.push(`LocationId==${locationId}`);
+            }
+
+            const filterQuery = parts.join("&");
             const req: PageRequest = {
                 page: pagination.pageIndex,
                 size: pagination.pageSize,

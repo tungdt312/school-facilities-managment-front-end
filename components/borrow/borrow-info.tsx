@@ -16,6 +16,9 @@ import {BorrowVoucherResponse} from '@/dtos/borrow'
 import {BorrowStatus, BorrowStatusLabel, DeviceStatus} from '@/constaints/enum'
 import {formatISODate} from '@/lib/utils'
 import {approveBorrow, getBorrowById} from "@/services/borrowService";
+import {DeviceResponse} from "@/dtos/device";
+import {PageRequest} from "@/dtos/base";
+import {getDevicesList} from "@/services/deviceService";
 
 const borrowSchema = z.object({
     status: z.number().min(0, "Status is required"),

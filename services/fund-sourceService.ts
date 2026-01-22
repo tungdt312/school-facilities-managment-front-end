@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateFundSourceRequest, UpdateFundSourceRequest, FundSourceResponse } from '@/dtos/other';
 
-const ENDPOINT = '/api/v1/fund-sources';
+const ENDPOINT = '/fund-sources';
 
 /**
  * Lấy danh sách nguồn kinh phí (có phân trang)

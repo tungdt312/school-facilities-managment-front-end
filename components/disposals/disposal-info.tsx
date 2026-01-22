@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { LiquidateVoucherResponse } from '@/dtos/liquidate'
 import { formatISODate, formatNumber } from '@/lib/utils'
 import { MOCK_LIQUIDATE_VOUCHERS } from '@/components/mock-data/liquidates-data'
+import {getLiquidateVoucherById} from "@/services/disposalService";
 
 interface LiquidateVoucherInfoCardProps {
     id: string
@@ -28,11 +29,8 @@ export const LiquidateVoucherInfoCard = ({ id }: LiquidateVoucherInfoCardProps) 
             setLoading(true)
             try {
                 // Simulating API call
-                await new Promise(resolve => setTimeout(resolve, 600))
-                const data = MOCK_LIQUIDATE_VOUCHERS.find(v => v.liquidateId === id)
-                if (data) {
-                    setVoucher(data)
-                }
+                const res = await getLiquidateVoucherById(id)
+                setVoucher(res)
             } catch (error) {
                 toast.error("Failed to load liquidation voucher details")
             } finally {

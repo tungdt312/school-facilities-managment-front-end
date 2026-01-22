@@ -4,7 +4,7 @@ import React, {useEffect, useState} from 'react'
 import {useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import {Activity, DoorOpen, Layers, Loader2, Pencil, Save, Users, X} from 'lucide-react'
+import {Activity, DoorOpen, FileText, Layers, Loader2, Pencil, Save, Users, X} from 'lucide-react'
 import {toast} from 'sonner'
 
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
@@ -12,17 +12,21 @@ import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select"
-import {RoomResponse} from "@/dtos/building"
+import {RoomResponse, RoomTypeResponse} from "@/dtos/building"
 import {MOCK_BUILDINGS, MOCK_ROOM_TYPES} from "@/components/mock-data/areas-data"
 import Link from "next/link";
 import {getFloorById, getRoomById, putFloor, putRoom} from "@/services/areaService";
 import {BookingStatus, RoomStatus, RoomStatusLabel, UserRole, UserRoleLabel} from "@/constaints/enum";
+import {PageRequest} from "@/dtos/base";
+import {getRoomTypes} from "@/services/room-typeService";
+import {Textarea} from "@/components/ui/textarea";
 
 const roomSchema = z.object({
     roomName: z.string().min(1, "Room name is required"),
     roomTypeId: z.string().min(1, "Type is required"),
     capacity: z.number().min(1, "Capacity must be at least 1"),
     status: z.number().min(0, "Status is required"),
+    note: z.string().optional(),
 })
 
 type RoomFormValues = z.infer<typeof roomSchema>
@@ -31,7 +35,25 @@ export function RoomInfoCard({id}: { id: string }) {
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
     const [room, setRoom] = useState<RoomResponse | undefined>(undefined)
+    const [roomTypes, setRoomTypes] = useState<RoomTypeResponse[]>([])
+    const fetchRoomTypes = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getRoomTypes(req);
+            setRoomTypes(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load room type data");
+            setRoomTypes([]);
+        }
 
+    }
+    useEffect(() => {
+        fetchRoomTypes()
+    }, []);
     const form = useForm<RoomFormValues>({
         resolver: zodResolver(roomSchema),
         defaultValues: {
@@ -67,7 +89,7 @@ export function RoomInfoCard({id}: { id: string }) {
     const onSubmit = async (values: RoomFormValues) => {
         setLoading(true)
         try {
-            const res = await putRoom(values, id)
+            const res = await putRoom({floorId: room?.floorId,...values}, id)
             toast.success("Room updated successfully")
             setIsEditing(false)
         } catch (error) {
@@ -117,7 +139,7 @@ export function RoomInfoCard({id}: { id: string }) {
                                 <div className="text-center">
                                     <span
                                         className="text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded">
-                                        {room.roomTypeName}
+                                        {room.typeName}
                                     </span>
                                     <h3 className="font-bold text-xl mt-1">{form.getValues("roomName")}</h3>
                                     <Link href={`/areas/floor/${room?.floorId}`}
@@ -153,7 +175,7 @@ export function RoomInfoCard({id}: { id: string }) {
                                                         disabled={!isEditing}>
                                                     <FormControl><SelectTrigger><SelectValue placeholder="Select type"/></SelectTrigger></FormControl>
                                                     <SelectContent>
-                                                        {MOCK_ROOM_TYPES.map((type) => (
+                                                        {roomTypes.map((type) => (
                                                             <SelectItem key={type.roomTypeId} value={type.roomTypeId}>
                                                                 {type.typeName}
                                                             </SelectItem>
@@ -171,7 +193,7 @@ export function RoomInfoCard({id}: { id: string }) {
                                             <FormItem>
                                                 <FormLabel className="flex items-center gap-2"><Users
                                                     className="h-3.5 w-3.5"/> Capacity</FormLabel>
-                                                <FormControl><Input type="number" {...field} disabled={!isEditing}
+                                                <FormControl><Input type="number" {...field} onChange={(e) => field.onChange(e.target.valueAsNumber)} disabled={!isEditing}
                                                                     className={!isEditing ? "bg-muted/50" : ""}/></FormControl>
                                                 <FormMessage/>
                                             </FormItem>
@@ -202,6 +224,26 @@ export function RoomInfoCard({id}: { id: string }) {
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage/>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="note"
+                                        disabled={!isEditing}
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="flex items-center gap-2">
+                                                    <FileText className="h-3.5 w-3.5" /> Note
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Note..."
+                                                        className="resize-none"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />

@@ -24,7 +24,7 @@ export async function getTransferRequestById(id: string): Promise<TransferReques
 }
 
 export async function getTransferRequestsList(page?: PageRequest): Promise<PageV0<TransferRequestResponse>> {
-    const res = await apiFetch(`/transfer-requests/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/transfer-requests?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -73,7 +73,7 @@ export async function getTransferRequestDetailById(id: string): Promise<Transfer
 }
 
 export async function getTransferRequestDetailsList(page?: PageRequest): Promise<PageV0<TransferRequestDetailResponse>> {
-    const res = await apiFetch(`/transfer-request-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/transfer-request-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -122,7 +122,7 @@ export async function getTransferVoucherById(id: string): Promise<TransferVouche
 }
 
 export async function getTransferVouchersList(page?: PageRequest): Promise<PageV0<TransferVoucherResponse>> {
-    const res = await apiFetch(`/transfer-vouchers/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/transfer-vouchers?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -171,7 +171,7 @@ export async function getTransferVoucherDetailById(id: string): Promise<Transfer
 }
 
 export async function getTransferVoucherDetailsList(page?: PageRequest): Promise<PageV0<TransferVoucherDetailResponse>> {
-    const res = await apiFetch(`/transfer-voucher-detail/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/transfer-voucher-detail?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

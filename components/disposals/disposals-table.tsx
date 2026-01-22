@@ -38,10 +38,14 @@ import {
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
 import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import {formatISODate, formatNumber} from "@/lib/utils";
+import {formatISODate, formatNumber, getSortString} from "@/lib/utils";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {MOCK_LIQUIDATE_REQUESTS, MOCK_LIQUIDATE_VOUCHERS} from "@/components/mock-data/liquidates-data";
 import {CreateLiquidateVoucherDialog} from "@/components/disposals/create-disposal-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportVouchersList} from "@/services/importService";
+import {toast} from "sonner";
+import {getLiquidateVouchersList} from "@/services/disposalService";
 
 // Giả định interface dựa trên Mock Data của bạn
 interface LiquidateVoucherResponse {
@@ -63,7 +67,7 @@ export const LiquidateVoucherTable = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
+    const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -171,25 +175,37 @@ export const LiquidateVoucherTable = () => {
 
     // Logic xử lý dữ liệu (Search filter)
     const fetchData = async () => {
-        setIsLoading(true);
         try {
-            let filtered = [...MOCK_LIQUIDATE_VOUCHERS];
+            setIsLoading(true);
+            let filterQuery = "";
             if (debouncedSearch) {
-                filtered = filtered.filter(d =>
-                    d.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                    d.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase())
-                );
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
             }
-            setData(filtered);
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getLiquidateVouchersList(req)
+            setData(res.content)
+            console.log(res)
+
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load disposal voucher data");
+            setData([]);
         } finally {
             setIsLoading(false);
         }
-    };
-
+    }
     useEffect(() => {
-        fetchData();
-    }, [debouncedSearch]);
-
+        fetchData()
+    }, [debouncedSearch, sorting]);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     const table = useReactTable({
         data,
         columns,
@@ -210,7 +226,7 @@ export const LiquidateVoucherTable = () => {
                     <Input
                         placeholder="Search Voucher, Invoice or Unit..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={handleSearchChange}
                         className="h-9 w-full"
                     />
                 </div>
@@ -308,14 +324,14 @@ export const LiquidateVoucherTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -324,7 +340,7 @@ export const LiquidateVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -333,7 +349,7 @@ export const LiquidateVoucherTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -341,8 +357,8 @@ export const LiquidateVoucherTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
@@ -350,6 +366,7 @@ export const LiquidateVoucherTable = () => {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }

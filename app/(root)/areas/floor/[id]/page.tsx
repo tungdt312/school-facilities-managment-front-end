@@ -1,5 +1,3 @@
-import {SidebarTrigger} from "@/components/ui/sidebar";
-import {Separator} from "@/components/ui/separator";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -7,12 +5,11 @@ import {
     BreadcrumbList,
     BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import {FloorTable} from "@/components/areas/floors-table";
 import React from "react";
 import {RoomTable} from "@/components/areas/rooms-table";
-import {BuildingInfoCard} from "@/components/areas/building-info";
 import {FloorInfoCard} from "@/components/areas/floor-info";
 import {DeviceTable} from "@/components/devices/devices-table";
+import {LocationType} from "@/constaints/enum";
 
 type PageProps = {
     params: Promise<{ id: string }>
@@ -31,7 +28,7 @@ export default async function Page({ params }: PageProps) {
                         <h2 className="text-lg font-medium text-slate-800">Rooms</h2>
                         <RoomTable floorId={id}/>
                         <h2 className="text-lg font-medium text-slate-800">Devices</h2>
-                        <DeviceTable locationId={id} />
+                        <DeviceTable locationId={id} locationType={LocationType.Floor} />
                     </div>
                 </div>
             </div>

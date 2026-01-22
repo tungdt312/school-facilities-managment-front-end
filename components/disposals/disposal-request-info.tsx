@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LiquidateRequestResponse } from '@/dtos/liquidate'
-import { VoucherStatus } from '@/constaints/enum'
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum'
 import { formatISODate } from '@/lib/utils'
 import { MOCK_LIQUIDATE_REQUESTS } from '@/components/mock-data/liquidates-data'
+import {getImportRequestById, putImportRequestStatus} from "@/services/importService";
+import {getLiquidateRequestById, putLiquidateRequestStatus} from "@/services/disposalService";
 
 interface LiquidateRequestInfoCardProps {
     id: string
@@ -30,14 +32,10 @@ export const LiquidateRequestInfoCard = ({ id }: LiquidateRequestInfoCardProps) 
         const fetchDetail = async () => {
             setLoading(true)
             try {
-                // Simulating API call
-                await new Promise(resolve => setTimeout(resolve, 600))
-                const data = MOCK_LIQUIDATE_REQUESTS.find(r => r.requestId === id)
-                if (data) {
-                    setRequest(data)
-                }
+                const res = await getLiquidateRequestById(id)
+                setRequest(res)
             } catch (error) {
-                toast.error("Failed to load liquidation request")
+                toast.error("Failed to fetch import request details")
             } finally {
                 setLoading(false)
             }
@@ -49,16 +47,10 @@ export const LiquidateRequestInfoCard = ({ id }: LiquidateRequestInfoCardProps) 
     const handleUpdateStatus = async (newStatus: VoucherStatus) => {
         setUpdating(true)
         try {
-            await new Promise(resolve => setTimeout(resolve, 800))
-            setRequest(prev => prev ? { ...prev, status: newStatus } : null)
-
-            if (newStatus === VoucherStatus.Approved) {
-                toast.success("Liquidation request approved")
-            } else {
-                toast.error("Liquidation request rejected")
-            }
+            const res = await putLiquidateRequestStatus(id, {status: newStatus})
+            toast.success(`Request marked as ${VoucherStatusLabel[newStatus]}`)
         } catch (error) {
-            toast.error("Action failed, please try again")
+            toast.error("Update failed")
         } finally {
             setUpdating(false)
         }
@@ -105,7 +97,7 @@ export const LiquidateRequestInfoCard = ({ id }: LiquidateRequestInfoCardProps) 
                             request.status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 "bg-red-500 hover:bg-red-600"
                     }>
-                        {request.status}
+                        {VoucherStatusLabel[request.status]}
                     </Badge>
                 </div>
             </CardHeader>

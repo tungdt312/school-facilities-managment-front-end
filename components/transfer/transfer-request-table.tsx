@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, {useEffect, useMemo, useState} from 'react'
 import {
     ColumnDef,
     flexRender,
@@ -10,9 +10,9 @@ import {
     useReactTable,
     VisibilityState
 } from '@tanstack/react-table';
-import { useDebounce } from '@/hooks/use-rebounce';
-import { Checkbox } from '../ui/checkbox';
-import { Button } from '../ui/button';
+import {useDebounce} from '@/hooks/use-rebounce';
+import {Checkbox} from '../ui/checkbox';
+import {Button} from '../ui/button';
 import {
     ArrowUpDown,
     Calendar,
@@ -28,32 +28,37 @@ import {
     MoveHorizontal,
     User
 } from 'lucide-react';
-import { Input } from '../ui/input';
+import {Input} from '../ui/input';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
-    DropdownMenuContent,
+    DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '../ui/dropdown-menu';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Badge } from "@/components/ui/badge";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from '../ui/table';
+import {Badge} from "@/components/ui/badge";
 import Link from "next/link";
-import { VoucherStatus } from '@/constaints/enum';
-import { TransferRequestResponse } from '@/dtos/transfer';
-import { MOCK_TRANSFER_REQUESTS } from "@/components/mock-data/transfer-data";
-import { formatISODate } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {VoucherStatus, VoucherStatusLabel} from '@/constaints/enum';
+import {TransferRequestResponse} from '@/dtos/transfer';
+import {MOCK_TRANSFER_REQUESTS} from "@/components/mock-data/transfer-data";
+import {formatISODate, getSortString} from "@/lib/utils";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {CreateTransferRequestDialog} from "@/components/transfer/create-transfer-request-dialog";
+import {PageRequest} from "@/dtos/base";
+import {getImportRequestsList} from "@/services/importService";
+import {toast} from "sonner";
+import {getTransferRequestsList} from '@/services/transferService';
+import {useCurrentUser} from "@/hooks/use-user";
 
-export const TransferRequestTable = () => {
+export const TransferRequestTable = ({isUser}: { isUser?: boolean }) => {
     const [data, setData] = useState<TransferRequestResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedStatuses, setSelectedStatuses] = useState<VoucherStatus[]>([]);
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({pageIndex: 0, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -61,13 +66,13 @@ export const TransferRequestTable = () => {
     const columns: ColumnDef<TransferRequestResponse>[] = useMemo(() => [
         {
             id: "select",
-            header: ({ table }) => (
+            header: ({table}) => (
                 <Checkbox
                     checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
                     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
                 />
             ),
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <Checkbox
                     checked={row.getIsSelected()}
                     onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -77,36 +82,39 @@ export const TransferRequestTable = () => {
         },
         {
             accessorKey: "requestId",
-            meta: { label: "Request ID" },
-            header: ({ column }) => (
-                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="px-0">
-                    ID <ArrowUpDown className="ml-2 h-4 w-4" />
+            meta: {label: "Request ID"},
+            header: ({column}) => (
+                <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                        className="px-0">
+                    ID <ArrowUpDown className="ml-2 h-4 w-4"/>
                 </Button>
             ),
-            cell: ({ row }) => <div>{row.original.requestId}</div>,
+            cell: ({row}) => <div>{row.original.requestId}</div>,
         },
         {
             id: "route",
             header: "Route (Source → Destination)",
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <div className="flex items-center gap-2 text-xs">
-                    <div className="flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                        <MapPin className="size-3" /> {row.original.sourceLocationName}
+                    <div
+                        className="flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                        <MapPin className="size-3"/> {row.original.sourceLocationName}
                     </div>
-                    <MoveHorizontal className="size-3 text-muted-foreground" />
-                    <div className="flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                        <MapPin className="size-3" /> {row.original.destinationLocationName}
+                    <MoveHorizontal className="size-3 text-muted-foreground"/>
+                    <div
+                        className="flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                        <MapPin className="size-3"/> {row.original.destinationLocationName}
                     </div>
                 </div>
             ),
         },
         {
             accessorKey: "createdByName",
-            meta: { label: "Requester" },
+            meta: {label: "Requester"},
             header: "Requester",
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <div className="flex items-center gap-2">
-                    <User className="size-3.5 text-muted-foreground" />
+                    <User className="size-3.5 text-muted-foreground"/>
                     <span>{row.original.createdByName}</span>
                 </div>
             ),
@@ -115,42 +123,63 @@ export const TransferRequestTable = () => {
         {
             id: "items",
             header: "Items",
-            cell: ({ row }) => (
-                <Badge variant="outline" >
+            cell: ({row}) => (
+                <Badge variant="outline">
                     {row.original.details.length} device(s)
                 </Badge>
             ),
         },
         {
             accessorKey: "status",
-            header: ({ column }) => (
+            header: ({column}) => (
                 <div className="flex items-center gap-2">
                     <span>Status</span>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Filter className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`} />
+                                <Filter
+                                    className={`h-4 w-4 ${selectedStatuses.length > 0 ? "text-primary fill-primary" : ""}`}/>
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-52">
-                            <DropdownMenuLabel>Filter Status</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {Object.values(VoucherStatus).map((status) => (
-                                <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
-                                    onCheckedChange={(checked) => {
-                                        setSelectedStatuses(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
-                                    }}
-                                >
-                                    {status}
-                                </DropdownMenuCheckboxItem>
-                            ))}
+                            <DropdownMenuLabel>Status filter</DropdownMenuLabel>
+                            <DropdownMenuSeparator/>
+                            {Object.values(VoucherStatus)
+                                .filter((v) => typeof v === "number") // Lọc lấy giá trị số
+                                .map((statusValue) => (
+                                    <DropdownMenuCheckboxItem
+                                        key={statusValue}
+                                        // roleValue ở đây là 0, 1, 2...
+                                        checked={selectedStatuses.includes(statusValue as VoucherStatus)}
+                                        onCheckedChange={(checked) => {
+                                            setSelectedStatuses(prev =>
+                                                checked
+                                                    ? [...prev, statusValue as VoucherStatus]
+                                                    : prev.filter(r => r !== statusValue)
+                                            );
+                                            setPagination(p => ({...p, pageIndex: 1}));
+                                        }}
+                                    >
+                                        {/* Hiển thị label tương ứng */}
+                                        {VoucherStatus[statusValue as number]}
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                            {selectedStatuses.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator/>
+                                    <DropdownMenuItem
+                                        onClick={() => setSelectedStatuses(prev => [])}
+                                        className="justify-center text-destructive focus:text-destructive"
+                                    >
+                                        Delete filter
+                                    </DropdownMenuItem>
+                                </>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
             ),
-            cell: ({ row }) => {
+            cell: ({row}) => {
                 const status = row.original.status;
                 return (
                     <Badge className={
@@ -158,16 +187,16 @@ export const TransferRequestTable = () => {
                             status === VoucherStatus.Pending ? "bg-amber-500 hover:bg-amber-600" :
                                 status === VoucherStatus.Rejected ? "bg-destructive hover:bg-destructive/90" : "bg-slate-500"
                     }>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 )
             },
         },
         {
             accessorKey: "createdAt",
-            meta: { label: "Created At" },
+            meta: {label: "Created At"},
             header: "Date",
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <div className=" text-muted-foreground">
                     {formatISODate(row.original.createdAt)}
                 </div>
@@ -176,44 +205,79 @@ export const TransferRequestTable = () => {
         {
             accessorKey: "note",
             header: "Note",
-            cell: ({ row }) => (
+            cell: ({row}) => (
                 <div className="max-w-[200px] truncate italic text-muted-foreground" title={row.original.note}>
                     {row.original.note || "No note"}
                 </div>
             ),
         },
+
         {
             id: "action",
             header: "",
-            cell: ({ row }) => (
-                <Link href={`/transfer/request/${row.original.requestId}`}>
-                    <ExternalLink className="text-muted-foreground size-4 hover:text-primary transition-colors" />
-                </Link>
-            ),
+            cell: ({row}) => {
+                // Check if isUser is true and bookingId exists
+                if (!isUser) {
+                    return (
+                        <Link href={`/transfer/request/${row.original.requestId}`}>
+                            <ExternalLink
+                                className="text-muted-foreground size-4 hover:text-primary transition-colors"/>
+                        </Link>
+                    );
+                }
+                return null;
+            }, // Explicitly return null if condition isn't met
+
         },
     ], [selectedStatuses]);
 
+    const fetchData = async () => {
+        try {
+            let filterQuery = "";
+            if (debouncedSearch) {
+                filterQuery += `CreatedByName=~${debouncedSearch}`; // Ví dụ cú pháp RSQL/JPA Criteria
+            }
+            if (selectedStatuses.length > 0) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `Status==${selectedStatuses.join(",=")}`
+            }
+            if (isUser) {
+                if (debouncedSearch) {
+                    filterQuery += `&`
+                }
+                filterQuery += `BorrowerId==${useCurrentUser().userId}`
+            }
+            const req: PageRequest = {
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+                sort: getSortString(sorting),
+                filter: filterQuery || undefined,
+            }
+            const res = await getTransferRequestsList(req)
+            setData(res.content)
+            console.log(res)
+            setIsLoading(false);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load transfer request data");
+            setData([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     useEffect(() => {
-        setIsLoading(true);
-        let filtered = [...MOCK_TRANSFER_REQUESTS];
-        if (debouncedSearch) {
-            filtered = filtered.filter(d =>
-                d.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.sourceLocationName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                d.destinationLocationName.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
-        }
-        if (selectedStatuses.length > 0) {
-            filtered = filtered.filter(d => selectedStatuses.includes(d.status));
-        }
-        setData(filtered);
-        setIsLoading(false);
-    }, [debouncedSearch, selectedStatuses]);
-
+        fetchData()
+    }, [debouncedSearch, selectedStatuses, sorting]);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
+        setPagination(prev => ({...prev, pageIndex: 1})); // Reset về trang 1 khi tìm kiếm
+    };
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
+        state: {sorting, columnVisibility, rowSelection, pagination},
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
@@ -234,7 +298,7 @@ export const TransferRequestTable = () => {
                 />
                 <div className="ml-auto flex items-center gap-2">
                     <Button variant="outline" size="sm" className="h-9">
-                        <Columns2 className="mr-2 size-4" /> Columns
+                        <Columns2 className="mr-2 size-4"/> Columns
                     </Button>
 
                     <CreateTransferRequestDialog/>
@@ -256,7 +320,8 @@ export const TransferRequestTable = () => {
                     </TableHeader>
                     <TableBody>
                         {isLoading ? (
-                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2 className="animate-spin inline-block mr-2" /> Loading...</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center"><Loader2
+                                className="animate-spin inline-block mr-2"/> Loading...</TableCell></TableRow>
                         ) : data.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow key={row.id} className="hover:bg-muted/30">
@@ -268,7 +333,8 @@ export const TransferRequestTable = () => {
                                 </TableRow>
                             ))
                         ) : (
-                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No requests found</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No requests
+                                found</TableCell></TableRow>
                         )}
                     </TableBody>
                 </Table>
@@ -300,14 +366,14 @@ export const TransferRequestTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount() + 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4"/>
@@ -316,7 +382,7 @@ export const TransferRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4"/>
@@ -325,7 +391,7 @@ export const TransferRequestTable = () => {
                             variant="outline"
                             className="h-8 w-8 p-0"
                             onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4"/>
@@ -333,8 +399,8 @@ export const TransferRequestTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4"/>
@@ -342,6 +408,7 @@ export const TransferRequestTable = () => {
                     </div>
                 </div>
             </div>
+
         </div>
     );
 }

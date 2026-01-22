@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { formatISODate, formatNumber } from '@/lib/utils'
 import {ImportVoucherResponse} from "@/dtos/import";
 import {MOCK_IMPORT_VOUCHERS} from "@/components/mock-data/import-data";
+import {getImportVoucherById} from "@/services/importService";
 
 interface ImportVoucherInfoCardProps {
     id: string
@@ -27,12 +28,8 @@ export const ImportVoucherInfoCard = ({ id }: ImportVoucherInfoCardProps) => {
         const fetchDetail = async () => {
             setLoading(true)
             try {
-                // Simulating API call
-                await new Promise(resolve => setTimeout(resolve, 600))
-                const data = MOCK_IMPORT_VOUCHERS.find(v => v.importId === id)
-                if (data) {
-                    setVoucher(data)
-                }
+                const res = await getImportVoucherById(id)
+                setVoucher(res)
             } catch (error) {
                 toast.error("Failed to load liquidation voucher details")
             } finally {
