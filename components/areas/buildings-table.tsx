@@ -58,7 +58,6 @@ import {getUsersList} from "@/services/userService";
 
 const createBuildingSchema = z.object({
     buildingName: z.string().min(1, "Building name is required"),
-    floorCount: z.number().min(1, "Must have at least 1 floor"),
     note: z.string().optional(),
 })
 type FormValues = z.infer<typeof createBuildingSchema>
@@ -69,7 +68,7 @@ export function CreateBuildingDialog({onSuccess}: { onSuccess: () => void }) {
 
     const form = useForm<FormValues>({
         resolver: zodResolver(createBuildingSchema),
-        defaultValues: {buildingName: "", floorCount: 1, note: ""},
+        defaultValues: {buildingName: "", note: ""},
     })
 
     async function onSubmit(values: z.infer<typeof createBuildingSchema>) {
@@ -113,20 +112,6 @@ export function CreateBuildingDialog({onSuccess}: { onSuccess: () => void }) {
                                     <FormLabel>Building Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="e.g., Block A, Main Hall" {...field} />
-                                    </FormControl>
-                                    <FormMessage/>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="floorCount"
-                            render={({field}) => (
-                                <FormItem>
-                                    <FormLabel>Number of Floors</FormLabel>
-                                    <FormControl>
-                                        <Input type="number" {...field}
-                                               onChange={(e) => field.onChange(e.target.valueAsNumber)}/>
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
