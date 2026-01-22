@@ -1,6 +1,6 @@
 import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
-import { CreateInvoiceRequest, UpdateInvoiceRequest, InvoiceResponse } from '@/dtos/other';
+import { CreateInvoiceRequest, InvoiceResponse } from '@/dtos/other';
 
 const ENDPOINT = '/invoice';
 
@@ -42,22 +42,6 @@ export async function createInvoice(request: CreateInvoiceRequest): Promise<Invo
     return processResponse<InvoiceResponse>(res);
 }
 
-/**
- * Cập nhật hóa đơn
- */
-export async function updateInvoice(invoiceId: string, request: UpdateInvoiceRequest): Promise<InvoiceResponse> {
-    const url = `${ENDPOINT}/${invoiceId}`;
-    
-    const res = await apiFetch(url, true, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-    });
-    
-    return processResponse<InvoiceResponse>(res);
-}
 
 /**
  * Xóa hóa đơn
@@ -70,46 +54,4 @@ export async function deleteInvoice(invoiceId: string): Promise<void> {
     });
     
     return processResponse<void>(res);
-}
-
-/**
- * Lấy danh sách hóa đơn theo loại (type)
- */
-export async function getInvoicesByType(type: string, params?: PageRequest): Promise<PageV0<InvoiceResponse>> {
-    const queryString = toQueryString(params);
-    const url = `${ENDPOINT}/type/${type}${queryString ? '?' + queryString : ''}`;
-    
-    const res = await apiFetch(url, true);
-    return processResponse<PageV0<InvoiceResponse>>(res);
-}
-
-/**
- * Lấy danh sách hóa đơn theo đơn vị (unitId)
- */
-export async function getInvoicesByUnit(unitId: string, params?: PageRequest): Promise<PageV0<InvoiceResponse>> {
-    const queryString = toQueryString(params);
-    const url = `${ENDPOINT}/unit/${unitId}${queryString ? '?' + queryString : ''}`;
-    
-    const res = await apiFetch(url, true);
-    return processResponse<PageV0<InvoiceResponse>>(res);
-}
-
-/**
- * Tính tổng tiền hóa đơn theo loại
- */
-export async function getTotalAmountByType(type: string): Promise<{ type: string; totalAmount: number }> {
-    const url = `${ENDPOINT}/total/type/${type}`;
-    
-    const res = await apiFetch(url, true);
-    return processResponse<{ type: string; totalAmount: number }>(res);
-}
-
-/**
- * Tính tổng tiền hóa đơn theo đơn vị
- */
-export async function getTotalAmountByUnit(unitId: string): Promise<{ unitId: string; totalAmount: number }> {
-    const url = `${ENDPOINT}/total/unit/${unitId}`;
-    
-    const res = await apiFetch(url, true);
-    return processResponse<{ unitId: string; totalAmount: number }>(res);
 }

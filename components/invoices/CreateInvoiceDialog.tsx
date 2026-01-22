@@ -1,39 +1,72 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreateInvoiceRequest } from "@/dtos/other";
-import { FunctionType } from "@/constaints/enum";
+import { CreateInvoiceRequest, ExternalUnitResponse } from "@/dtos/other";
+import { createInvoice } from "@/services/invoiceService";
+import { getExternalUnits } from "@/services/external-unitService";
+import { toast } from "sonner";
 
 interface CreateInvoiceDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onSuccess?: () => void;
 }
 
-export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogProps) {
+export function CreateInvoiceDialog({ open, onOpenChange, onSuccess }: CreateInvoiceDialogProps) {
     const [formData, setFormData] = useState<CreateInvoiceRequest>({
         invoiceNumber: "",
-        type: "IMPORT" as FunctionType,
         totalAmount: 0,
-        createdBy: "",
-        note: "",
+        unitId: "",
     });
+    const [units, setUnits] = useState<ExternalUnitResponse[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to create invoice
-        console.log("Creating invoice:", formData);
-        onOpenChange(false);
-        setFormData({
-            invoiceNumber: "",
-            type: "IMPORT" as FunctionType,
-            totalAmount: 0,
-            createdBy: "",
-            note: "",
-        });
+    useEffect(() => {
+        if (open) {
+            fetchUnits();
+        }
+    }, [open]);
+
+    const fetchUnits = async () => {
+        try {
+            setIsLoading(true);
+            const response = await getExternalUnits({ size: 100 });
+            setUnits(response.content);
+        } catch (error) {
+            toast.error("Failed to load units");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.invoiceNumber || !formData.totalAmount || !formData.unitId) {
+            toast.error("Please fill in all required fields");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await createInvoice(formData);
+            toast.success("Invoice created successfully");
+            onOpenChange(false);
+            setFormData({
+                invoiceNumber: "",
+                totalAmount: 0,
+                unitId: "",
+            });
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to create invoice");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -53,19 +86,25 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                             placeholder="e.g., INV-2026-001"
                             value={formData.invoiceNumber}
                             onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
+                            disabled={isSubmitting}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="type">Type *</Label>
-                        <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value as FunctionType })}>
-                            <SelectTrigger id="type">
-                                <SelectValue placeholder="Select a type" />
+                        <Label htmlFor="unitId">Unit / Supplier *</Label>
+                        <Select 
+                            value={formData.unitId} 
+                            onValueChange={(value) => setFormData({ ...formData, unitId: value })}
+                            disabled={isLoading || isSubmitting}
+                        >
+                            <SelectTrigger id="unitId">
+                                <SelectValue placeholder={isLoading ? "Loading..." : "Select a unit"} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="IMPORT">Import</SelectItem>
-                                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                                <SelectItem value="REPAIR">Repair</SelectItem>
-                                <SelectItem value="OTHER">Other</SelectItem>
+                                {units.map((unit) => (
+                                    <SelectItem key={unit.unitId} value={unit.unitId}>
+                                        {unit.unitName}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
@@ -77,33 +116,25 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                             placeholder="e.g., 5000000"
                             value={formData.totalAmount}
                             onChange={(e) => setFormData({ ...formData, totalAmount: Number(e.target.value) })}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="createdBy">Created By *</Label>
-                        <Input
-                            id="createdBy"
-                            placeholder="e.g., User ID or Name"
-                            value={formData.createdBy}
-                            onChange={(e) => setFormData({ ...formData, createdBy: e.target.value })}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="note">Note</Label>
-                        <Input
-                            id="note"
-                            placeholder="Enter note"
-                            value={formData.note}
-                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                            disabled={isSubmitting}
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => onOpenChange(false)}
+                        disabled={isSubmitting}
+                    >
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
-                        Create Invoice
+                    <Button 
+                        type="button" 
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? "Creating..." : "Create Invoice"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

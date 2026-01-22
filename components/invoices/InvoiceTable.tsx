@@ -6,59 +6,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ArrowUpDown, Columns2, ExternalLink, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InvoiceResponse } from "@/dtos/other";
+import { getInvoices, deleteInvoice } from "@/services/invoiceService";
 import { CreateInvoiceDialog } from "./CreateInvoiceDialog";
-import { EditInvoiceDialog } from "./EditInvoiceDialog";
+import { InvoiceDetailDialog } from "./InvoiceDetailDialog";
 import { Badge } from "@/components/ui/badge";
-
-const MOCK_INVOICES: InvoiceResponse[] = [
-    {
-        invoiceId: "INV001",
-        invoiceNumber: "INV-2026-001",
-        type: "IMPORT",
-        totalAmount: 50000000,
-        createdBy: "U001",
-        createdByName: "John Nguyen",
-        createdAt: "2026-01-15",
-        note: "Import equipment from supplier",
-    },
-    {
-        invoiceId: "INV002",
-        invoiceNumber: "INV-2026-002",
-        type: "MAINTENANCE",
-        totalAmount: 15000000,
-        createdBy: "U002",
-        createdByName: "Jane Smith",
-        createdAt: "2026-01-17",
-        note: "Maintenance for air conditioning",
-    },
-    {
-        invoiceId: "INV003",
-        invoiceNumber: "INV-2026-003",
-        type: "REPAIR",
-        totalAmount: 8000000,
-        createdBy: "U003",
-        createdByName: "Mike Johnson",
-        createdAt: "2026-01-20",
-        note: "Repair water system",
-    },
-];
-
-const getTypeColor = (type: string) => {
-    switch (type) {
-        case "IMPORT":
-            return "bg-blue-100 text-blue-800";
-        case "MAINTENANCE":
-            return "bg-green-100 text-green-800";
-        case "REPAIR":
-            return "bg-orange-100 text-orange-800";
-        default:
-            return "bg-gray-100 text-gray-800";
-    }
-};
+import { toast } from "sonner";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 
 export const InvoiceTable = () => {
     const [data, setData] = useState<InvoiceResponse[]>([]);
@@ -66,9 +30,10 @@ export const InvoiceTable = () => {
     const [rowCount, setRowCount] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<InvoiceResponse | null>(null);
-    const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+    const [selectedForDelete, setSelectedForDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -83,35 +48,27 @@ export const InvoiceTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        let filteredData = MOCK_INVOICES;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.invoiceNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.invoiceId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            setIsLoading(true);
+            const response = await getInvoices({
+                page: pagination.pageIndex + 1,
+                size: pagination.pageSize,
+                search: debouncedSearch || undefined,
+            });
+            setData(response.content);
+            setRowCount(response.totalElements);
+        } catch (error) {
+            toast.error("Failed to load invoices");
+            console.error("Error fetching invoices:", error);
+        } finally {
+            setIsLoading(false);
         }
-
-        if (selectedTypes.length > 0) {
-            filteredData = filteredData.filter(item =>
-                selectedTypes.includes(item.type)
-            );
-        }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, selectedTypes]);
+    }, [debouncedSearch, pagination.pageIndex, pagination.pageSize]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -149,18 +106,6 @@ export const InvoiceTable = () => {
             ),
         },
         {
-            accessorKey: "type",
-            header: "Type",
-            cell: ({ row }) => {
-                const type = row.getValue("type") as string;
-                return (
-                    <Badge className={`${getTypeColor(type)} border-0`}>
-                        {type}
-                    </Badge>
-                );
-            },
-        },
-        {
             accessorKey: "totalAmount",
             header: ({ column }) => (
                 <Button
@@ -182,18 +127,19 @@ export const InvoiceTable = () => {
             },
         },
         {
-            accessorKey: "createdByName",
-            header: "Created By",
-            cell: ({ row }) => row.getValue("createdByName"),
-        },
-        {
-            accessorKey: "note",
-            header: "Note",
-            cell: ({ row }) => (
-                <div className="text-sm text-muted-foreground max-w-xs truncate">
-                    {row.getValue("note") || "-"}
-                </div>
-            ),
+            accessorKey: "unit.unitName",
+            header: "Unit / Supplier",
+            cell: ({ row }) => {
+                const unit = row.original.unit;
+                return (
+                    <div>
+                        <p className="font-medium">{unit?.unitName || '-'}</p>
+                        {unit?.phoneNumber && (
+                            <p className="text-xs text-muted-foreground">{unit.phoneNumber}</p>
+                        )}
+                    </div>
+                );
+            },
         },
         {
             accessorKey: "createdAt",
@@ -226,16 +172,16 @@ export const InvoiceTable = () => {
                         className="h-8 w-8 p-0"
                         onClick={() => {
                             setSelectedInvoice(row.original);
-                            setIsEditDialogOpen(true);
+                            setIsDetailDialogOpen(true);
                         }}
                     >
-                        <Edit2 className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" />
                     </Button>
                     <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(row.original.invoiceId)}
+                        onClick={() => setSelectedForDelete(row.original.invoiceId)}
                     >
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -267,10 +213,18 @@ export const InvoiceTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    const handleDelete = (invoiceId: string) => {
-        // TODO: Implement delete API call
-        console.log("Deleting invoice:", invoiceId);
-        setData(data.filter(item => item.invoiceId !== invoiceId));
+    const handleDelete = async (invoiceId: string) => {
+        try {
+            setIsDeleting(true);
+            await deleteInvoice(invoiceId);
+            toast.success("Invoice deleted successfully");
+            setSelectedForDelete(null);
+            fetchData();
+        } catch (error) {
+            toast.error("Failed to delete invoice");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (!isMounted) {
@@ -285,7 +239,7 @@ export const InvoiceTable = () => {
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell colSpan={8} className="h-24 text-center">
+                                <TableCell colSpan={columns.length} className="h-24 text-center">
                                     <Loader className="animate-spin inline-block mr-2" /> Loading data...
                                 </TableCell>
                             </TableRow>
@@ -300,38 +254,11 @@ export const InvoiceTable = () => {
         <div className="w-full space-y-4 pt-6">
             <div className="flex items-center gap-2 w-full">
                 <Input
-                    placeholder="Search by invoice number, ID, creator, or note..."
+                    placeholder="Search by invoice number or ID..."
                     value={searchTerm}
                     onChange={handleSearchChange}
                     className="h-8 w-full"
                 />
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="gap-1">
-                            Type {selectedTypes.length > 0 && `(${selectedTypes.length})`}
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {["IMPORT", "MAINTENANCE", "REPAIR", "OTHER"].map((type) => (
-                            <DropdownMenuCheckboxItem
-                                key={type}
-                                checked={selectedTypes.includes(type)}
-                                onCheckedChange={(checked) => {
-                                    if (checked) {
-                                        setSelectedTypes([...selectedTypes, type]);
-                                    } else {
-                                        setSelectedTypes(
-                                            selectedTypes.filter((t) => t !== type)
-                                        );
-                                    }
-                                }}
-                            >
-                                {type}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -416,7 +343,7 @@ export const InvoiceTable = () => {
             {/* Footer Pagination */}
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-muted-foreground hidden sm:block">
-                    {Object.keys(rowSelection).length} row(s) selected.
+                    Showing {data.length} of {rowCount} invoice(s)
                 </div>
                 <div className="flex items-center space-x-6 lg:space-x-8 ml-auto">
                     <div className="flex items-center space-x-2">
@@ -424,7 +351,7 @@ export const InvoiceTable = () => {
                         <Select
                             value={`${pagination.pageSize}`}
                             onValueChange={(value) => {
-                                table.setPageSize(Number(value));
+                                setPagination(prev => ({ ...prev, pageSize: Number(value), pageIndex: 0 }));
                             }}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
@@ -440,14 +367,14 @@ export const InvoiceTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex + 1} / {Math.ceil(rowCount / pagination.pageSize) || 1}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 0 }))}
+                            disabled={pagination.pageIndex === 0}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
@@ -455,8 +382,8 @@ export const InvoiceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.max(0, prev.pageIndex - 1) }))}
+                            disabled={pagination.pageIndex === 0}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
@@ -464,8 +391,8 @@ export const InvoiceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize) - 1}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
@@ -473,8 +400,8 @@ export const InvoiceTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.ceil(rowCount / pagination.pageSize) - 1 }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize) - 1}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />
@@ -483,14 +410,45 @@ export const InvoiceTable = () => {
                 </div>
             </div>
 
-            <CreateInvoiceDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateInvoiceDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={fetchData}
+            />
             {selectedInvoice && (
-                <EditInvoiceDialog
-                    open={isEditDialogOpen}
-                    onOpenChange={setIsEditDialogOpen}
-                    invoice={selectedInvoice}
+                <InvoiceDetailDialog
+                    open={isDetailDialogOpen}
+                    onOpenChange={setIsDetailDialogOpen}
+                    invoiceId={selectedInvoice.invoiceId}
                 />
             )}
+
+            <Dialog open={!!selectedForDelete} onOpenChange={(open: boolean) => !open && setSelectedForDelete(null)}>
+                <DialogContent className="sm:max-w-[400px]">
+                    <DialogHeader>
+                        <DialogTitle>Delete Invoice</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this invoice? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 justify-end">
+                        <Button 
+                            variant="outline"
+                            onClick={() => setSelectedForDelete(null)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => selectedForDelete && handleDelete(selectedForDelete)}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

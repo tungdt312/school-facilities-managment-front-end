@@ -1,4 +1,3 @@
-import { FunctionType } from "@/constaints/enum";
 
 // --- EXTERNAL UNIT (Đơn vị ngoài/Nhà cung cấp/Đối tác) ---
 
@@ -55,26 +54,15 @@ export interface FundSourceResponse {
 
 export interface CreateInvoiceRequest {
     invoiceNumber: string;
-    type: FunctionType; // Import, Maintenance, Repair...
     totalAmount: number;
     unitId: string;
-    createdBy: string;
-    note?: string;
-}
-
-export interface UpdateInvoiceRequest {
-    invoiceNumber?: string;
-    totalAmount?: number;
-    note?: string;
 }
 
 export interface InvoiceResponse {
     invoiceId: string;
     invoiceNumber: string;
-    type: string;
     totalAmount: number;
-    createdBy: string;
-    createdByName: string;
+    unitId: string;
     createdAt: string;
-    note?: string;
+    unit: ExternalUnitResponse;
 }

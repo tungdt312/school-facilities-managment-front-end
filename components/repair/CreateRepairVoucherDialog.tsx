@@ -131,10 +131,6 @@ export function CreateRepairVoucherDialog({ open, onOpenChange, requestId, onSuc
                     {selectedInvoice && (
                         <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
                             <div className="flex justify-between">
-                                <span className="text-sm text-muted-foreground">Created By:</span>
-                                <span className="font-medium text-sm">{selectedInvoice.createdByName || "-"}</span>
-                            </div>
-                            <div className="flex justify-between">
                                 <span className="text-sm text-muted-foreground">Invoice Amount:</span>
                                 <span className="font-semibold">
                                     {selectedInvoice.totalAmount?.toLocaleString() || "0"}
