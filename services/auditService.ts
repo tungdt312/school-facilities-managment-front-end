@@ -7,6 +7,7 @@ import {
     AuditDetailResponse,
     InventoryAuditResponse,
     AuditPeriodResponse,
+    CreateAuditDetailRequest,
 } from '@/dtos/audit';
 
 const PERIODIC_AUDIT_API = '/periodic-audits';
@@ -234,6 +235,21 @@ export async function getAuditDetailById(
         headers: {
             'accept': 'application/json',
         },
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    return processResponse<AuditDetailResponse>(res);
+}
+
+export async function createAuditDetail(
+    request: CreateAuditDetailRequest
+): Promise<AuditDetailResponse> {
+    const res = await apiFetch(AUDIT_DETAIL_API, true, {
+        method: 'POST',
+        headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify(request),
     });
     if (!res.ok) throw new Error(res.statusText);
     return processResponse<AuditDetailResponse>(res);

@@ -21,6 +21,12 @@ export interface CreateInventoryAuditRequest {
 
 }
 
+export interface CreateAuditDetailRequest {
+    equipmentId: string;
+    condition: DeviceStatus;
+    note?: string;
+}
+
 export interface UpdateAuditDetailRequest {
     detailId: string;
     condition: string;
