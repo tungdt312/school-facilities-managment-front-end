@@ -52,18 +52,18 @@ export interface RoomResponse {
 
 //Room Type DTOs
 export interface CreateRoomTypeRequest {
-    typeName: RoomTypeName;
+    typeName: string;
     note?: string;
 }
 
 export interface UpdateRoomTypeRequest {
-    typeName?: RoomTypeName;
+    typeName?: string;
     note?: string;
 }
 
 export interface RoomTypeResponse {
     roomTypeId: string;
-    typeName: RoomTypeName;
+    typeName: string;
     note?: string;
     rooms: RoomResponse[];
 }

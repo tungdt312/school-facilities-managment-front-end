@@ -6,36 +6,76 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UpdateRoomTypeRequest, RoomTypeResponse } from "@/dtos/building";
+import { updateRoomType } from "@/services/room-typeService";
+import { Loader } from "lucide-react";
+import { toast } from "sonner";
 
 interface EditRoomTypeDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     roomType: RoomTypeResponse;
+    onSuccess?: () => void;
 }
 
-export function EditRoomTypeDialog({ open, onOpenChange, roomType }: EditRoomTypeDialogProps) {
-    const [formData, setFormData] = useState<UpdateRoomTypeRequest>({
+interface FormData {
+    typeName: string;
+    note: string;
+}
+
+export function EditRoomTypeDialog({ open, onOpenChange, roomType, onSuccess }: EditRoomTypeDialogProps) {
+    const [formData, setFormData] = useState<FormData>({
         typeName: "",
-        description: "",
+        note: "",
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Đảm bảo formData luôn có giá trị xác định
+    const safeFormData: FormData = {
+        typeName: formData.typeName ?? "",
+        note: formData.note ?? "",
+    };
 
     useEffect(() => {
-        if (roomType) {
+        if (roomType && open) {
             setFormData({
                 typeName: roomType.typeName,
-                description: roomType.description,
+                note: roomType.note || "",
             });
         }
     }, [roomType, open]);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to update room type
-        console.log("Updating room type:", roomType.roomTypeId, formData);
-        onOpenChange(false);
+    const handleSubmit = async () => {
+        if (!formData.typeName.trim()) {
+            toast.error("Type Name is required");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await updateRoomType(roomType.roomTypeId, {
+                typeName: formData.typeName,
+                note: formData.note,
+            } as UpdateRoomTypeRequest);
+            
+            toast.success("Room type updated successfully");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            console.error("Error updating room type:", error);
+            toast.error("Failed to update room type");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleClose = () => {
+        if (!isSubmitting) {
+            onOpenChange(false);
+        }
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Edit Room Type</DialogTitle>
@@ -48,26 +88,29 @@ export function EditRoomTypeDialog({ open, onOpenChange, roomType }: EditRoomTyp
                         <Label htmlFor="typeName">Type Name *</Label>
                         <Input
                             id="typeName"
-                            placeholder="e.g., Classroom, Laboratory, Office"
-                            value={formData.typeName}
+                            placeholder="Enter room type name"
+                            value={safeFormData.typeName}
                             onChange={(e) => setFormData({ ...formData, typeName: e.target.value })}
+                            disabled={isSubmitting}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="description">Description *</Label>
+                        <Label htmlFor="note">Description</Label>
                         <Input
-                            id="description"
+                            id="note"
                             placeholder="Enter description for this room type"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            value={safeFormData.note}
+                            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                            disabled={isSubmitting}
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
+                    <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
                         Update Room Type
                     </Button>
                 </DialogFooter>

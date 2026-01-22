@@ -1,51 +1,21 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoomTypeResponse } from "@/dtos/building";
 import { CreateRoomTypeDialog } from "./CreateRoomTypeDialog";
 import { EditRoomTypeDialog } from "./EditRoomTypeDialog";
+import { RoomTypeDetail } from "./RoomTypeDetail";
 import { Badge } from "@/components/ui/badge";
-
-const MOCK_ROOM_TYPES: RoomTypeResponse[] = [
-    {
-        roomTypeId: "RT001",
-        typeName: "Classroom",
-        description: "Standard classroom for teaching and learning activities",
-        rooms: [],
-    },
-    {
-        roomTypeId: "RT002",
-        typeName: "Laboratory",
-        description: "Science laboratory equipped with experimental equipment",
-        rooms: [],
-    },
-    {
-        roomTypeId: "RT003",
-        typeName: "Library",
-        description: "Library facility for studying and reading",
-        rooms: [],
-    },
-    {
-        roomTypeId: "RT004",
-        typeName: "Office",
-        description: "Administrative and staff office spaces",
-        rooms: [],
-    },
-    {
-        roomTypeId: "RT005",
-        typeName: "Computer Lab",
-        description: "Computer room with IT equipment for technical training",
-        rooms: [],
-    },
-];
+import { getRoomTypes, deleteRoomType } from "@/services/room-typeService";
+import { toast } from "sonner";
 
 export const RoomTypeTable = () => {
     const [data, setData] = useState<RoomTypeResponse[]>([]);
@@ -54,14 +24,17 @@ export const RoomTypeTable = () => {
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
     const [selectedRoomType, setSelectedRoomType] = useState<RoomTypeResponse | null>(null);
 
     const [rowSelection, setRowSelection] = useState({});
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
+        roomTypeId: false, // Ẩn cột Type ID
+    });
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1, // 1-based pagination
         pageSize: 10,
     });
 
@@ -69,28 +42,42 @@ export const RoomTypeTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const fetchData = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            setIsLoading(true);
+            const response = await getRoomTypes({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
 
-        let filteredData = MOCK_ROOM_TYPES;
+            if (response?.content) {
+                let filteredData = response.content;
 
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.typeName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.roomTypeId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.description?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+                // Client-side filtering (nếu backend không hỗ trợ search)
+                if (debouncedSearch) {
+                    filteredData = filteredData.filter(item =>
+                        item.typeName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                        item.roomTypeId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+                        item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
+                    );
+                }
+
+                setRowCount(response.totalElements || filteredData.length);
+                setData(filteredData);
+            }
+        } catch (error) {
+            console.error("Error fetching room types:", error);
+            toast.error("Failed to load room types");
+            setData([]);
+            setRowCount(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [debouncedSearch, pagination.pageIndex, pagination.pageSize]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -128,11 +115,11 @@ export const RoomTypeTable = () => {
             ),
         },
         {
-            accessorKey: "description",
+            accessorKey: "note",
             header: "Description",
             cell: ({ row }) => (
                 <div className="text-sm text-muted-foreground max-w-md truncate">
-                    {row.getValue("description")}
+                    {row.getValue("note") || "-"}
                 </div>
             ),
         },
@@ -156,6 +143,19 @@ export const RoomTypeTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
+                        title="View Details"
+                        onClick={() => {
+                            setSelectedRoomType(row.original);
+                            setIsDetailDialogOpen(true);
+                        }}
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Edit"
                         onClick={() => {
                             setSelectedRoomType(row.original);
                             setIsEditDialogOpen(true);
@@ -167,6 +167,7 @@ export const RoomTypeTable = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        title="Delete"
                         onClick={() => handleDelete(row.original.roomTypeId)}
                     >
                         <Trash2 className="h-4 w-4" />
@@ -179,6 +180,8 @@ export const RoomTypeTable = () => {
     const table = useReactTable({
         data,
         columns,
+        pageCount: Math.ceil(rowCount / pagination.pageSize),
+        manualPagination: true,
         state: {
             sorting,
             columnVisibility,
@@ -190,19 +193,38 @@ export const RoomTypeTable = () => {
         onRowSelectionChange: setRowSelection,
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 })); // Reset về page đầu
     };
 
-    const handleDelete = (roomTypeId: string) => {
-        // TODO: Implement delete API call
-        console.log("Deleting room type:", roomTypeId);
-        setData(data.filter(item => item.roomTypeId !== roomTypeId));
+    const handleDelete = async (roomTypeId: string) => {
+        if (!confirm("Are you sure you want to delete this room type?")) {
+            return;
+        }
+
+        try {
+            await deleteRoomType(roomTypeId);
+            toast.success("Room type deleted successfully");
+            fetchData(); // Refresh data
+        } catch (error) {
+            console.error("Error deleting room type:", error);
+            toast.error("Failed to delete room type");
+        }
+    };
+
+    const handleCreateSuccess = () => {
+        setIsCreateDialogOpen(false);
+        fetchData();
+    };
+
+    const handleEditSuccess = () => {
+        setIsEditDialogOpen(false);
+        setSelectedRoomType(null);
+        fetchData();
     };
 
     if (!isMounted) {
@@ -296,7 +318,14 @@ export const RoomTypeTable = () => {
                             </TableRow>
                         ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
-                                <TableRow key={row.id}>
+                                <TableRow 
+                                    key={row.id}
+                                    onClick={() => {
+                                        setSelectedRoomType(row.original);
+                                        setIsDetailDialogOpen(false);
+                                    }}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id} className="py-3">
                                             {flexRender(
@@ -345,7 +374,7 @@ export const RoomTypeTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
@@ -388,12 +417,24 @@ export const RoomTypeTable = () => {
                 </div>
             </div>
 
-            <CreateRoomTypeDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateRoomTypeDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} onSuccess={handleCreateSuccess} />
+            {selectedRoomType && (
+                <RoomTypeDetail
+                    open={isDetailDialogOpen}
+                    onOpenChange={setIsDetailDialogOpen}
+                    roomType={selectedRoomType}
+                    onEdit={() => {
+                        setIsDetailDialogOpen(false);
+                        setIsEditDialogOpen(true);
+                    }}
+                />
+            )}
             {selectedRoomType && (
                 <EditRoomTypeDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                     roomType={selectedRoomType}
+                    onSuccess={handleEditSuccess}
                 />
             )}
         </div>

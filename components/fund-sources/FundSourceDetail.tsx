@@ -155,7 +155,6 @@ export function FundSourceDetail({ open, onOpenChange, sourceId }: FundSourceDet
                         variant="outline"
                         onClick={() => handleOpenChange(false)}
                     >
-                        <X className="mr-2 h-4 w-4" />
                         Close
                     </Button>
                 </div>
