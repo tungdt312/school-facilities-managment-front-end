@@ -41,7 +41,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import {BookingStatus, BorrowStatus, UserRoleLabel} from '@/constaints/enum'; // Giả định Enum nằm ở đây
+import {BookingStatus, BookingStatusLabel, BorrowStatus, UserRoleLabel} from '@/constaints/enum'; // Giả định Enum nằm ở đây
 import { RoomBookingResponse } from '@/dtos/booking'; // Đường dẫn DTO của bạn
 import {formatISODate, getSortString} from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -187,7 +187,7 @@ export const RoomBookingTable = ({isUser}: {isUser?: boolean}) => {
                                 status === BookingStatus.Rejected ? "bg-red-500 hover:bg-red-600" :
                                     status === BookingStatus.Cancelled ? "bg-slate-500" : "bg-blue-500"
                     }>
-                        {status}
+                        {BookingStatusLabel[status]}
                     </Badge>
                 )
             },

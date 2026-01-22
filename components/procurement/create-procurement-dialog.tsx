@@ -34,7 +34,7 @@ const importVoucherSchema = z.object({
 
     details: z.array(z.object({
         equipmentName: z.string().min(1, "Equipment name is required"),
-        unitPrice: z.number().min(0, "Price must be at least 0"),
+        quantity: z.number().min(0, "Price must be at least 0"),
         note: z.string().optional()
     })).min(1, "At least one item must be imported")
 })
@@ -69,7 +69,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
         defaultValues: {
             requestId: requestId || '',
             invoiceId: '',
-            details: [{equipmentName: '', unitPrice: 0, note: ''}]
+            details: [{equipmentName: '', quantity: 0, note: ''}]
         }
     })
 
@@ -124,8 +124,10 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                         </FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select Request ID"/>
+                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                    <div className="truncate text-left flex-1 mr-2">
+                                                        <SelectValue placeholder="Select Request ID" />
+                                                    </div>
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -168,7 +170,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => append({equipmentName: '', unitPrice: 0, note: ''})}
+                                    onClick={() => append({equipmentName: '', quantity: 0, note: ''})}
                                     className="h-8 gap-1 "
                                 >
                                     <Plus className="h-3.5 w-3.5"/> Add Equipment
@@ -197,7 +199,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                         <div className="col-span-6 md:col-span-3">
                                             <FormField
                                                 control={form.control}
-                                                name={`details.${index}.unitPrice`}
+                                                name={`details.${index}.quantity`}
                                                 render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Unit Price</FormLabel>

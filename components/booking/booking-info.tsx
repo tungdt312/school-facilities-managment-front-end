@@ -42,6 +42,7 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
             form.reset({
                 ...res
             })
+            setBooking(res)
         } catch (e) {
             toast.error("Failed to fetch booking info")
         } finally {
@@ -101,7 +102,7 @@ export const BookingInfoCard = ({ id }: BookingInfoCardProps) => {
                             booking.status === BookingStatus.Pending ? "bg-amber-500" :
                                 booking.status === BookingStatus.Rejected ? "bg-red-500" : "bg-slate-500"
                     }>
-                        {booking.status}
+                        {BookingStatusLabel[booking.status]}
                     </Badge>
                 )}
             </CardHeader>

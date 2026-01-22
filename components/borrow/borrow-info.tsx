@@ -118,7 +118,7 @@ export const BorrowInfoCard = ({ id }: BorrowInfoCardProps) => {
                                 borrow.status === BorrowStatus.Pending ? "bg-amber-500" :
                                     borrow.status === BorrowStatus.Approved ? "bg-purple-500" : "bg-slate-500"
                     }>
-                        {borrow.status}
+                        {BorrowStatusLabel[borrow.status]}
                     </Badge>
                 )}
             </CardHeader>

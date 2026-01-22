@@ -20,7 +20,7 @@ export interface CreateImportVoucherRequest {
 
 export interface ImportVoucherDetailRequest {
     equipmentName: string;
-    unitPrice: number;
+    quantity: number;
     note?: string;
 }
 
