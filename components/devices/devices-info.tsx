@@ -87,6 +87,7 @@ export function DeviceInfoCard({id}: { id: string }) {
             try {
                 setLoading(true)
                 const res = await getDeviceById(id)
+                setDevice(res)
                 form.reset({
                     ...res,
                     isPublic: true,

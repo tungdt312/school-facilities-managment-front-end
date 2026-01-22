@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateCriteriaListRequest, CreateCriteriaRequest, UpdateCriteriaRequest, CriteriaResponse } from '@/dtos/criteria';
 
-const ENDPOINT = '/api/v1/criterias';
+const ENDPOINT = '/criterias';
 
 /**
  * Lấy danh sách tiêu chí (có phân trang)

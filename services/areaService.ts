@@ -23,7 +23,7 @@ export async function getBuildingById(id:string):Promise<BuildingResponse>{
 export async function getBuildingsList(page?: PageRequest): Promise<PageV0<BuildingResponse>>{
     console.log(page)
     console.log(toQueryString(page))
-    const res = await apiFetch(`/buildings/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/buildings?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -81,7 +81,7 @@ export async function getFloorById(id: string): Promise<FloorResponse> {
 }
 
 export async function getFloorsList(page?: PageRequest): Promise<PageV0<FloorResponse>> {
-    const res = await apiFetch(`/floors/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/floors?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",
@@ -142,7 +142,7 @@ export async function getRoomById(id: string): Promise<RoomResponse> {
 }
 
 export async function getRoomsList(page?: PageRequest): Promise<PageV0<RoomResponse>> {
-    const res = await apiFetch(`/rooms/?${toQueryString(page)}`, true, {
+    const res = await apiFetch(`/rooms?${toQueryString(page)}`, true, {
         method: "GET",
         headers: {
             "accept": "application/json",

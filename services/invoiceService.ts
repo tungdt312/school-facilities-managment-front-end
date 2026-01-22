@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateInvoiceRequest, UpdateInvoiceRequest, InvoiceResponse } from '@/dtos/other';
 
-const ENDPOINT = '/api/v1/invoices';
+const ENDPOINT = '/invoices';
 
 /**
  * Lấy danh sách hóa đơn (có phân trang)

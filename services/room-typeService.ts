@@ -2,7 +2,7 @@ import { apiFetch, processResponse } from './baseService';
 import { toQueryString, PageRequest, PageV0 } from '@/dtos/base';
 import { CreateRoomTypeRequest, UpdateRoomTypeRequest, RoomTypeResponse } from '@/dtos/building';
 
-const ENDPOINT = '/api/v1/roomTypes';
+const ENDPOINT = '/roomTypes';
 
 /**
  * Lấy danh sách loại phòng (có phân trang)

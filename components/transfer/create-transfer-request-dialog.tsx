@@ -48,6 +48,8 @@ import {BuildingResponse} from "@/dtos/building";
 import {getBuildingsList} from "@/services/areaService";
 import {PageRequest} from "@/dtos/base";
 import {getSortString} from "@/lib/utils";
+import {DeviceResponse} from "@/dtos/device";
+import {getDevicesList} from "@/services/deviceService";
 
 const transferRequestSchema = z.object({
     sourceLocationId: z.string().min(1, "Source is required"),
@@ -68,6 +70,26 @@ export const CreateTransferRequestDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [buildings, setBuildings] = useState<BuildingResponse[]>([])
+    const [devices, setDevices] = useState<DeviceResponse[]>([])
+
+    const fetchDevices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getDevicesList(req)
+            setDevices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices data");
+            setDevices([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    }, []);
     const form = useForm<z.infer<typeof transferRequestSchema>>({
         resolver: zodResolver(transferRequestSchema),
         defaultValues: {
@@ -261,7 +283,7 @@ export const CreateTransferRequestDialog = () => {
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {MOCK_DEVICES.map((d) => (
+                                                                {devices.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>

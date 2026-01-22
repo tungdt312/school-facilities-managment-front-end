@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, {useEffect, useState} from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -33,7 +33,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CreateLiquidateRequestRequest } from '@/dtos/liquidate'
 import { MOCK_DEVICES } from "@/components/mock-data/devices-data"
-import {postImportRequest} from "@/services/importService";
+import {getImportRequestsList, postImportRequest} from "@/services/importService";
+import {DeviceResponse} from "@/dtos/device";
+import {PageRequest} from "@/dtos/base";
+import {DeviceStatus, VoucherStatus} from "@/constaints/enum";
+import {getDevicesList} from "@/services/deviceService";
 
 const liquidateRequestSchema = z.object({
     note: z.string().optional(),
@@ -46,7 +50,26 @@ const liquidateRequestSchema = z.object({
 export const CreateLiquidateRequestDialog = () => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [devices, setDevices] = useState<DeviceResponse[]>([])
 
+    const fetchDevices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getDevicesList(req)
+            setDevices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load devices data");
+            setDevices([]);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    }, []);
     const form = useForm<z.infer<typeof liquidateRequestSchema>>({
         resolver: zodResolver(liquidateRequestSchema),
         defaultValues: {
@@ -133,7 +156,7 @@ export const CreateLiquidateRequestDialog = () => {
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {MOCK_DEVICES.map((d) => (
+                                                                {devices.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>

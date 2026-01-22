@@ -9,9 +9,9 @@ import {
     AuditPeriodResponse,
 } from '@/dtos/audit';
 
-const PERIODIC_AUDIT_API = '/api/v1/periodic-audits';
-const INVENTORY_AUDIT_API = '/api/v1/inventory-audits';
-const AUDIT_DETAIL_API = '/api/v1/audit-details';
+const PERIODIC_AUDIT_API = '/periodic-audits';
+const INVENTORY_AUDIT_API = '/inventory-audits';
+const AUDIT_DETAIL_API = '/audit-details';
 
 // ===== PERIODIC AUDIT =====
 
