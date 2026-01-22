@@ -161,7 +161,7 @@ export const CreateLiquidateRequestDialog = () => {
                                                             <SelectContent>
                                                                 {devices.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
-                                                                        {d.equipmentName} ({d.equipmentId})
+                                                                        {d.equipmentName}  ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>

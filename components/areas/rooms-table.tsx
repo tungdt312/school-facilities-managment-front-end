@@ -179,8 +179,7 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                         </div>
                         <FormField control={form.control} name="capacity" render={({field}) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-2"><DollarSign
-                                    className="h-3.5 w-3.5"/> Capacity</FormLabel>
+                                <FormLabel className="flex items-center gap-2"> Capacity</FormLabel>
                                 <FormControl><Input type="number" {...field}  onChange={(e) => field.onChange(e.target.valueAsNumber)}/></FormControl>
                                 <FormMessage/>
                             </FormItem>

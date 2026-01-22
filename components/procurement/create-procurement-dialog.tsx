@@ -111,6 +111,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
     const onSubmit = async (data: CreateImportVoucherRequest) => {
         setLoading(true)
         try {
+            console.log(data)
            const res = await postImportVoucher(data)
 
             toast.success("Import voucher created successfully")
