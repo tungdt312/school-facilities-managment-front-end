@@ -8,15 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MaintenanceVoucherResponse } from "@/dtos/maintenance";
 import { MaintenanceStatus } from "@/constaints/enum";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface EditMaintenanceVoucherDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     voucher: MaintenanceVoucherResponse;
+    onSuccess?: () => void;
 }
 
-export function EditMaintenanceVoucherDialog({ open, onOpenChange, voucher }: EditMaintenanceVoucherDialogProps) {
+export function EditMaintenanceVoucherDialog({ open, onOpenChange, voucher, onSuccess }: EditMaintenanceVoucherDialogProps) {
     const [status, setStatus] = useState<MaintenanceStatus>(voucher.status);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (voucher) {
@@ -24,20 +27,35 @@ export function EditMaintenanceVoucherDialog({ open, onOpenChange, voucher }: Ed
         }
     }, [voucher, open]);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to update maintenance voucher
-        console.log("Updating maintenance voucher:", voucher.voucherId, { status });
-        onOpenChange(false);
+    const handleSubmit = async () => {
+        if (status === voucher.status) {
+            toast.info("No changes to update");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            // TODO: Add API call to update maintenance voucher status
+            // await updateMaintenanceVoucher(voucher.voucherId, { status });
+            toast.success("Maintenance voucher updated successfully");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to update maintenance voucher");
+            console.error("Error updating maintenance voucher:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStatusColor = (maintenanceStatus: MaintenanceStatus) => {
         switch (maintenanceStatus) {
-            case "Lost":
-                return "bg-yellow-100 text-yellow-800";
-            case "Completed":
+            case MaintenanceStatus.Completed:
                 return "bg-green-100 text-green-800";
-            case "Failed":
+            case MaintenanceStatus.Failed:
                 return "bg-red-100 text-red-800";
+            case MaintenanceStatus.Lost:
+                return "bg-yellow-100 text-yellow-800";
             default:
                 return "bg-gray-100 text-gray-800";
         }
@@ -95,30 +113,29 @@ export function EditMaintenanceVoucherDialog({ open, onOpenChange, voucher }: Ed
                     {/* Update Status */}
                     <div className="grid gap-2">
                         <Label htmlFor="newStatus">Update Status *</Label>
-                        <Select value={status} onValueChange={(value) => setStatus(value as MaintenanceStatus)}>
+                        <Select value={String(status)} onValueChange={(value) => setStatus(Number(value) as MaintenanceStatus)}>
                             <SelectTrigger id="newStatus">
                                 <SelectValue placeholder="Select new status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                                <SelectItem value="COMPLETED">Completed</SelectItem>
-                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                <SelectItem value={String(MaintenanceStatus.Completed)}>Completed</SelectItem>
+                                <SelectItem value={String(MaintenanceStatus.Failed)}>Failed</SelectItem>
+                                <SelectItem value={String(MaintenanceStatus.Lost)}>Lost</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
                     <Button 
                         type="button" 
                         onClick={handleSubmit}
-                        disabled={status === voucher.status}
+                        disabled={status === voucher.status || isSubmitting}
                     >
-                        Update Voucher
+                        {isSubmitting ? "Updating..." : "Update Voucher"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

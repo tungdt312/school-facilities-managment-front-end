@@ -29,30 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { MaintenanceStatus } from "@/constaints/enum";
-
-// Mock data
-const MOCK_MAINTENANCE_VOUCHERS: MaintenanceVoucherResponse[] = [
-    {
-        voucherId: "MV001",
-        invoiceId: "INV001",
-        invoiceNumber: "2024-001",
-        totalAmount: 5000,
-        createdAt: "2024-01-15",
-        createdBy: "user001",
-        createdByName: "John Doe",
-        status: MaintenanceStatus.Completed,
-    },
-    {
-        voucherId: "MV002",
-        invoiceId: "INV002",
-        invoiceNumber: "2024-002",
-        totalAmount: 8500,
-        createdAt: "2024-01-16",
-        createdBy: "user002",
-        createdByName: "Jane Smith",
-        status: MaintenanceStatus.Completed,
-    },
-];
+import { getMaintenanceVouchers } from '@/services/maintenanceService';
 
 export const MaintenanceTable = () => {
     const [data, setData] = useState<MaintenanceVoucherResponse[]>([]);
@@ -63,7 +40,7 @@ export const MaintenanceTable = () => {
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -134,8 +111,8 @@ export const MaintenanceTable = () => {
         },
         {
             accessorKey: "status",
-            header: ({ column }) => {
-                return (<div className="flex items-center gap-2">
+            header: ({ column }) => (
+                <div className="flex items-center gap-2">
                     <span>Status</span>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -150,14 +127,14 @@ export const MaintenanceTable = () => {
                             {Object.values(MaintenanceStatus).map((status) => (
                                 <DropdownMenuCheckboxItem
                                     key={status}
-                                    checked={selectedStatuses.includes(status)}
+                                    checked={selectedStatuses.includes(status as MaintenanceStatus)}
                                     onCheckedChange={(checked) => {
                                         setSelectedStatuses(prev =>
                                             checked
-                                                ? [...prev, status]
-                                                : prev.filter(s => s != status)
+                                                ? [...prev, status as MaintenanceStatus]
+                                                : prev.filter(s => s !== status)
                                         );
-                                        setPagination(p => ({ ...p, pageIndex: 0 }));
+                                        setPagination(p => ({ ...p, pageIndex: 1 }));
                                     }}
                                 >
                                     {status}
@@ -176,8 +153,8 @@ export const MaintenanceTable = () => {
                             )}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>)
-            },
+                </div>
+            ),
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-1">
                     <Badge variant={row.original.status === MaintenanceStatus.Completed ? "default" : "secondary"}>
@@ -209,8 +186,12 @@ export const MaintenanceTable = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            setData(MOCK_MAINTENANCE_VOUCHERS);
-            setRowCount(MOCK_MAINTENANCE_VOUCHERS.length);
+            const response = await getMaintenanceVouchers({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
         } catch (e) {
             console.error(e);
             toast.error("Failed to load maintenance vouchers");
@@ -251,7 +232,7 @@ export const MaintenanceTable = () => {
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
 
     return (
@@ -335,7 +316,7 @@ export const MaintenanceTable = () => {
                         <Select
                             value={`${pagination.pageSize}`}
                             onValueChange={(value) => {
-                                table.setPageSize(Number(value));
+                                setPagination(prev => ({ ...prev, pageSize: Number(value) }));
                             }}
                         >
                             <SelectTrigger className="h-8 w-[70px]">
@@ -351,14 +332,14 @@ export const MaintenanceTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex} / {Math.ceil(rowCount / pagination.pageSize)}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 1 }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
@@ -366,8 +347,8 @@ export const MaintenanceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.max(1, prev.pageIndex - 1) }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
@@ -375,8 +356,8 @@ export const MaintenanceTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
@@ -384,8 +365,8 @@ export const MaintenanceTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.ceil(rowCount / pagination.pageSize) }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />

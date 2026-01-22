@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,35 +14,9 @@ import { CreateMaintenanceRequestDialog } from "./CreateMaintenanceRequestDialog
 import { EditMaintenanceRequestDialog } from "./EditMaintenanceRequestDialog";
 import { CreateMaintenanceVoucherDialog } from "./CreateMaintenanceVoucherDialog";
 import { Badge } from "@/components/ui/badge";
-import { VoucherStatus } from "@/constaints/enum";
-
-// Mock data
-
-const MOCK_REQUESTS: MaintenanceRequestResponse[] = [
-    {
-        requestId: "REQ001",
-        createdBy: "U001",
-        createdByName: "John Nguyen",
-        createdAt: "2026-01-15T10:30:00Z",
-        note: "Multiple devices need maintenance",
-        status: VoucherStatus.Pending,
-        details: [
-            { equipmentId: "EQ001", equipmentName: "Laptop Dell XPS 13", description: "High-performance laptop" },
-            { equipmentId: "EQ002", equipmentName: "Projector Epson EB-X39", description: "Classroom projector" },
-        ],
-    },
-    {
-        requestId: "REQ002",
-        createdBy: "U002",
-        createdByName: "Jane Smith",
-        createdAt: "2026-01-17T14:45:00Z",
-        note: "Printer needs repair",
-        status: VoucherStatus.Approved,
-        details: [
-            { equipmentId: "EQ003", equipmentName: "Printer HP LaserJet Pro", description: "Network printer" },
-        ],
-    },
-];
+import { VoucherStatus, VoucherStatusLabel } from "@/constaints/enum";
+import { getMaintenanceRequests } from "@/services/maintenanceService";
+import { toast } from "sonner";
 
 const getStatusColor = (status: VoucherStatus) => {
     switch (status) {
@@ -73,7 +47,7 @@ export const MaintenanceRequestTable = () => {
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1,
         pageSize: 10,
     });
 
@@ -82,27 +56,27 @@ export const MaintenanceRequestTable = () => {
 
     const fetchData = async () => {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        let filteredData = MOCK_REQUESTS;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            const response = await getMaintenanceRequests({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load maintenance requests");
+            setData([]);
+            setRowCount(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [pagination.pageIndex, pagination.pageSize]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -143,7 +117,7 @@ export const MaintenanceRequestTable = () => {
                 const status = row.getValue("status") as VoucherStatus;
                 return (
                     <Badge className={`${getStatusColor(status)} border-0`}>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 );
             },
@@ -218,25 +192,26 @@ export const MaintenanceRequestTable = () => {
             sorting,
             columnVisibility,
             rowSelection,
-            pagination,
         },
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
-        onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        setPagination(prev => ({ ...prev, pageIndex: 1 }));
     };
 
     const handleDelete = (requestId: string) => {
+        if (!window.confirm("Are you sure you want to delete this maintenance request?")) {
+            return;
+        }
         console.log("Deleting request:", requestId);
         setData(data.filter(item => item.requestId !== requestId));
+        toast.success("Request deleted successfully");
     };
 
     if (!isMounted) {
@@ -379,38 +354,38 @@ export const MaintenanceRequestTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex} / {Math.ceil(rowCount / pagination.pageSize)}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 1 }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <ChevronsLeft className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.max(1, prev.pageIndex - 1) }))}
+                            disabled={pagination.pageIndex === 1}
                         >
                             <ChevronLeft className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <ChevronRight className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: Math.ceil(rowCount / pagination.pageSize) }))}
+                            disabled={pagination.pageIndex >= Math.ceil(rowCount / pagination.pageSize)}
                         >
                             <ChevronsRight className="size-4" />
                         </Button>
@@ -418,18 +393,24 @@ export const MaintenanceRequestTable = () => {
                 </div>
             </div>
 
-            <CreateMaintenanceRequestDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+            <CreateMaintenanceRequestDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={fetchData}
+            />
             {selectedRequest && (
                 <EditMaintenanceRequestDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                     request={selectedRequest}
+                    onSuccess={fetchData}
                 />
             )}
             <CreateMaintenanceVoucherDialog
                 open={isCreateVoucherDialogOpen}
                 onOpenChange={setIsCreateVoucherDialogOpen}
                 requestId={selectedRequestForVoucher}
+                onSuccess={fetchData}
             />
         </div>
     );

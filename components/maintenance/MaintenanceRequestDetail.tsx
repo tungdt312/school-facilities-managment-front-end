@@ -8,28 +8,8 @@ import { Button } from '../ui/button';
 import Link from 'next/link';
 import { VoucherStatus } from '@/constaints/enum';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-
-// Mock data - trong thực tế sẽ fetch từ API
-const MOCK_REQUEST: MaintenanceRequestResponse = {
-    requestId: "REQ001",
-    createdBy: "user001",
-    createdByName: "John Doe",
-    createdAt: "2024-01-15",
-    note: "Request for equipment maintenance and servicing",
-    status: VoucherStatus.Pending,
-    details: [
-        {
-            equipmentId: "EQ001",
-            equipmentName: "Air Conditioner",
-            description: "Needs cleaning and servicing"
-        },
-        {
-            equipmentId: "EQ002",
-            equipmentName: "Projector",
-            description: "Lamp needs replacement"
-        }
-    ]
-};
+import { getMaintenanceRequestById } from '@/services/maintenanceService';
+import { toast } from 'sonner';
 
 interface MaintenanceRequestDetailProps {
     id: string;
@@ -43,11 +23,11 @@ export const MaintenanceRequestDetail = ({ id }: MaintenanceRequestDetailProps) 
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                // Mock API call
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setData(MOCK_REQUEST);
+                const request = await getMaintenanceRequestById(id);
+                setData(request);
             } catch (error) {
                 console.error(error);
+                toast.error("Failed to load maintenance request");
                 setData(null);
             } finally {
                 setIsLoading(false);

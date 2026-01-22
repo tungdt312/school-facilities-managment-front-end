@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,29 +10,58 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateMaintenanceRequestRequest, MaintenanceRequestDetailRequest } from "@/dtos/maintenance";
 import { X } from "lucide-react";
+import { createMaintenanceRequest } from "@/services/maintenanceService";
+import { getDevicesList } from "@/services/deviceService";
+import { toast } from "sonner";
 
 interface CreateMaintenanceRequestDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onSuccess?: () => void;
 }
 
-// Mock equipment data
-const MOCK_EQUIPMENT = [
-    { equipmentId: "EQ001", equipmentName: "Laptop Dell XPS 13", description: "High-performance laptop" },
-    { equipmentId: "EQ002", equipmentName: "Projector Epson EB-X39", description: "Classroom projector" },
-    { equipmentId: "EQ003", equipmentName: "Printer HP LaserJet Pro", description: "Network printer" },
-    { equipmentId: "EQ004", equipmentName: "Air Conditioner LG", description: "Classroom AC unit" },
-    { equipmentId: "EQ005", equipmentName: "Server Dell PowerEdge", description: "Network server" },
-];
+interface Equipment {
+    equipmentId: string;
+    equipmentName: string;
+    description: string;
+}
 
-export function CreateMaintenanceRequestDialog({ open, onOpenChange }: CreateMaintenanceRequestDialogProps) {
+export function CreateMaintenanceRequestDialog({ open, onOpenChange, onSuccess }: CreateMaintenanceRequestDialogProps) {
     const [formData, setFormData] = useState<CreateMaintenanceRequestRequest>({
         createdBy: "USER001", // TODO: Get from current user
         note: "",
         details: [],
     });
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<Set<string>>(new Set());
+    const [equipment, setEquipment] = useState<Equipment[]>([]);
+    const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
+
+    // Fetch equipment on dialog open
+    useEffect(() => {
+        if (open) {
+            fetchEquipment();
+        }
+    }, [open]);
+
+    const fetchEquipment = async () => {
+        setIsLoadingEquipment(true);
+        try {
+            const response = await getDevicesList({ page: 1, size: 100 });
+            const equipmentList: Equipment[] = (response.content || []).map(device => ({
+                equipmentId: device.equipmentId,
+                equipmentName: device.equipmentName,
+                description: device.description || "",
+            }));
+            setEquipment(equipmentList);
+        } catch (error) {
+            toast.error("Failed to load equipment");
+            console.error("Error fetching equipment:", error);
+            setEquipment([]);
+        } finally {
+            setIsLoadingEquipment(false);
+        }
+    };
 
     const handleAddEquipment = (equipmentId: string) => {
         const newSelectedIds = new Set(selectedEquipmentIds);
@@ -66,25 +95,35 @@ export function CreateMaintenanceRequestDialog({ open, onOpenChange }: CreateMai
         setFormData({ ...formData, details: newDetails });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (formData.details.length === 0) {
-            alert("Please select at least one equipment");
+            toast.error("Please select at least one equipment");
             return;
         }
-        // TODO: Implement API call to create maintenance request
-        console.log("Creating maintenance request:", formData);
-        onOpenChange(false);
-        setFormData({
-            createdBy: "USER001",
-            note: "",
-            details: [],
-        });
-        setSelectedEquipmentIds(new Set());
+
+        try {
+            setIsSubmitting(true);
+            await createMaintenanceRequest(formData);
+            toast.success("Maintenance request created successfully");
+            onOpenChange(false);
+            setFormData({
+                createdBy: "USER001",
+                note: "",
+                details: [],
+            });
+            setSelectedEquipmentIds(new Set());
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to create maintenance request");
+            console.error("Error creating maintenance request:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const selectedEquipmentDetails = useMemo(() => {
-        return MOCK_EQUIPMENT.filter(eq => selectedEquipmentIds.has(eq.equipmentId));
-    }, [selectedEquipmentIds]);
+        return equipment.filter(eq => selectedEquipmentIds.has(eq.equipmentId));
+    }, [selectedEquipmentIds, equipment]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,29 +140,39 @@ export function CreateMaintenanceRequestDialog({ open, onOpenChange }: CreateMai
                     <div className="border rounded-lg p-4">
                         <h3 className="font-semibold mb-3">Select Equipment</h3>
                         <ScrollArea className="h-[200px] border rounded p-3">
-                            <div className="space-y-2">
-                                {MOCK_EQUIPMENT.map((equipment) => (
-                                    <div key={equipment.equipmentId} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
-                                        <Checkbox
-                                            id={equipment.equipmentId}
-                                            checked={selectedEquipmentIds.has(equipment.equipmentId)}
-                                            onCheckedChange={() => handleAddEquipment(equipment.equipmentId)}
-                                            className="mt-1"
-                                        />
-                                        <div className="flex-1">
-                                            <label
-                                                htmlFor={equipment.equipmentId}
-                                                className="text-sm font-medium cursor-pointer block"
-                                            >
-                                                {equipment.equipmentName}
-                                            </label>
-                                            <p className="text-xs text-muted-foreground">
-                                                {equipment.description}
-                                            </p>
+                            {isLoadingEquipment ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-muted-foreground">Loading equipment...</p>
+                                </div>
+                            ) : equipment.length === 0 ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-muted-foreground">No equipment available</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {equipment.map((equip) => (
+                                        <div key={equip.equipmentId} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
+                                            <Checkbox
+                                                id={equip.equipmentId}
+                                                checked={selectedEquipmentIds.has(equip.equipmentId)}
+                                                onCheckedChange={() => handleAddEquipment(equip.equipmentId)}
+                                                className="mt-1"
+                                            />
+                                            <div className="flex-1">
+                                                <label
+                                                    htmlFor={equip.equipmentId}
+                                                    className="text-sm font-medium cursor-pointer block"
+                                                >
+                                                    {equip.equipmentName}
+                                                </label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {equip.description}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </ScrollArea>
                     </div>
 
@@ -174,11 +223,11 @@ export function CreateMaintenanceRequestDialog({ open, onOpenChange }: CreateMai
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit} disabled={selectedEquipmentDetails.length === 0}>
-                        Create Maintenance Request
+                    <Button type="button" onClick={handleSubmit} disabled={selectedEquipmentDetails.length === 0 || isSubmitting}>
+                        {isSubmitting ? "Creating..." : "Create Maintenance Request"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -6,42 +6,56 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateMaintenanceVoucherRequest } from "@/dtos/maintenance";
+import { createMaintenanceVoucher } from "@/services/maintenanceService";
+import { toast } from "sonner";
 
 interface CreateMaintenanceVoucherDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     requestId?: string;
+    onSuccess?: () => void;
 }
 
-// Mock data
+// Mock data - TODO: Replace with API call to getInvoices()
 const MOCK_INVOICES = [
     { invoiceId: "INV001", invoiceNumber: "INV-2026-001", totalAmount: 5000000 },
     { invoiceId: "INV002", invoiceNumber: "INV-2026-002", totalAmount: 3000000 },
     { invoiceId: "INV003", invoiceNumber: "INV-2026-003", totalAmount: 7500000 },
 ];
 
-export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId }: CreateMaintenanceVoucherDialogProps) {
+export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, onSuccess }: CreateMaintenanceVoucherDialogProps) {
     const [formData, setFormData] = useState<CreateMaintenanceVoucherRequest>({
         requestId: requestId || "",
         createdBy: "USER001", // TODO: Get from current user
         invoiceId: "",
         details: [],
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.requestId || !formData.invoiceId) {
-            alert("Please select both request and invoice");
+            toast.error("Please select both request and invoice");
             return;
         }
-        // TODO: Implement API call to create maintenance voucher
-        console.log("Creating maintenance voucher:", formData);
-        onOpenChange(false);
-        setFormData({
-            requestId: requestId || "",
-            createdBy: "USER001",
-            invoiceId: "",
-            details: [],
-        });
+
+        try {
+            setIsSubmitting(true);
+            await createMaintenanceVoucher(formData);
+            toast.success("Maintenance voucher created successfully");
+            onOpenChange(false);
+            setFormData({
+                requestId: requestId || "",
+                createdBy: "USER001",
+                invoiceId: "",
+                details: [],
+            });
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to create maintenance voucher");
+            console.error("Error creating maintenance voucher:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const selectedInvoice = useMemo(() => {
@@ -100,11 +114,11 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId }
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit} disabled={!formData.requestId || !formData.invoiceId}>
-                        Create Maintenance Voucher
+                    <Button type="button" onClick={handleSubmit} disabled={!formData.requestId || !formData.invoiceId || isSubmitting}>
+                        {isSubmitting ? "Creating..." : "Create Maintenance Voucher"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

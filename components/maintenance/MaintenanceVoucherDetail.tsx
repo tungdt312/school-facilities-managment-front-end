@@ -7,18 +7,8 @@ import { Loader, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import { MaintenanceStatus } from '@/constaints/enum';
-
-// Mock data - trong thực tế sẽ fetch từ API
-const MOCK_VOUCHER: MaintenanceVoucherResponse = {
-    voucherId: "MV001",
-    invoiceId: "INV001",
-    invoiceNumber: "2024-001",
-    totalAmount: 5000,
-    createdAt: "2024-01-15",
-    createdBy: "user001",
-    createdByName: "John Doe",
-    status: MaintenanceStatus.Completed,
-};
+import { getMaintenanceVoucherById } from '@/services/maintenanceService';
+import { toast } from 'sonner';
 
 interface MaintenanceVoucherDetailProps {
     id: string;
@@ -32,11 +22,11 @@ export const MaintenanceVoucherDetail = ({ id }: MaintenanceVoucherDetailProps) 
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                // Mock API call
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setData(MOCK_VOUCHER);
+                const voucher = await getMaintenanceVoucherById(id);
+                setData(voucher);
             } catch (error) {
                 console.error(error);
+                toast.error("Failed to load maintenance voucher");
                 setData(null);
             } finally {
                 setIsLoading(false);

@@ -9,18 +9,22 @@ import { UpdateMaintenanceRequestStatusRequest, MaintenanceRequestResponse } fro
 import { VoucherStatus } from "@/constaints/enum";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { updateMaintenanceRequestStatus } from "@/services/maintenanceService";
+import { toast } from "sonner";
 
 interface EditMaintenanceRequestDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     request: MaintenanceRequestResponse;
+    onSuccess?: () => void;
 }
 
-export function EditMaintenanceRequestDialog({ open, onOpenChange, request }: EditMaintenanceRequestDialogProps) {
+export function EditMaintenanceRequestDialog({ open, onOpenChange, request, onSuccess }: EditMaintenanceRequestDialogProps) {
     const [formData, setFormData] = useState<UpdateMaintenanceRequestStatusRequest>({
         status: request.status,
         approvedBy: "USER001", // TODO: Get from current user
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (request) {
@@ -31,19 +35,33 @@ export function EditMaintenanceRequestDialog({ open, onOpenChange, request }: Ed
         }
     }, [request, open]);
 
-    const handleSubmit = () => {
-        // TODO: Implement API call to update maintenance request
-        console.log("Updating maintenance request:", request.requestId, formData);
-        onOpenChange(false);
+    const handleSubmit = async () => {
+        if (formData.status === request.status) {
+            toast.info("No changes to update");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            await updateMaintenanceRequestStatus(request.requestId, formData);
+            toast.success("Maintenance request updated successfully");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to update maintenance request");
+            console.error("Error updating maintenance request:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getStatusColor = (status: VoucherStatus) => {
         switch (status) {
-            case "Pending":
+            case VoucherStatus.Pending:
                 return "bg-yellow-100 text-yellow-800";
-            case "Approved":
+            case VoucherStatus.Approved:
                 return "bg-green-100 text-green-800";
-            case "Rejected":
+            case VoucherStatus.Rejected:
                 return "bg-red-100 text-red-800";
             default:
                 return "bg-gray-100 text-gray-800";
@@ -117,25 +135,25 @@ export function EditMaintenanceRequestDialog({ open, onOpenChange, request }: Ed
                     {/* Status Update */}
                     <div className="grid gap-2">
                         <Label htmlFor="status">Update Status *</Label>
-                        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as VoucherStatus })}>
+                        <Select value={String(formData.status)} onValueChange={(value) => setFormData({ ...formData, status: Number(value) as VoucherStatus })}>
                             <SelectTrigger id="status">
                                 <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="APPROVED">Approved</SelectItem>
-                                <SelectItem value="REJECTED">Rejected</SelectItem>
+                                <SelectItem value={String(VoucherStatus.Pending)}>Pending</SelectItem>
+                                <SelectItem value={String(VoucherStatus.Approved)}>Approved</SelectItem>
+                                <SelectItem value={String(VoucherStatus.Rejected)}>Rejected</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
 
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit}>
-                        Update Status
+                    <Button type="button" onClick={handleSubmit} disabled={formData.status === request.status || isSubmitting}>
+                        {isSubmitting ? "Updating..." : "Update Status"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -55,7 +55,7 @@ export async function updateMaintenanceRequestStatus(
     requestId: string,
     request: UpdateMaintenanceRequestStatusRequest
 ): Promise<MaintenanceRequestResponse> {
-    const res = await apiFetch(`${MAINTENANCE_API}/requests/${requestId}/status`, true, {
+    const res = await apiFetch(`${MAINTENANCE_API}/requests/${requestId}/approve`, true, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
