@@ -6,24 +6,10 @@ import { Badge } from '../ui/badge';
 import { Loader, ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
-import { MaintenanceStatus } from '@/constaints/enum';
+import { MaintenanceStatus, MaintenanceStatusLabel } from '@/constaints/enum';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-
-// Mock data
-const MOCK_VOUCHER: RepairVoucherResponse = {
-    voucherId: "RV001",
-    invoiceNumber: "2024-001",
-    totalAmount: 3500,
-    status: MaintenanceStatus.Completed,
-    providerName: "ABC Repair Services",
-    details: [
-        {
-            equipmentId: "EQ001",
-            equipmentName: "Projector",
-            note: "Lamp needs replacement"
-        }
-    ]
-};
+import { getRepairVoucherById } from '@/services/repairService';
+import { toast } from 'sonner';
 
 interface RepairVoucherDetailProps {
     id: string;
@@ -37,10 +23,11 @@ export const RepairVoucherDetail = ({ id }: RepairVoucherDetailProps) => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setData(MOCK_VOUCHER);
+                const voucherData = await getRepairVoucherById(id);
+                setData(voucherData);
             } catch (error) {
                 console.error(error);
+                toast.error("Failed to load repair voucher");
                 setData(null);
             } finally {
                 setIsLoading(false);
@@ -97,7 +84,7 @@ export const RepairVoucherDetail = ({ id }: RepairVoucherDetailProps) => {
                         <div className="space-y-2">
                             <p className="text-sm text-muted-foreground">Status</p>
                             <div>
-                                <Badge variant={statusColor}>{data.status}</Badge>
+                                <Badge variant={statusColor}>{MaintenanceStatusLabel[data.status]}</Badge>
                             </div>
                         </div>
                     </CardContent>

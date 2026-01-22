@@ -56,7 +56,7 @@ export async function updateRepairRequestStatus(
     requestId: string,
     request: UpdateRepairRequestStatusRequest
 ): Promise<RepairRequestResponse> {
-    const res = await apiFetch(`${REPAIR_API}/requests/${requestId}/status`, true, {
+    const res = await apiFetch(`${REPAIR_API}/requests/${requestId}/approve`, true, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),

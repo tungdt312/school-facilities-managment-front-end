@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react";
-import { ColumnDef, flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
+import { ColumnDef, flexRender, getCoreRowModel, getSortedRowModel, SortingState, useReactTable, VisibilityState } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Eye } from "lucide-react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ArrowUpDown, Columns2, Edit2, Loader, Plus, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Eye, Filter, ExternalLink } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RepairRequestResponse } from "@/dtos/repair";
@@ -14,41 +14,10 @@ import { CreateRepairRequestDialog } from "./CreateRepairRequestDialog";
 import { EditRepairRequestDialog } from "./EditRepairRequestDialog";
 import { CreateRepairVoucherDialog } from "./CreateRepairVoucherDialog";
 import { Badge } from "@/components/ui/badge";
-import { VoucherStatus } from "@/constaints/enum";
-
-const MOCK_REQUESTS: RepairRequestResponse[] = [
-    {
-        requestId: "REP-REQ001",
-        createdByName: "John Nguyen",
-        createdAt: "2026-01-15T10:30:00Z",
-        note: "Screen damage and keyboard issue",
-        status: VoucherStatus.Pending,
-        details: [
-            { equipmentId: "EQ001", equipmentName: "Laptop Dell XPS 13", note: "Screen is cracked" },
-            { equipmentId: "EQ006", equipmentName: "Monitor LG 27inch", note: "Not turning on" },
-        ],
-    },
-    {
-        requestId: "REP-REQ002",
-        createdByName: "Jane Smith",
-        createdAt: "2026-01-17T14:45:00Z",
-        note: "Projector lamp replacement",
-        status: VoucherStatus.Approved,
-        details: [
-            { equipmentId: "EQ002", equipmentName: "Projector Epson EB-X39", note: "Lamp needs replacement" },
-        ],
-    },
-    {
-        requestId: "REP-REQ003",
-        createdByName: "Mike Johnson",
-        createdAt: "2026-01-18T09:15:00Z",
-        note: "Printer paper jam and toner issue",
-        status: VoucherStatus.Rejected,
-        details: [
-            { equipmentId: "EQ003", equipmentName: "Printer HP LaserJet Pro", note: "Paper jam in tray 2" },
-        ],
-    },
-];
+import { VoucherStatus, VoucherStatusLabel } from "@/constaints/enum";
+import { getRepairRequests } from "@/services/repairService";
+import { toast } from "sonner";
+import Link from "next/link";
 
 const getStatusColor = (status: VoucherStatus) => {
     switch (status) {
@@ -69,17 +38,17 @@ export const RepairRequestTable = () => {
     const [rowCount, setRowCount] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isCreateVoucherDialogOpen, setIsCreateVoucherDialogOpen] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<RepairRequestResponse | null>(null);
     const [selectedRequestForVoucher, setSelectedRequestForVoucher] = useState<string | undefined>();
+    const [selectedStatuses, setSelectedStatuses] = useState<VoucherStatus[]>([]);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [sorting, setSorting] = useState<SortingState>([]);
 
     const [pagination, setPagination] = useState({
-        pageIndex: 0,
+        pageIndex: 1,
         pageSize: 10,
     });
 
@@ -88,27 +57,27 @@ export const RepairRequestTable = () => {
 
     const fetchData = async () => {
         setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        let filteredData = MOCK_REQUESTS;
-
-        if (debouncedSearch) {
-            filteredData = filteredData.filter(item =>
-                item.requestId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.createdByName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                item.note?.toLowerCase().includes(debouncedSearch.toLowerCase())
-            );
+        try {
+            const response = await getRepairRequests({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load repair requests");
+            setData([]);
+            setRowCount(0);
+        } finally {
+            setIsLoading(false);
         }
-
-        setRowCount(filteredData.length);
-        setData(filteredData);
-        setIsLoading(false);
     };
 
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch]);
+    }, [pagination.pageIndex, pagination.pageSize, refreshTrigger]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -158,7 +127,7 @@ export const RepairRequestTable = () => {
                 const status = row.getValue("status") as VoucherStatus;
                 return (
                     <Badge className={`${getStatusColor(status)} border-0`}>
-                        {status}
+                        {VoucherStatusLabel[status]}
                     </Badge>
                 );
             },
@@ -187,43 +156,15 @@ export const RepairRequestTable = () => {
         {
             id: "actions",
             cell: ({ row }) => (
-                <div className="flex gap-1">
+                <Link href={`/repair/request/${row.original.requestId}`} title="View Details">
                     <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0"
-                        onClick={() => {
-                            setSelectedRequest(row.original);
-                            setIsEditDialogOpen(true);
-                        }}
-                        title="View & Edit"
                     >
-                        <Eye className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" />
                     </Button>
-                    {row.original.status === VoucherStatus.Approved && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 gap-1 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => {
-                                setSelectedRequestForVoucher(row.original.requestId);
-                                setIsCreateVoucherDialogOpen(true);
-                            }}
-                            title="Create Voucher"
-                        >
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                    )}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(row.original.requestId)}
-                        title="Delete"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </div>
+                </Link>
             ),
         },
     ], []);
@@ -237,12 +178,15 @@ export const RepairRequestTable = () => {
             rowSelection,
             pagination,
         },
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true,
+        rowCount: rowCount,
         onSortingChange: setSorting,
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
         onPaginationChange: setPagination,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
 
@@ -251,10 +195,7 @@ export const RepairRequestTable = () => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
     };
 
-    const handleDelete = (requestId: string) => {
-        console.log("Deleting request:", requestId);
-        setData(data.filter(item => item.requestId !== requestId));
-    };
+
 
     if (!isMounted) {
         return (
@@ -396,38 +337,38 @@ export const RepairRequestTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {pagination.pageIndex} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: 1 }))}
+                            disabled={pagination.pageIndex <= 1}
                         >
                             <ChevronsLeft className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex - 1 }))}
+                            disabled={pagination.pageIndex <= 1}
                         >
                             <ChevronLeft className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <ChevronRight className="size-4" />
                         </Button>
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <ChevronsRight className="size-4" />
                         </Button>
@@ -435,18 +376,10 @@ export const RepairRequestTable = () => {
                 </div>
             </div>
 
-            <CreateRepairRequestDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
-            {selectedRequest && (
-                <EditRepairRequestDialog
-                    open={isEditDialogOpen}
-                    onOpenChange={setIsEditDialogOpen}
-                    request={selectedRequest}
-                />
-            )}
-            <CreateRepairVoucherDialog
-                open={isCreateVoucherDialogOpen}
-                onOpenChange={setIsCreateVoucherDialogOpen}
-                requestId={selectedRequestForVoucher}
+            <CreateRepairRequestDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={() => setRefreshTrigger(prev => prev + 1)}
             />
         </div>
     );

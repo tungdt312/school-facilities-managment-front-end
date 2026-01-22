@@ -28,50 +28,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { MaintenanceStatus } from "@/constaints/enum";
-
-// Mock data
-const MOCK_REPAIR_VOUCHERS: RepairVoucherResponse[] = [
-    {
-        voucherId: "RV001",
-        invoiceNumber: "2024-001",
-        totalAmount: 3500,
-        status: MaintenanceStatus.Completed,
-        providerName: "ABC Repair Services",
-        details: [
-            {
-                equipmentId: "EQ001",
-                equipmentName: "Projector",
-                note: "Lamp needs replacement"
-            }
-        ]
-    },
-    {
-        voucherId: "RV002",
-        invoiceNumber: "2024-002",
-        totalAmount: 7200,
-        status: MaintenanceStatus.Completed,
-        providerName: "XYZ Tech Support",
-        details: [
-            {
-                equipmentId: "EQ003",
-                equipmentName: "Computer",
-                note: "Hard drive replacement"
-            }
-        ]
-    },
-];
+import { MaintenanceStatus, MaintenanceStatusLabel } from "@/constaints/enum";
+import { getRepairVouchers } from '@/services/repairService';
 
 export const RepairTable = () => {
     const [data, setData] = useState<RepairVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowCount, setRowCount] = useState(0);
     const [selectedStatuses, setSelectedStatuses] = useState<MaintenanceStatus[]>([]);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-    const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
     const [sorting, setSorting] = useState<SortingState>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebounce(searchTerm, 500);
@@ -155,20 +125,20 @@ export const RepairTable = () => {
                         <DropdownMenuContent align="start" className="w-52">
                             <DropdownMenuLabel>Status filter</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            {Object.values(MaintenanceStatus).map((status) => (
+                            {Object.entries(MaintenanceStatusLabel).map(([statusKey, statusLabel]) => (
                                 <DropdownMenuCheckboxItem
-                                    key={status}
-                                    checked={selectedStatuses.includes(status)}
+                                    key={statusKey}
+                                    checked={selectedStatuses.includes(Number(statusKey) as MaintenanceStatus)}
                                     onCheckedChange={(checked) => {
                                         setSelectedStatuses(prev =>
                                             checked
-                                                ? [...prev, status]
-                                                : prev.filter(s => s != status)
+                                                ? [...prev, Number(statusKey) as MaintenanceStatus]
+                                                : prev.filter(s => s !== Number(statusKey))
                                         );
-                                        setPagination(p => ({ ...p, pageIndex: 0 }));
+                                        setPagination(p => ({ ...p, pageIndex: 1 }));
                                     }}
                                 >
-                                    {status}
+                                    {statusLabel}
                                 </DropdownMenuCheckboxItem>
                             ))}
                             {selectedStatuses.length > 0 && (
@@ -189,7 +159,7 @@ export const RepairTable = () => {
             cell: ({ row }) => (
                 <div className="flex flex-wrap gap-1">
                     <Badge variant={row.original.status === MaintenanceStatus.Completed ? "default" : "secondary"}>
-                        {row.original.status}
+                        {MaintenanceStatusLabel[row.original.status]}
                     </Badge>
                 </div>
             ),
@@ -207,8 +177,12 @@ export const RepairTable = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            setData(MOCK_REPAIR_VOUCHERS);
-            setRowCount(MOCK_REPAIR_VOUCHERS.length);
+            const response = await getRepairVouchers({
+                page: pagination.pageIndex,
+                size: pagination.pageSize,
+            });
+            setData(response.content || []);
+            setRowCount(response.totalElements || 0);
         } catch (e) {
             console.error(e);
             toast.error("Failed to load repair vouchers");
@@ -222,7 +196,7 @@ export const RepairTable = () => {
     useEffect(() => {
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pagination.pageIndex, pagination.pageSize, sorting, debouncedSearch, selectedStatuses]);
+    }, [pagination.pageIndex, pagination.pageSize, sorting, debouncedSearch, selectedStatuses, refreshTrigger]);
 
     const table = useReactTable({
         data,
@@ -349,14 +323,14 @@ export const RepairTable = () => {
                         </Select>
                     </div>
                     <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                        Page {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}
+                        Page {table.getState().pagination.pageIndex} / {table.getPageCount()}
                     </div>
                     <div className="flex items-center space-x-2">
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(0)}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => table.setPageIndex(1)}
+                            disabled={pagination.pageIndex <= 1}
                         >
                             <span className="sr-only">First page</span>
                             <ChevronsLeft className="size-4" />
@@ -364,8 +338,8 @@ export const RepairTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.previousPage()}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex - 1 }))}
+                            disabled={pagination.pageIndex <= 1}
                         >
                             <span className="sr-only">Previous page</span>
                             <ChevronLeft className="size-4" />
@@ -373,8 +347,8 @@ export const RepairTable = () => {
                         <Button
                             variant="outline"
                             className="h-8 w-8 p-0"
-                            onClick={() => table.nextPage()}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => setPagination(prev => ({ ...prev, pageIndex: prev.pageIndex + 1 }))}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Next page</span>
                             <ChevronRight className="size-4" />
@@ -382,8 +356,8 @@ export const RepairTable = () => {
                         <Button
                             variant="outline"
                             className="hidden h-8 w-8 p-0 lg:flex"
-                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() => table.setPageIndex(table.getPageCount())}
+                            disabled={pagination.pageIndex >= table.getPageCount()}
                         >
                             <span className="sr-only">Last page</span>
                             <ChevronsRight className="size-4" />

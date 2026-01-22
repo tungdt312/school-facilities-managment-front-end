@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,30 +9,82 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateRepairRequestRequest, RepairRequestDetailRequest } from "@/dtos/repair";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { createRepairRequest } from "@/services/repairService";
+import { getDevicesList } from "@/services/deviceService";
+import { getMe } from "@/services/authService";
+import { toast } from "sonner";
 
 interface CreateRepairRequestDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onSuccess?: () => void;
 }
 
-// Mock equipment data
-const MOCK_EQUIPMENT = [
-    { equipmentId: "EQ001", equipmentName: "Laptop Dell XPS 13", description: "High-performance laptop" },
-    { equipmentId: "EQ002", equipmentName: "Projector Epson EB-X39", description: "Classroom projector" },
-    { equipmentId: "EQ003", equipmentName: "Printer HP LaserJet Pro", description: "Network printer" },
-    { equipmentId: "EQ004", equipmentName: "Air Conditioner LG", description: "Classroom AC unit" },
-    { equipmentId: "EQ005", equipmentName: "Server Dell PowerEdge", description: "Network server" },
-    { equipmentId: "EQ006", equipmentName: "Monitor LG 27inch", description: "Desktop monitor" },
-];
+interface Equipment {
+    equipmentId: string;
+    equipmentName: string;
+    description: string;
+}
 
-export function CreateRepairRequestDialog({ open, onOpenChange }: CreateRepairRequestDialogProps) {
+export function CreateRepairRequestDialog({ open, onOpenChange, onSuccess }: CreateRepairRequestDialogProps) {
     const [formData, setFormData] = useState<CreateRepairRequestRequest>({
-        createdBy: "USER001", // TODO: Get from current user
+        createdBy: "",
         note: "",
         details: [],
     });
 
     const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<Set<string>>(new Set());
+    const [equipment, setEquipment] = useState<Equipment[]>([]);
+    const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Fetch equipment on dialog open
+    useEffect(() => {
+        if (open) {
+            fetchCurrentUser();
+            fetchEquipment();
+        } else {
+            // Reset form when dialog closes
+            setFormData({
+                createdBy: "",
+                note: "",
+                details: [],
+            });
+            setSelectedEquipmentIds(new Set());
+        }
+    }, [open]);
+
+    const fetchCurrentUser = async () => {
+        try {
+            const user = await getMe();
+            setFormData(prev => ({
+                ...prev,
+                createdBy: user.userId,
+            }));
+        } catch (error) {
+            toast.error("Failed to load current user");
+            console.error("Error fetching current user:", error);
+        }
+    };
+
+    const fetchEquipment = async () => {
+        setIsLoadingEquipment(true);
+        try {
+            const response = await getDevicesList({ page: 1, size: 100 });
+            const equipmentList: Equipment[] = (response.content || []).map(device => ({
+                equipmentId: device.equipmentId,
+                equipmentName: device.equipmentName,
+                description: device.description || "",
+            }));
+            setEquipment(equipmentList);
+        } catch (error) {
+            toast.error("Failed to load equipment");
+            console.error("Error fetching equipment:", error);
+            setEquipment([]);
+        } finally {
+            setIsLoadingEquipment(false);
+        }
+    };
 
     const handleAddEquipment = (equipmentId: string) => {
         const newSelectedIds = new Set(selectedEquipmentIds);
@@ -66,25 +118,29 @@ export function CreateRepairRequestDialog({ open, onOpenChange }: CreateRepairRe
         setFormData({ ...formData, details: newDetails });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (formData.details.length === 0) {
-            alert("Please select at least one equipment");
+            toast.error("Please select at least one equipment");
             return;
         }
-        // TODO: Implement API call to create repair request
-        console.log("Creating repair request:", formData);
-        onOpenChange(false);
-        setFormData({
-            createdBy: "USER001",
-            note: "",
-            details: [],
-        });
-        setSelectedEquipmentIds(new Set());
+
+        try {
+            setIsSubmitting(true);
+            await createRepairRequest(formData);
+            toast.success("Repair request created successfully");
+            onOpenChange(false);
+            onSuccess?.();
+        } catch (error) {
+            toast.error("Failed to create repair request");
+            console.error("Error creating repair request:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const selectedEquipmentDetails = useMemo(() => {
-        return MOCK_EQUIPMENT.filter(eq => selectedEquipmentIds.has(eq.equipmentId));
-    }, [selectedEquipmentIds]);
+        return equipment.filter(eq => selectedEquipmentIds.has(eq.equipmentId));
+    }, [selectedEquipmentIds, equipment]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,27 +158,33 @@ export function CreateRepairRequestDialog({ open, onOpenChange }: CreateRepairRe
                         <h3 className="font-semibold mb-3">Select Equipment to Repair</h3>
                         <ScrollArea className="h-[200px] border rounded p-3">
                             <div className="space-y-2">
-                                {MOCK_EQUIPMENT.map((equipment) => (
-                                    <div key={equipment.equipmentId} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
-                                        <Checkbox
-                                            id={equipment.equipmentId}
-                                            checked={selectedEquipmentIds.has(equipment.equipmentId)}
-                                            onCheckedChange={() => handleAddEquipment(equipment.equipmentId)}
-                                            className="mt-1"
-                                        />
-                                        <div className="flex-1">
-                                            <label
-                                                htmlFor={equipment.equipmentId}
-                                                className="text-sm font-medium cursor-pointer block"
-                                            >
-                                                {equipment.equipmentName}
-                                            </label>
-                                            <p className="text-xs text-muted-foreground">
-                                                {equipment.description}
-                                            </p>
+                                {isLoadingEquipment ? (
+                                    <div className="text-center py-4 text-muted-foreground">Loading equipment...</div>
+                                ) : equipment.length > 0 ? (
+                                    equipment.map((equip) => (
+                                        <div key={equip.equipmentId} className="flex items-start space-x-2 p-2 hover:bg-muted rounded">
+                                            <Checkbox
+                                                id={equip.equipmentId}
+                                                checked={selectedEquipmentIds.has(equip.equipmentId)}
+                                                onCheckedChange={() => handleAddEquipment(equip.equipmentId)}
+                                                className="mt-1"
+                                            />
+                                            <div className="flex-1">
+                                                <label
+                                                    htmlFor={equip.equipmentId}
+                                                    className="text-sm font-medium cursor-pointer block"
+                                                >
+                                                    {equip.equipmentName}
+                                                </label>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {equip.description}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4 text-muted-foreground">No equipment available</div>
+                                )}
                             </div>
                         </ScrollArea>
                     </div>
@@ -177,8 +239,8 @@ export function CreateRepairRequestDialog({ open, onOpenChange }: CreateRepairRe
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                         Cancel
                     </Button>
-                    <Button type="button" onClick={handleSubmit} disabled={selectedEquipmentDetails.length === 0}>
-                        Create Repair Request
+                    <Button type="button" onClick={handleSubmit} disabled={selectedEquipmentDetails.length === 0 || isSubmitting}>
+                        {isSubmitting ? "Creating..." : "Create Repair Request"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

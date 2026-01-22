@@ -3,27 +3,16 @@ import React, { useEffect, useState } from 'react'
 import { RepairRequestResponse } from "@/dtos/repair";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Loader, ArrowLeft } from 'lucide-react';
+import { Loader, ArrowLeft, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import Link from 'next/link';
-import { VoucherStatus } from '@/constaints/enum';
+import { VoucherStatus, VoucherStatusLabel } from '@/constaints/enum';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-
-// Mock data
-const MOCK_REQUEST: RepairRequestResponse = {
-    requestId: "RR001",
-    createdByName: "John Doe",
-    createdAt: "2024-01-15",
-    note: "Projector lamp is broken and needs replacement",
-    status: VoucherStatus.Pending,
-    details: [
-        {
-            equipmentId: "EQ001",
-            equipmentName: "Projector",
-            note: "Lamp needs replacement"
-        }
-    ]
-};
+import { getRepairRequestById, updateRepairRequestStatus } from '@/services/repairService';
+import { toast } from 'sonner';
+import { CreateRepairVoucherDialog } from './CreateRepairVoucherDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { getMe } from '@/services/authService';
 
 interface RepairRequestDetailProps {
     id: string;
@@ -32,15 +21,18 @@ interface RepairRequestDetailProps {
 export const RepairRequestDetail = ({ id }: RepairRequestDetailProps) => {
     const [data, setData] = useState<RepairRequestResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreateVoucherDialogOpen, setIsCreateVoucherDialogOpen] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                setData(MOCK_REQUEST);
+                const requestData = await getRepairRequestById(id);
+                setData(requestData);
             } catch (error) {
                 console.error(error);
+                toast.error("Failed to load repair request");
                 setData(null);
             } finally {
                 setIsLoading(false);
@@ -49,6 +41,38 @@ export const RepairRequestDetail = ({ id }: RepairRequestDetailProps) => {
 
         fetchData();
     }, [id]);
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (!data) return;
+
+        setIsUpdatingStatus(true);
+        try {
+            const user = await getMe();
+            await updateRepairRequestStatus(data.requestId, {
+                status: Number(newStatus) as VoucherStatus,
+                approvedBy: user.userId,
+            });
+            toast.success("Status updated successfully");
+            // Reload to get updated data
+            window.location.reload();
+        } catch (error) {
+            console.error("Error updating status:", error);
+            toast.error("Failed to update status");
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
+
+    const getStatusColor = (status: VoucherStatus) => {
+        switch (status) {
+            case VoucherStatus.Approved:
+                return "default";
+            case VoucherStatus.Rejected:
+                return "destructive";
+            default:
+                return "secondary";
+        }
+    };
 
     if (isLoading) {
         return (
@@ -67,25 +91,29 @@ export const RepairRequestDetail = ({ id }: RepairRequestDetailProps) => {
         );
     }
 
-    const getStatusColor = (status: VoucherStatus) => {
-        switch (status) {
-            case VoucherStatus.Approved:
-                return "default";
-            case VoucherStatus.Rejected:
-                return "destructive";
-            default:
-                return "secondary";
-        }
-    };
-
     return (
         <div className="space-y-6">
-            <Link href="/repair?tab=requests">
-                <Button variant="ghost" className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Requests
-                </Button>
-            </Link>
+            <div className="flex items-center justify-between">
+                <Link href="/repair?tab=requests">
+                    <Button variant="ghost" className="gap-2">
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Requests
+                    </Button>
+                </Link>
+                <div className="flex gap-2">
+                    {data.status === VoucherStatus.Approved && (
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsCreateVoucherDialogOpen(true)}
+                            className="gap-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Invoice
+                        </Button>
+                    )}
+                </div>
+            </div>
 
             <div className="grid gap-6 md:grid-cols-2">
                 {/* Request Information */}
@@ -101,9 +129,26 @@ export const RepairRequestDetail = ({ id }: RepairRequestDetailProps) => {
                         </div>
                         <div className="space-y-2">
                             <p className="text-sm text-muted-foreground">Status</p>
-                            <div>
-                                <Badge variant={getStatusColor(data.status)}>{data.status}</Badge>
-                            </div>
+                            <Select 
+                                value={String(data.status)} 
+                                onValueChange={handleStatusChange}
+                                disabled={isUpdatingStatus}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={String(VoucherStatus.Pending)}>
+                                        {VoucherStatusLabel[VoucherStatus.Pending]}
+                                    </SelectItem>
+                                    <SelectItem value={String(VoucherStatus.Approved)}>
+                                        {VoucherStatusLabel[VoucherStatus.Approved]}
+                                    </SelectItem>
+                                    <SelectItem value={String(VoucherStatus.Rejected)}>
+                                        {VoucherStatusLabel[VoucherStatus.Rejected]}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <p className="text-sm text-muted-foreground">Created At</p>
@@ -175,6 +220,17 @@ export const RepairRequestDetail = ({ id }: RepairRequestDetailProps) => {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Dialogs */}
+            <CreateRepairVoucherDialog
+                open={isCreateVoucherDialogOpen}
+                onOpenChange={setIsCreateVoucherDialogOpen}
+                requestId={data.requestId}
+                onSuccess={() => {
+                    toast.success("Voucher created successfully");
+                    window.location.href = "/repair?tab=vouchers";
+                }}
+            />
         </div>
     );
 }
