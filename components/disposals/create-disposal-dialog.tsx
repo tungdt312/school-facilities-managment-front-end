@@ -24,8 +24,8 @@ import {ImportRequestResponse} from "@/dtos/import";
 import {PageRequest} from "@/dtos/base";
 import {VoucherStatus} from "@/constaints/enum";
 import {getImportRequestsList} from "@/services/importService";
-import {postLiquidateVoucher} from "@/services/disposalService";
-import {CreateLiquidateVoucherRequest} from "@/dtos/liquidate";
+import {getLiquidateRequestsList, postLiquidateVoucher} from "@/services/disposalService";
+import {CreateLiquidateVoucherRequest, LiquidateRequestResponse} from "@/dtos/liquidate";
 import {DeviceResponse} from "@/dtos/device";
 import {getDevicesList} from "@/services/deviceService";
 
@@ -41,7 +41,7 @@ const liquidateVoucherSchema = z.object({
 export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultRequestId?: string }) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [requests, setRequests] = useState<ImportRequestResponse[]>([])
+    const [requests, setRequests] = useState<LiquidateRequestResponse[]>([])
     const [devices, setDevices] = useState<DeviceResponse[]>([])
 
     const fetchDevices = async () => {
@@ -69,11 +69,11 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
                 size: 100,
                 filter: `Status==${VoucherStatus.Approved}`,
             }
-            const res = await getImportRequestsList(req)
+            const res = await getLiquidateRequestsList(req)
             setRequests(res.content)
         } catch (e) {
             console.error(e);
-            toast.error("Failed to load procurement request data");
+            toast.error("Failed to load disposal request data");
             setRequests([]);
         }
     }
