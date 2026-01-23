@@ -269,24 +269,14 @@ export const AuditDetail = ({ id }: { id: string }) => {
             setIsSubmitting(true);
             console.log("✏️ Updating detail:", editingDetail.detailId);
             
-            const updatedDetail = await updateAuditDetail(id, editingDetail.equipmentId, {
+            await updateAuditDetail(id, editingDetail.equipmentId, {
                 condition: formData.condition,
                 note: formData.note,
             });
             toast.success("Equipment detail updated successfully");
             
-            // Convert condition string back to enum
-            const convertedDetail = {
-                ...updatedDetail,
-                condition: convertConditionToEnum(updatedDetail.condition),
-            };
-            
-            // Update local state
-            setDetails(
-                details.map(d =>
-                    d.detailId === editingDetail.detailId ? convertedDetail : d
-                )
-            );
+            // Refresh details from server to ensure consistency
+            await fetchDetails(id);
             
             // Reset form and close dialog
             setFormData({
