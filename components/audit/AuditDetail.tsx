@@ -10,6 +10,7 @@ import {useEffect, useState} from "react";
 import { getInventoryAuditById, deleteAuditDetail, getAuditDetailsByAuditId, createAuditDetail, updateAuditDetail } from "@/services/auditService";
 import { InventoryAuditResponse, AuditDetailResponse, CreateAuditDetailRequest } from "@/dtos/audit";
 import { AuditStatus, AuditStatusLabel, DeviceStatus, DeviceStatusLabel } from "@/constaints/enum";
+import { getDevicesList } from "@/services/deviceService";
 import { toast } from "sonner";
 import {
     Dialog,
@@ -113,6 +114,10 @@ export const AuditDetail = ({ id }: { id: string }) => {
         condition: DeviceStatus.Available,
         note: "",
     });
+    
+    // Equipment state
+    const [equipment, setEquipment] = useState<any[]>([]);
+    const [isLoadingEquipment, setIsLoadingEquipment] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -135,6 +140,27 @@ export const AuditDetail = ({ id }: { id: string }) => {
 
         fetchData();
     }, [id]);
+
+    // Fetch equipment when create or edit dialog opens
+    useEffect(() => {
+        if (isCreateDialogOpen || isEditDialogOpen) {
+            fetchEquipment();
+        }
+    }, [isCreateDialogOpen, isEditDialogOpen]);
+
+    const fetchEquipment = async () => {
+        try {
+            setIsLoadingEquipment(true);
+            const response = await getDevicesList({ page: 1, size: 100 });
+            setEquipment(response.content || []);
+        } catch (error) {
+            console.error("Failed to fetch equipment:", error);
+            toast.error("Failed to load equipment");
+            setEquipment([]);
+        } finally {
+            setIsLoadingEquipment(false);
+        }
+    };
 
     const fetchDetails = async (auditId: string) => {
         try {
@@ -170,14 +196,8 @@ export const AuditDetail = ({ id }: { id: string }) => {
             });
             toast.success("Equipment added successfully");
             
-            // Convert condition string back to enum
-            const convertedDetail = {
-                ...newDetail,
-                condition: convertConditionToEnum(newDetail.condition),
-            };
-            
-            // Add to local state
-            setDetails([...details, convertedDetail]);
+            // Refresh details from server
+            await fetchDetails(id);
             
             // Reset form and close dialog
             setFormData({
@@ -452,14 +472,23 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="equipmentId">Equipment ID *</Label>
-                            <Input
-                                id="equipmentId"
-                                placeholder="Enter equipment ID"
+                            <Label htmlFor="equipmentId">Equipment *</Label>
+                            <Select
                                 value={formData.equipmentId}
-                                onChange={(e) => setFormData({ ...formData, equipmentId: e.target.value })}
-                                disabled={isSubmitting}
-                            />
+                                onValueChange={(value) => setFormData({ ...formData, equipmentId: value })}
+                                disabled={isSubmitting || isLoadingEquipment}
+                            >
+                                <SelectTrigger id="equipmentId">
+                                    <SelectValue placeholder={isLoadingEquipment ? "Loading equipment..." : "Select equipment"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {equipment.map((item) => (
+                                        <SelectItem key={item.equipmentId} value={item.equipmentId}>
+                                            {item.equipmentName} ({item.equipmentId})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="condition">Condition *</Label>
@@ -522,13 +551,23 @@ export const AuditDetail = ({ id }: { id: string }) => {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-equipmentId">Equipment ID</Label>
-                            <Input
-                                id="edit-equipmentId"
+                            <Label htmlFor="edit-equipmentId">Equipment</Label>
+                            <Select
                                 value={formData.equipmentId}
-                                disabled
-                                className="bg-muted"
-                            />
+                                onValueChange={(value) => setFormData({ ...formData, equipmentId: value })}
+                                disabled={isSubmitting || isLoadingEquipment}
+                            >
+                                <SelectTrigger id="edit-equipmentId">
+                                    <SelectValue placeholder={isLoadingEquipment ? "Loading equipment..." : "Select equipment"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {equipment.map((item) => (
+                                        <SelectItem key={item.equipmentId} value={item.equipmentId}>
+                                            {item.equipmentName} ({item.equipmentId})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="edit-condition">Condition *</Label>
