@@ -66,6 +66,8 @@ export const LiquidateVoucherTable = () => {
     const [data, setData] = useState<LiquidateVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rowSelection, setRowSelection] = useState({});
+    const [rowCount, setRowCount] = useState(0);
+
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [pagination, setPagination] = useState({pageIndex: 1, pageSize: 10});
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -190,11 +192,12 @@ export const LiquidateVoucherTable = () => {
             const res = await getLiquidateVouchersList(req)
             setData(res.content)
             console.log(res)
-
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load disposal voucher data");
             setData([]);
+            setRowCount(0);
         } finally {
             setIsLoading(false);
         }
@@ -209,13 +212,23 @@ export const LiquidateVoucherTable = () => {
     const table = useReactTable({
         data,
         columns,
-        state: {sorting, columnVisibility, rowSelection, pagination},
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.liquidateId,
     });
 

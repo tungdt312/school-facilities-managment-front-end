@@ -28,6 +28,8 @@ import {getLiquidateRequestsList, postLiquidateVoucher} from "@/services/disposa
 import {CreateLiquidateVoucherRequest, LiquidateRequestResponse} from "@/dtos/liquidate";
 import {DeviceResponse} from "@/dtos/device";
 import {getDevicesList} from "@/services/deviceService";
+import {getInvoices} from "@/services/invoiceService";
+import {InvoiceResponse} from "@/dtos/other";
 
 const liquidateVoucherSchema = z.object({
     requestId: z.string().min(1, "Reference Request ID is required"),
@@ -43,7 +45,7 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
     const [loading, setLoading] = useState(false)
     const [requests, setRequests] = useState<LiquidateRequestResponse[]>([])
     const [devices, setDevices] = useState<DeviceResponse[]>([])
-
+    const [invoices, setInvoices] = useState<InvoiceResponse[]>([])
     const fetchDevices = async () => {
         try {
             const req: PageRequest = {
@@ -78,8 +80,24 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
         }
     }
 
+    const fetchInvoices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getInvoices(req)
+            setInvoices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load invoice data");
+            setRequests([]);
+        }
+    }
+
     useEffect(() => {
         fetchRequests()
+        fetchInvoices()
     }, []);
     const form = useForm<z.infer<typeof liquidateVoucherSchema>>({
         resolver: zodResolver(liquidateVoucherSchema),
@@ -89,7 +107,19 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
             details: [{equipmentId: '', note: ''}]
         }
     })
+    const selectedRequestId = form.watch("requestId");
+    const selectedRequest = requests.find(r => r.requestId === selectedRequestId);
+    useEffect(() => {
+        if (selectedRequest && selectedRequest.details) {
+            // Ánh xạ các thiết bị từ phiếu yêu cầu sang định dạng của Voucher
+            const itemsFromRequest = selectedRequest.details.map(item => ({
+                equipmentId: item.equipmentId,
+                note: "" // Để trống để người dùng nhập lý do thanh lý cụ thể (ví dụ: "Đã bán sắt vụn")
+            }));
 
+            form.setValue("details", itemsFromRequest);
+        }
+    }, [selectedRequestId, selectedRequest, form]);
     const {fields, append, remove} = useFieldArray({
         control: form.control,
         name: "details"
@@ -132,16 +162,21 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
                                 name="requestId"
                                 render={({field}) => (
                                     <FormItem>
-                                        <FormLabel className="flex items-center gap-2"><Hash
-                                            className="h-3.5 w-3.5"/> Approved Request</FormLabel>
+                                        <FormLabel className="flex items-center gap-2">
+                                            <Hash className="h-3.5 w-3.5"/> Reference Request
+                                        </FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue
-                                                placeholder="Select Request"/></SelectTrigger></FormControl>
+                                            <FormControl>
+                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                    <div className="truncate text-left flex-1 mr-2">
+                                                        <SelectValue placeholder="Select Request ID" />
+                                                    </div>
+                                                </SelectTrigger>
+                                            </FormControl>
                                             <SelectContent>
                                                 {requests.map((req) => (
                                                     <SelectItem key={req.requestId} value={req.requestId}>
-                                                        <span
-                                                            className={"text-muted-foreground tetx-xs"}>{req.requestId}</span>
+                                                        <span className={"text-muted-foreground tetx-xs"}>{req.requestId}</span>
                                                         <span>({req.createdByName})</span>
                                                     </SelectItem>
                                                 ))}
@@ -156,9 +191,26 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
                                 name="invoiceId"
                                 render={({field}) => (
                                     <FormItem>
-                                        <FormLabel className="flex items-center gap-2"><Receipt
-                                            className="h-3.5 w-3.5"/> Disposal Receipt ID</FormLabel>
-                                        <FormControl><Input placeholder="REC-999-DISP" {...field} /></FormControl>
+                                        <FormLabel className="flex items-center gap-2">
+                                            <Receipt className="h-3.5 w-3.5"/> Invoice ID / Number
+                                        </FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                    <div className="truncate text-left flex-1 mr-2">
+                                                        <SelectValue placeholder="Select Invoice ID" />
+                                                    </div>
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {invoices.map((req) => (
+                                                    <SelectItem key={req.invoiceId} value={req.invoiceId}>
+                                                        <span className={"text-muted-foreground tetx-xs"}>{req.invoiceId}</span>
+                                                        <span>({req.totalAmount})</span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage/>
                                     </FormItem>
                                 )}
@@ -185,20 +237,26 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
                                                 render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Select Device</FormLabel>
-                                                        <Select onValueChange={field.onChange}
-                                                                defaultValue={field.value}>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Search equipment..."/>
+                                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                                    <div className="truncate text-left flex-1 mr-2">
+                                                                        <SelectValue placeholder={selectedRequestId ? "Choose devices from request..." : "Please choose a request first"} />
+                                                                    </div>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
-                                                                {devices.map((d) => (
-                                                                    <SelectItem key={d.equipmentId}
-                                                                                value={d.equipmentId}>
+                                                                {/* Lọc: Chỉ hiển thị các thiết bị nằm trong phiếu yêu cầu đã chọn */}
+                                                                {selectedRequest?.details?.map((d) => (
+                                                                    <SelectItem key={d.equipmentId} value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
+                                                                {!selectedRequest && (
+                                                                    <div className="p-2 text-xs text-center text-muted-foreground">
+                                                                        Please choose a request first
+                                                                    </div>
+                                                                )}
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage/>

@@ -1,14 +1,14 @@
 "use client"
 
-import React, {useEffect, useState } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import React, {useEffect, useState} from 'react'
+import {useForm, useFieldArray} from 'react-hook-form'
+import {zodResolver} from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import {
     Plus, Trash2, FileText, Loader2,
     CheckCircle2, ClipboardList, MoveRight, MapPin
 } from 'lucide-react'
-import { toast } from 'sonner'
+import {toast} from 'sonner'
 
 import {
     Dialog,
@@ -19,7 +19,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import {Button} from "@/components/ui/button"
 import {
     Form,
     FormControl,
@@ -28,8 +28,8 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import {Input} from "@/components/ui/input"
+import {Textarea} from "@/components/ui/textarea"
 import {
     Select,
     SelectContent,
@@ -39,10 +39,10 @@ import {
     SelectTrigger,
     SelectValue
 } from "@/components/ui/select"
-import { CreateTransferRequestRequest } from '@/dtos/transfer'
-import { LocationType } from '@/constaints/enum'
-import { MOCK_ROOMS_FLAT } from "@/components/mock-data/areas-data"
-import { MOCK_DEVICES } from "@/components/mock-data/devices-data"
+import {CreateTransferRequestRequest} from '@/dtos/transfer'
+import {LocationType} from '@/constaints/enum'
+import {MOCK_ROOMS_FLAT} from "@/components/mock-data/areas-data"
+import {MOCK_DEVICES} from "@/components/mock-data/devices-data"
 import {postTransferRequest} from "@/services/transferService";
 import {BuildingResponse} from "@/dtos/building";
 import {getBuildingsList} from "@/services/areaService";
@@ -95,11 +95,11 @@ export const CreateTransferRequestDialog = () => {
         defaultValues: {
             sourceLocationType: LocationType.Room,
             destinationLocationType: LocationType.Room,
-            details: [{ equipmentId: '', note: '' }]
+            details: [{equipmentId: '', note: ''}]
         }
     })
 
-    const { fields, append, remove } = useFieldArray({
+    const {fields, append, remove} = useFieldArray({
         control: form.control,
         name: "details"
     })
@@ -147,11 +147,12 @@ export const CreateTransferRequestDialog = () => {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
                         {/* Location Selection Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                        <div
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
                             <FormField
                                 control={form.control}
                                 name="sourceLocationId"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
                                         <FormLabel className="font-bold text-slate-600">Source Location</FormLabel>
                                         <Select
@@ -164,25 +165,32 @@ export const CreateTransferRequestDialog = () => {
                                                 form.trigger(["sourceLocationId", "sourceLocationType"]);
                                             }}
                                             defaultValue={field.value}>
-                                            <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="From..." /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="bg-white w-full"><SelectValue
+                                                placeholder="From..."/></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {buildings.map(building => (
                                                     <SelectGroup key={building.buildingId}>
                                                         {/* Mục chọn cho chính tòa nhà */}
-                                                        <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                        <SelectItem
+                                                            value={`${LocationType.Building}|${building.buildingId}`}
+                                                            className="font-medium">
                                                             {building.buildingName}
                                                         </SelectItem>
 
                                                         {building.floors?.map(floor => (
                                                             <React.Fragment key={floor.floorId}>
                                                                 {/* Mục chọn cho tầng */}
-                                                                <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                <SelectItem
+                                                                    value={`${LocationType.Floor}|${floor.floorId}`}
+                                                                    className="pl-6 italic">
                                                                     {floor.floorName}
                                                                 </SelectItem>
 
                                                                 {/* Mục chọn cho phòng */}
                                                                 {floor.rooms?.map(room => (
-                                                                    <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                    <SelectItem key={room.roomId}
+                                                                                value={`${LocationType.Room}|${room.roomId}`}
+                                                                                className="pl-12">
                                                                         {room.roomName}
                                                                     </SelectItem>
                                                                 ))}
@@ -192,14 +200,14 @@ export const CreateTransferRequestDialog = () => {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
                                 name="destinationLocationId"
-                                render={({ field }) => (
+                                render={({field}) => (
                                     <FormItem>
                                         <FormLabel className="font-bold text-slate-600">Destination Location</FormLabel>
                                         <Select onValueChange={(combinedValue) => {
@@ -211,25 +219,32 @@ export const CreateTransferRequestDialog = () => {
                                             form.trigger(["destinationLocationId", "destinationLocationType"]);
                                         }}
                                                 defaultValue={field.value}>
-                                            <FormControl><SelectTrigger className="bg-white w-full"><SelectValue placeholder="To..." /></SelectTrigger></FormControl>
+                                            <FormControl><SelectTrigger className="bg-white w-full"><SelectValue
+                                                placeholder="To..."/></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {buildings.map(building => (
                                                     <SelectGroup key={building.buildingId}>
                                                         {/* Mục chọn cho chính tòa nhà */}
-                                                        <SelectItem value={`${LocationType.Building}|${building.buildingId}`} className="font-medium">
+                                                        <SelectItem
+                                                            value={`${LocationType.Building}|${building.buildingId}`}
+                                                            className="font-medium">
                                                             {building.buildingName}
                                                         </SelectItem>
 
                                                         {building.floors?.map(floor => (
                                                             <React.Fragment key={floor.floorId}>
                                                                 {/* Mục chọn cho tầng */}
-                                                                <SelectItem value={`${LocationType.Floor}|${floor.floorId}`} className="pl-6 italic">
+                                                                <SelectItem
+                                                                    value={`${LocationType.Floor}|${floor.floorId}`}
+                                                                    className="pl-6 italic">
                                                                     {floor.floorName}
                                                                 </SelectItem>
 
                                                                 {/* Mục chọn cho phòng */}
                                                                 {floor.rooms?.map(room => (
-                                                                    <SelectItem key={room.roomId} value={`${LocationType.Room}|${room.roomId}`} className="pl-12">
+                                                                    <SelectItem key={room.roomId}
+                                                                                value={`${LocationType.Room}|${room.roomId}`}
+                                                                                className="pl-12">
                                                                         {room.roomName}
                                                                     </SelectItem>
                                                                 ))}
@@ -239,7 +254,7 @@ export const CreateTransferRequestDialog = () => {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <FormMessage />
+                                        <FormMessage/>
                                     </FormItem>
                                 )}
                             />
@@ -248,11 +263,13 @@ export const CreateTransferRequestDialog = () => {
                         <FormField
                             control={form.control}
                             name="note"
-                            render={({ field }) => (
+                            render={({field}) => (
                                 <FormItem>
-                                    <FormLabel className="flex items-center gap-2"><FileText className="h-3.5 w-3.5" /> Transfer Note</FormLabel>
-                                    <FormControl><Textarea placeholder="Reason for transfer..." className="resize-none h-20" {...field} /></FormControl>
-                                    <FormMessage />
+                                    <FormLabel className="flex items-center gap-2"><FileText
+                                        className="h-3.5 w-3.5"/> Transfer Note</FormLabel>
+                                    <FormControl><Textarea placeholder="Reason for transfer..."
+                                                           className="resize-none h-20" {...field} /></FormControl>
+                                    <FormMessage/>
                                 </FormItem>
                             )}
                         />
@@ -261,36 +278,43 @@ export const CreateTransferRequestDialog = () => {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between border-b pb-2">
                                 <h3 className="text-sm font-bold ">Equipment to Transfer</h3>
-                                <Button type="button" variant="outline" size="sm" onClick={() => append({ equipmentId: '', note: '' })} className="h-8 gap-1">
-                                    <Plus className="h-3.5 w-3.5" /> Add Equipment
+                                <Button type="button" variant="outline" size="sm"
+                                        onClick={() => append({equipmentId: '', note: ''})} className="h-8 gap-1">
+                                    <Plus className="h-3.5 w-3.5"/> Add Equipment
                                 </Button>
                             </div>
 
                             <div className="space-y-3">
                                 {fields.map((field, index) => (
-                                    <div key={field.id} className="grid grid-cols-12 gap-3 items-start p-4 rounded-xl border bg-slate-50/50">
+                                    <div key={field.id}
+                                         className="grid grid-cols-12 gap-3 items-start p-4 rounded-xl border bg-slate-50/50">
                                         <div className="col-span-12 md:col-span-6">
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.equipmentId`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Select Device</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <Select onValueChange={field.onChange}
+                                                                defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Search equipment..." />
+                                                                <SelectTrigger
+                                                                    className="w-full md:w-[200px] flex justify-between items-center">
+                                                                    <div className="truncate text-left flex-1 mr-2">
+                                                                        <SelectValue placeholder="Search equipment..."/>
+                                                                    </div>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
                                                                 {devices.map((d) => (
-                                                                    <SelectItem key={d.equipmentId} value={d.equipmentId}>
+                                                                    <SelectItem key={d.equipmentId}
+                                                                                value={d.equipmentId}>
                                                                         {d.equipmentName} ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
-                                                        <FormMessage />
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
@@ -299,20 +323,22 @@ export const CreateTransferRequestDialog = () => {
                                             <FormField
                                                 control={form.control}
                                                 name={`details.${index}.note`}
-                                                render={({ field }) => (
+                                                render={({field}) => (
                                                     <FormItem>
                                                         <FormLabel>Note</FormLabel>
                                                         <FormControl>
                                                             <Input placeholder="Damage details..." {...field} />
                                                         </FormControl>
-                                                        <FormMessage />
+                                                        <FormMessage/>
                                                     </FormItem>
                                                 )}
                                             />
                                         </div>
                                         <div className="col-span-1 flex justify-end pt-7">
-                                            <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => remove(index)} disabled={fields.length === 1}>
-                                                <Trash2 className="h-4 w-4" />
+                                            <Button type="button" variant="ghost" size="icon"
+                                                    className="text-destructive" onClick={() => remove(index)}
+                                                    disabled={fields.length === 1}>
+                                                <Trash2 className="h-4 w-4"/>
                                             </Button>
                                         </div>
                                     </div>
@@ -323,7 +349,8 @@ export const CreateTransferRequestDialog = () => {
                         <DialogFooter className="pt-6 border-t">
                             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
                             <Button type="submit" disabled={loading} className="gap-2 ">
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin"/> :
+                                    <CheckCircle2 className="h-4 w-4"/>}
                                 Submit Transfer Request
                             </Button>
                         </DialogFooter>

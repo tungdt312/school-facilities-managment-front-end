@@ -223,7 +223,8 @@ export const UserTable = () => {
             const res = await getUsersList(req)
             setData(res.content)
             console.log(res)
-            setIsLoading(false);res.totalElements
+            setIsLoading(false);
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load users");

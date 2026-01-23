@@ -52,6 +52,8 @@ import {getTransferVouchersList} from "@/services/transferService";
 export const TransferVoucherTable = () => {
     const [data, setData] = useState<TransferVoucherResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [rowCount, setRowCount] = useState(0);
+
     const [rowSelection, setRowSelection] = useState({});
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [pagination, setPagination] = useState({ pageIndex: 1, pageSize: 10 });
@@ -102,11 +104,11 @@ export const TransferVoucherTable = () => {
             cell: ({ row }) => (
                 <div className="flex items-center gap-2 text-xs">
                     <div className="flex items-center gap-1 font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                        {row.original.sourceLocationId}
+                        {row.original.sourceLocationName}
                     </div>
                     <MoveHorizontal className="size-3 text-muted-foreground" />
                     <div className="flex items-center gap-1 font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                        {row.original.destinationRoomId || row.original.destinationLocationType}
+                        {row.original.destinationLocationName}
                     </div>
                 </div>
             ),
@@ -172,11 +174,12 @@ export const TransferVoucherTable = () => {
             const res = await getTransferVouchersList(req)
             setData(res.content)
             console.log(res)
-
+            setRowCount(res.totalElements)
         } catch (e) {
             console.error(e);
             toast.error("Failed to load transfer voucher data");
             setData([]);
+            setRowCount(0)
         } finally {
             setIsLoading(false);
         }
@@ -191,13 +194,23 @@ export const TransferVoucherTable = () => {
     const table = useReactTable({
         data,
         columns,
-        state: { sorting, columnVisibility, rowSelection, pagination },
+        state: {
+            sorting,
+            columnVisibility,
+            rowSelection,
+            pagination,
+        },
+        // Bật chế độ Manual (Server-side)
+        manualPagination: true,
+        manualSorting: true,
+        manualFiltering: true, // Quan trọng
+        rowCount: rowCount,
         onPaginationChange: setPagination,
         onSortingChange: setSorting,
         onRowSelectionChange: setRowSelection,
         onColumnVisibilityChange: setColumnVisibility,
+
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getRowId: (row) => row.transferId,
     });
 

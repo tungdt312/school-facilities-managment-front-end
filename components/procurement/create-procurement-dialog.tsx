@@ -26,6 +26,8 @@ import {getImportRequestsList, postImportVoucher} from "@/services/importService
 import {PageRequest} from "@/dtos/base";
 import {getSortString} from "@/lib/utils";
 import {VoucherStatus} from "@/constaints/enum";
+import {InvoiceResponse} from "@/dtos/other";
+import {getInvoices} from "@/services/invoiceService";
 
 // Validation Schema
 const importVoucherSchema = z.object({
@@ -43,7 +45,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [requests, setRequests] = useState<ImportRequestResponse[]>([])
-
+    const [invoices, setInvoices] = useState<InvoiceResponse[]>([])
     const fetchRequests = async () => {
         try {
             const req: PageRequest = {
@@ -59,9 +61,24 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
             setRequests([]);
         }
     }
+    const fetchInvoices = async () => {
+        try {
+            const req: PageRequest = {
+                page: 1,
+                size: 100,
+            }
+            const res = await getInvoices(req)
+            setInvoices(res.content)
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load invoice data");
+            setRequests([]);
+        }
+    }
 
     useEffect(() => {
         fetchRequests()
+        fetchInvoices()
     }, []);
 
     const form = useForm<FormValues>({
@@ -72,7 +89,20 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
             details: [{equipmentName: '', quantity: 0, note: ''}]
         }
     })
+    const selectedRequestId = form.watch("requestId");
+    const selectedRequest = requests.find(r => r.requestId === selectedRequestId);
+    useEffect(() => {
+        if (selectedRequest && selectedRequest.details) {
+            // Tự động map danh sách thiết bị từ phiếu yêu cầu sang phiếu nhập
+            const initialDetails = selectedRequest.details.map(item => ({
+                equipmentName: item.equipmentName,
+                quantity: item.quantity, // Giả định nhập đủ số lượng đã yêu cầu
+                note: ""
+            }));
 
+            form.setValue("details", initialDetails);
+        }
+    }, [selectedRequestId, selectedRequest, form]);
     const {fields, append, remove} = useFieldArray({
         control: form.control,
         name: "details"
@@ -81,6 +111,7 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
     const onSubmit = async (data: CreateImportVoucherRequest) => {
         setLoading(true)
         try {
+            console.log(data)
            const res = await postImportVoucher(data)
 
             toast.success("Import voucher created successfully")
@@ -151,9 +182,23 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                         <FormLabel className="flex items-center gap-2">
                                             <Receipt className="h-3.5 w-3.5"/> Invoice ID / Number
                                         </FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="INV-2024-XXX" {...field} />
-                                        </FormControl>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                    <div className="truncate text-left flex-1 mr-2">
+                                                        <SelectValue placeholder="Select Invoice ID" />
+                                                    </div>
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {invoices.map((req) => (
+                                                    <SelectItem key={req.invoiceId} value={req.invoiceId}>
+                                                        <span className={"text-muted-foreground tetx-xs"}>{req.invoiceId}</span>
+                                                        <span>({req.totalAmount})</span>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                         <FormMessage/>
                                     </FormItem>
                                 )}
@@ -187,10 +232,31 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                                 name={`details.${index}.equipmentName`}
                                                 render={({field}) => (
                                                     <FormItem>
-                                                        <FormLabel>Name</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="MacBook Pro..." {...field} />
-                                                        </FormControl>
+                                                        <FormLabel className="flex items-center gap-2">
+                                                            Devices
+                                                        </FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="w-full md:w-[170px]">
+                                                                    <div className="truncate text-left flex-1 mr-2">
+                                                                        <SelectValue placeholder={selectedRequestId ? "Choose devices from request..." : "Please choose a request first"} />
+                                                                    </div>
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {selectedRequest ? (
+                                                                    selectedRequest.details.map((detail) => (
+                                                                        <SelectItem key={detail.detailId} value={detail.equipmentName}>
+                                                                            {detail.equipmentName} (SL: {detail.quantity})
+                                                                        </SelectItem>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="p-2 text-xs text-center text-muted-foreground">
+                                                                        Please choose a request first
+                                                                    </div>
+                                                                )}
+                                                            </SelectContent>
+                                                        </Select>
                                                         <FormMessage/>
                                                     </FormItem>
                                                 )}
@@ -202,12 +268,10 @@ export const CreateImportVoucherDialog = ({requestId}:{requestId?: string}) => {
                                                 name={`details.${index}.quantity`}
                                                 render={({field}) => (
                                                     <FormItem>
-                                                        <FormLabel>Unit Price</FormLabel>
+                                                        <FormLabel>Quantity</FormLabel>
                                                         <FormControl>
                                                             <div className="relative">
-                                                                <DollarSign
-                                                                    className="absolute left-2 top-2.5 h-4 w-4 text-slate-400"/>
-                                                                <Input type="number" className="pl-8" {...field} />
+                                                                <Input {...field} type="number" onChange={(e) => field.onChange(e.target.valueAsNumber)} />
                                                             </div>
                                                         </FormControl>
                                                         <FormMessage/>

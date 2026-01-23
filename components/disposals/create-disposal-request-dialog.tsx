@@ -38,6 +38,7 @@ import {DeviceResponse} from "@/dtos/device";
 import {PageRequest} from "@/dtos/base";
 import {DeviceStatus, VoucherStatus} from "@/constaints/enum";
 import {getDevicesList} from "@/services/deviceService";
+import {postLiquidateRequest} from "@/services/disposalService";
 
 const liquidateRequestSchema = z.object({
     note: z.string().optional(),
@@ -86,7 +87,7 @@ export const CreateLiquidateRequestDialog = () => {
     const onSubmit = async (data: any) => {
         setLoading(true)
         try {
-            const res = await postImportRequest(data)
+            const res = await postLiquidateRequest(data)
             toast.success("Liquidation request submitted")
             setOpen(false)
             form.reset()
@@ -151,14 +152,16 @@ export const CreateLiquidateRequestDialog = () => {
                                                         <FormLabel>Select Device</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Search equipment..." />
+                                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                                    <div className="truncate text-left flex-1 mr-2">
+                                                                        <SelectValue placeholder="Search equipment..." />
+                                                                    </div>
                                                                 </SelectTrigger>
                                                             </FormControl>
                                                             <SelectContent>
                                                                 {devices.map((d) => (
                                                                     <SelectItem key={d.equipmentId} value={d.equipmentId}>
-                                                                        {d.equipmentName} ({d.equipmentId})
+                                                                        {d.equipmentName}  ({d.equipmentId})
                                                                     </SelectItem>
                                                                 ))}
                                                             </SelectContent>

@@ -6,7 +6,6 @@ export interface CreateDeviceRequest {
     categoryId: string;
     locationId: string;
     locationType: LocationType;
-    quantity: number;
     unitPrice: number;
     isPublic: boolean;
     status: DeviceStatus;
@@ -21,15 +20,15 @@ export interface UpdateDeviceRequest {
 export interface DeviceResponse {
     equipmentId: string;
     equipmentName: string;
-    categoryId: string;
-    categoryName: string;
+    categoryId?: string;
+    equipmentCategoryName?: string;
 
-    locationId: string;
-    locationName: string;
-    locationType: LocationType;
+    locationId?: string;
+    locationName?: string;
+    locationType?: LocationType;
 
-    unitPrice: number;
-    status: DeviceStatus;
+    unitPrice?: number;
+    status?: DeviceStatus;
     description?: string;
     warrantyExpiryDate?: string;
 }

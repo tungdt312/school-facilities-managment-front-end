@@ -69,7 +69,7 @@ export const BorrowInfoCard = ({ id }: BorrowInfoCardProps) => {
             const res = await approveBorrow(id, {status: newStatus})
             form.setValue("status", newStatus)
             setIsEditing(false)
-            toast.success(`Status updated to ${newStatus}`)
+            toast.success(`Status updated to ${BorrowStatusLabel[newStatus]}`)
         } catch (error) {
             toast.error("Update failed")
         } finally {

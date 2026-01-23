@@ -20,7 +20,7 @@ import {
     ChevronRight,
     ChevronsLeft,
     ChevronsRight,
-    Columns2,
+    Columns2, DollarSign,
     DoorOpen,
     ExternalLink,
     Filter,
@@ -66,6 +66,7 @@ const createRoomSchema = z.object({
     floorId: z.string().min(1, "Floor is required"),
     roomName: z.string().min(1, "Room name is required"),
     roomTypeId: z.string().min(1, "Room type is required"),
+    capacity: z.number().min(1, "Capacity is required"),
     note: z.string().optional(),
 })
 
@@ -99,6 +100,7 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
             floorId: floorId || "",
             roomName: "",
             roomTypeId: "",
+            capacity: 1,
             note: ""
         },
     })
@@ -174,8 +176,14 @@ export function CreateRoomDialog({floorId, onSuccess}: { floorId?: string, onSuc
                                     </FormItem>
                                 )}
                             />
-                            {/*create Roomtype*/}
                         </div>
+                        <FormField control={form.control} name="capacity" render={({field}) => (
+                            <FormItem>
+                                <FormLabel className="flex items-center gap-2"> Capacity</FormLabel>
+                                <FormControl><Input type="number" {...field}  onChange={(e) => field.onChange(e.target.valueAsNumber)}/></FormControl>
+                                <FormMessage/>
+                            </FormItem>
+                        )}/>
                         <DialogFooter><Button type="submit" disabled={isSubmitting} className="w-full">Save
                             Room</Button></DialogFooter>
                     </form>

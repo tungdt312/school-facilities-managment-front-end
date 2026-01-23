@@ -69,8 +69,10 @@ export interface TransferVoucherResponse {
 
     sourceLocationId: string;
     sourceLocationType: LocationType;
-    destinationRoomId: string;
+    sourceLocationName: string;
+    destinationLocationId: string;
     destinationLocationType: LocationType;
+    destinationLocationName: string;
 
     details: TransferVoucherDetailResponse[];
 }
