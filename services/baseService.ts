@@ -154,8 +154,19 @@ export async function processResponse<T>(res: Response): Promise<T> {
     try {
         data = JSON.parse(text);
     } catch (e) {
-        console.error("Failed to parse JSON:", text);
-        throw new Error("API response is not a valid JSON");
+        // Nếu response status 2xx nhưng không phải JSON, treat as success
+        if (res.ok) {
+            console.warn("Response is not JSON but status is 2xx:", text.substring(0, 100));
+            return undefined as T;
+        }
+        
+        console.error("Failed to parse JSON:", {
+            status: res.status,
+            statusText: res.statusText,
+            responseText: text,
+            error: e
+        });
+        throw new Error(`API Error: ${res.status} ${res.statusText}`);
     }
 
     // 5. Xử lý lỗi từ API

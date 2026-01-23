@@ -3,7 +3,6 @@ import { VoucherStatus, MaintenanceStatus, LocationType } from "@/constaints/enu
 
 // 1. Requests
 export interface CreateMaintenanceRequestRequest {
-    createdBy: string;
     note?: string;
     details: MaintenanceRequestDetailRequest[];
 }
@@ -20,7 +19,6 @@ export interface UpdateMaintenanceRequestStatusRequest {
 
 export interface CreateMaintenanceVoucherRequest {
     requestId: string;
-    createdBy: string;
     invoiceId: string;
     details: MaintenanceRequestDetailRequest[];
 }

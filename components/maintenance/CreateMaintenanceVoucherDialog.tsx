@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateMaintenanceVoucherRequest } from "@/dtos/maintenance";
 import { createMaintenanceVoucher } from "@/services/maintenanceService";
 import { getInvoices } from "@/services/invoiceService";
-import { getMe } from "@/services/authService";
 import { toast } from "sonner";
 import { InvoiceResponse } from "@/dtos/other";
 
@@ -22,7 +21,6 @@ interface CreateMaintenanceVoucherDialogProps {
 export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, onSuccess }: CreateMaintenanceVoucherDialogProps) {
     const [formData, setFormData] = useState<CreateMaintenanceVoucherRequest>({
         requestId: requestId || "",
-        createdBy: "",
         invoiceId: "",
         details: [],
     });
@@ -33,7 +31,6 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
     useEffect(() => {
         if (open) {
             fetchInvoices();
-            fetchCurrentUser();
         }
     }, [open]);
 
@@ -51,19 +48,6 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
         }
     };
 
-    const fetchCurrentUser = async () => {
-        try {
-            const user = await getMe();
-            setFormData(prev => ({
-                ...prev,
-                createdBy: user.userId,
-            }));
-        } catch (error) {
-            console.error("Error fetching current user:", error);
-            toast.error("Failed to load current user");
-        }
-    };
-
     const handleSubmit = async () => {
         if (!formData.requestId || !formData.invoiceId) {
             toast.error("Please select both request and invoice");
@@ -77,7 +61,6 @@ export function CreateMaintenanceVoucherDialog({ open, onOpenChange, requestId, 
             onOpenChange(false);
             setFormData({
                 requestId: requestId || "",
-                createdBy: "",
                 invoiceId: "",
                 details: [],
             });
