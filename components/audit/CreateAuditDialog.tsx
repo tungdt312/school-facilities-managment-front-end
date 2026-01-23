@@ -1,6 +1,6 @@
 "use client"
 
-import {useState} from "react";
+import {useState, useEffect} from "react";
 import {
     Dialog,
     DialogContent,
@@ -21,9 +21,14 @@ import {
 } from "@/components/ui/select";
 import {CreateInventoryAuditRequest} from "@/dtos/audit";
 import { LocationType, AuditStatus } from "@/constaints/enum";
-import { createInventoryAudit } from "@/services/auditService";
+import { createInventoryAudit, getPeriodicAudits } from "@/services/auditService";
+import { getUsersList } from "@/services/userService";
+import { getBuildingsList, getFloorsList, getRoomsList } from "@/services/areaService";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { AuditPeriodResponse } from "@/dtos/audit";
+import { UserResponse } from "@/dtos/user";
+import { BuildingResponse, FloorResponse, RoomResponse } from "@/dtos/building";
 
 interface CreateAuditDialogProps {
     open: boolean;
@@ -43,6 +48,63 @@ export function CreateAuditDialog({open, onOpenChange, onSuccess}: CreateAuditDi
         status: AuditStatus.Pending,
     });
     const [isLoading, setIsLoading] = useState(false);
+    
+    // States for dropdowns
+    const [periods, setPeriods] = useState<AuditPeriodResponse[]>([]);
+    const [users, setUsers] = useState<UserResponse[]>([]);
+    const [locations, setLocations] = useState<(BuildingResponse | FloorResponse | RoomResponse)[]>([]);
+    const [isLoadingData, setIsLoadingData] = useState(false);
+
+    // Fetch data when dialog opens
+    useEffect(() => {
+        if (open) {
+            fetchData();
+        }
+    }, [open]);
+
+    const fetchData = async () => {
+        setIsLoadingData(true);
+        try {
+            // Fetch periods
+            const periodsRes = await getPeriodicAudits({ page: 1, size: 100 });
+            setPeriods(periodsRes.content || []);
+
+            // Fetch users
+            const usersRes = await getUsersList({ page: 1, size: 100 });
+            setUsers(usersRes.content || []);
+
+            // Fetch buildings (default location type)
+            const buildingsRes = await getBuildingsList({ page: 1, size: 100 });
+            setLocations(buildingsRes.content || []);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            toast.error("Failed to load dropdown data");
+        } finally {
+            setIsLoadingData(false);
+        }
+    };
+
+    const handleLocationTypeChange = async (locationType: string) => {
+        setFormData({ ...formData, locationType: locationType as unknown as LocationType, locationId: "" });
+        
+        try {
+            let locationData;
+            if (locationType === String(LocationType.Building)) {
+                const res = await getBuildingsList({ page: 1, size: 100 });
+                locationData = res.content || [];
+            } else if (locationType === String(LocationType.Floor)) {
+                const res = await getFloorsList({ page: 1, size: 100 });
+                locationData = res.content || [];
+            } else if (locationType === String(LocationType.Room)) {
+                const res = await getRoomsList({ page: 1, size: 100 });
+                locationData = res.content || [];
+            }
+            setLocations(locationData || []);
+        } catch (error) {
+            console.error("Error fetching locations:", error);
+            toast.error("Failed to load locations");
+        }
+    };
 
     const handleSubmit = async () => {
         // Validation
@@ -120,31 +182,30 @@ export function CreateAuditDialog({open, onOpenChange, onSuccess}: CreateAuditDi
                         />
                     </div>                    
                     <div className="grid gap-2">
-                        <Label htmlFor="periodId">Period ID *</Label>
-                        <Input
-                            id="periodId"
-                            placeholder="e.g., P001"
-                            value={formData.periodId}
-                            onChange={(e) => setFormData({...formData, periodId: e.target.value})}
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="locationId">Location ID *</Label>
-                        <Input
-                            id="locationId"
-                            placeholder="e.g., L001"
-                            value={formData.locationId}
-                            onChange={(e) => setFormData({...formData, locationId: e.target.value})}
-                            disabled={isLoading}
-                        />
+                        <Label htmlFor="periodId">Period *</Label>
+                        <Select 
+                            value={formData.periodId} 
+                            onValueChange={(value) => setFormData({...formData, periodId: value})} 
+                            disabled={isLoading || isLoadingData}
+                        >
+                            <SelectTrigger id="periodId">
+                                <SelectValue placeholder={isLoadingData ? "Loading periods..." : "Select a period"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {periods.map((period) => (
+                                    <SelectItem key={period.periodId} value={period.periodId}>
+                                        {period.periodicAuditName}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="locationType">Location Type *</Label>
                         <Select 
                             value={String(formData.locationType)} 
-                            onValueChange={(value) => setFormData({...formData, locationType: value as unknown as LocationType})} 
-                            disabled={isLoading}
+                            onValueChange={handleLocationTypeChange} 
+                            disabled={isLoading || isLoadingData}
                         >
                             <SelectTrigger id="locationType">
                                 <SelectValue placeholder="Select a type" />
@@ -157,14 +218,42 @@ export function CreateAuditDialog({open, onOpenChange, onSuccess}: CreateAuditDi
                         </Select>
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="auditorId">Auditor ID *</Label>
-                        <Input
-                            id="auditorId"
-                            placeholder="e.g., A001"
-                            value={formData.auditorId}
-                            onChange={(e) => setFormData({...formData, auditorId: e.target.value})}
-                            disabled={isLoading}
-                        />
+                        <Label htmlFor="locationId">Location *</Label>
+                        <Select 
+                            value={formData.locationId} 
+                            onValueChange={(value) => setFormData({...formData, locationId: value})} 
+                            disabled={isLoading || isLoadingData}
+                        >
+                            <SelectTrigger id="locationId">
+                                <SelectValue placeholder={isLoadingData ? "Loading locations..." : "Select a location"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {locations.map((location: any) => (
+                                    <SelectItem key={location.id || location.buildingId || location.floorId || location.roomId} value={location.id || location.buildingId || location.floorId || location.roomId}>
+                                        {location.name || location.buildingName || location.floorName || location.roomName}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="auditorId">Auditor *</Label>
+                        <Select 
+                            value={formData.auditorId} 
+                            onValueChange={(value) => setFormData({...formData, auditorId: value})} 
+                            disabled={isLoading || isLoadingData}
+                        >
+                            <SelectTrigger id="auditorId">
+                                <SelectValue placeholder={isLoadingData ? "Loading auditors..." : "Select an auditor"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map((user) => (
+                                    <SelectItem key={user.userId} value={user.userId}>
+                                        {user.fullname} ({user.email})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="auditDate">Audit Date</Label>
