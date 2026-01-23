@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CreateRepairVoucherRequest } from "@/dtos/repair";
 import { createRepairVoucher } from "@/services/repairService";
 import { getInvoices } from "@/services/invoiceService";
-import { getMe } from "@/services/authService";
 import { toast } from "sonner";
 import { InvoiceResponse } from "@/dtos/other";
 
@@ -22,7 +21,6 @@ interface CreateRepairVoucherDialogProps {
 export function CreateRepairVoucherDialog({ open, onOpenChange, requestId, onSuccess }: CreateRepairVoucherDialogProps) {
     const [formData, setFormData] = useState<CreateRepairVoucherRequest>({
         requestId: requestId || "",
-        createdBy: "",
         invoiceId: "",
         details: [],
     });
@@ -33,7 +31,6 @@ export function CreateRepairVoucherDialog({ open, onOpenChange, requestId, onSuc
     useEffect(() => {
         if (open) {
             fetchInvoices();
-            fetchCurrentUser();
         }
     }, [open]);
 
@@ -51,19 +48,6 @@ export function CreateRepairVoucherDialog({ open, onOpenChange, requestId, onSuc
         }
     };
 
-    const fetchCurrentUser = async () => {
-        try {
-            const user = await getMe();
-            setFormData(prev => ({
-                ...prev,
-                createdBy: user.userId,
-            }));
-        } catch (error) {
-            console.error("Error fetching current user:", error);
-            toast.error("Failed to load current user");
-        }
-    };
-
     const handleSubmit = async () => {
         if (!formData.requestId || !formData.invoiceId) {
             toast.error("Please select both request and invoice");
@@ -77,7 +61,6 @@ export function CreateRepairVoucherDialog({ open, onOpenChange, requestId, onSuc
             onOpenChange(false);
             setFormData({
                 requestId: requestId || "",
-                createdBy: "",
                 invoiceId: "",
                 details: [],
             });

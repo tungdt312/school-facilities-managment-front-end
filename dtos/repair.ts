@@ -8,7 +8,6 @@ export interface RepairRequestDetailRequest { // Thay thế RepairRequestDetailD
 }
 
 export interface CreateRepairRequestRequest {
-    createdBy: string;
     note?: string;
     details: RepairRequestDetailRequest[];
 }
@@ -22,7 +21,6 @@ export interface UpdateRepairRequestStatusRequest {
 
 export interface CreateRepairVoucherRequest {
     requestId: string;
-    createdBy: string;
     invoiceId: string;
     details: RepairRequestDetailRequest[];
 }
