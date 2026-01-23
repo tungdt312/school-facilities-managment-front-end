@@ -1,8 +1,3 @@
-import {ChartAreaInteractive} from "@/components/chart-area-interactive"
-import {DataTable} from "@/components/data-table"
-import {SectionCards} from "@/components/section-cards"
-
-import data from "./data.json"
 import {SidebarTrigger} from "@/components/ui/sidebar";
 import {Separator} from "@/components/ui/separator";
 import {Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList} from "@/components/ui/breadcrumb";
@@ -12,8 +7,6 @@ import {TransferRequestTable} from "@/components/transfer/transfer-request-table
 import {MaintenanceRequestTable} from "@/components/maintenance/MaintenanceRequestTable";
 import {InventoryAuditTable} from "@/components/audit/InventoryAuditTable";
 import {RepairRequestTable} from "@/components/repair/RepairRequestTable";
-import {Donut} from "lucide-react";
-import {DeviceStatisticsDashboard} from "@/components/statistic/donut";
 import {MainDashboard} from "@/components/statistic/main";
 
 export default function Page() {
@@ -23,12 +16,17 @@ export default function Page() {
             <div className="flex flex-1 flex-col">
                 <div className="@container/main flex flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-6">
-
+                        <span>Procurement Requests</span>
                         <ImportRequestTable/>
+                        <span>Disposal Requests</span>
                         <LiquidateRequestTable/>
+                        <span>Transfer Requests</span>
                         <TransferRequestTable/>
+                        <span>Maintenance Requests</span>
                         <MaintenanceRequestTable/>
+                        <span>Repair Requests</span>
                         <RepairRequestTable/>
+                        <span>Inventory Audit</span>
                         <InventoryAuditTable/>
                         <MainDashboard/>
                     </div>

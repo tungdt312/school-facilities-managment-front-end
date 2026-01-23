@@ -60,22 +60,22 @@ export const ImportVoucherTable = () => {
     const debouncedSearch = useDebounce(searchTerm, 500);
 
     const columns: ColumnDef<ImportVoucherResponse>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({ table }) => (
-                <Checkbox
-                    checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                />
-            ),
-            cell: ({ row }) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) => row.toggleSelected(!!value)}
-                />
-            ),
-            size: 40,
-        },
+        // {
+        //     id: "select",
+        //     header: ({ table }) => (
+        //         <Checkbox
+        //             checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        //             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        //         />
+        //     ),
+        //     cell: ({ row }) => (
+        //         <Checkbox
+        //             checked={row.getIsSelected()}
+        //             onCheckedChange={(value) => row.toggleSelected(!!value)}
+        //         />
+        //     ),
+        //     size: 40,
+        // },
         {
             accessorKey: "importId",
             meta: { label: "Voucher ID" },

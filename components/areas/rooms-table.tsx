@@ -207,13 +207,13 @@ export const RoomTable = ({floorId}: { floorId?: string }) => {
     const debouncedSearch = useDebounce(searchTerm, 500);
 
     const columns: ColumnDef<RoomResponse>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({table}) => <Checkbox checked={table.getIsAllPageRowsSelected()}
-                                           onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}/>,
-            cell: ({row}) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)}/>,
-            size: 40,
-        },
+        // {
+        //     id: "select",
+        //     header: ({table}) => <Checkbox checked={table.getIsAllPageRowsSelected()}
+        //                                    onCheckedChange={(v) => table.toggleAllPageRowsSelected(!!v)}/>,
+        //     cell: ({row}) => <Checkbox checked={row.getIsSelected()} onCheckedChange={(v) => row.toggleSelected(!!v)}/>,
+        //     size: 40,
+        // },
         {
             accessorKey: "roomId",
             header: ({column}) => (

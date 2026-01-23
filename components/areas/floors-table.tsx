@@ -166,22 +166,22 @@ export const FloorTable = ({buildingId}: FloorTableProps) => {
     const debouncedSearch = useDebounce(searchTerm, 500);
 
     const columns: ColumnDef<FloorResponse>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({table}) => (
-                <Checkbox
-                    checked={table.getIsAllPageRowsSelected()}
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                />
-            ),
-            cell: ({row}) => (
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) => row.toggleSelected(!!value)}
-                />
-            ),
-            size: 40,
-        },
+        // {
+        //     id: "select",
+        //     header: ({table}) => (
+        //         <Checkbox
+        //             checked={table.getIsAllPageRowsSelected()}
+        //             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        //         />
+        //     ),
+        //     cell: ({row}) => (
+        //         <Checkbox
+        //             checked={row.getIsSelected()}
+        //             onCheckedChange={(value) => row.toggleSelected(!!value)}
+        //         />
+        //     ),
+        //     size: 40,
+        // },
         {
             accessorKey: "floorId",
             header: ({column}) => (

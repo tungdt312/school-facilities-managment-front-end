@@ -63,26 +63,26 @@ export const DeviceTable = ({locationId, locationType}: { locationId?: string, l
     const debouncedSearch = useDebounce(searchTerm, 500);
 
     const columns: ColumnDef<DeviceResponse>[] = useMemo(() => [
-        {
-            id: "select",
-            header: ({table}) => (
-                <div className="flex items-center justify-center">
-                    <Checkbox
-                        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
-                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                    />
-                </div>
-            ),
-            cell: ({row}) => (
-                <div className="flex items-center justify-center">
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onCheckedChange={(value) => row.toggleSelected(!!value)}
-                    />
-                </div>
-            ),
-            size: 40,
-        },
+        // {
+        //     id: "select",
+        //     header: ({table}) => (
+        //         <div className="flex items-center justify-center">
+        //             <Checkbox
+        //                 checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+        //                 onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        //             />
+        //         </div>
+        //     ),
+        //     cell: ({row}) => (
+        //         <div className="flex items-center justify-center">
+        //             <Checkbox
+        //                 checked={row.getIsSelected()}
+        //                 onCheckedChange={(value) => row.toggleSelected(!!value)}
+        //             />
+        //         </div>
+        //     ),
+        //     size: 40,
+        // },
         {
             accessorKey: "equipmentId",
             meta: {label: "Device ID"},

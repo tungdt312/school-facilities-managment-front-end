@@ -239,7 +239,7 @@ export const CreateLiquidateVoucherDialog = ({defaultRequestId}: { defaultReques
                                                         <FormLabel>Select Device</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                             <FormControl>
-                                                                <SelectTrigger className="w-full md:w-[200px] flex justify-between items-center">
+                                                                <SelectTrigger className="w-full md:w-[170px] flex justify-between items-center">
                                                                     <div className="truncate text-left flex-1 mr-2">
                                                                         <SelectValue placeholder={selectedRequestId ? "Choose devices from request..." : "Please choose a request first"} />
                                                                     </div>
